@@ -14,6 +14,11 @@ type Props = {
   deletingDate?: string | null;
 };
 
+/**
+ * Bandeau « Disponibilité du jour ».
+ * Couleurs via tokens Bootstrap (bg/border/text-success-subtle)
+ * → contrastes corrects light + dark.
+ */
 export function AvailabilitiesBanner({
   rows,
   legend,
@@ -27,13 +32,13 @@ export function AvailabilitiesBanner({
   const confirmRow = confirmDate ? rows.find((r) => r.date === confirmDate) : null;
 
   return (
-    <div className="card mb-3 border-0 shadow-none" style={{ background: "rgba(220, 252, 231, 0.45)" }}>
+    <div className="card mb-3 border border-success-subtle bg-success-subtle shadow-none">
       <div className="card-body py-3">
         <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
-          <h6 className="mb-0 d-flex align-items-center gap-2">
+          <h6 className="mb-0 d-flex align-items-center gap-2 text-success-emphasis">
             <span
-              className="rounded-circle d-inline-block"
-              style={{ width: 8, height: 8, backgroundColor: "#22c55e" }}
+              className="rounded-circle d-inline-block bg-success"
+              style={{ width: 8, height: 8 }}
               aria-hidden
             />
             Disponibilité du jour
@@ -56,8 +61,8 @@ export function AvailabilitiesBanner({
                 return (
                   <div
                     key={`${row.userId}-${row.date}`}
-                    className="d-inline-flex align-items-center gap-1 flex-wrap border border-success-subtle rounded-pill px-2 py-1"
-                    style={{ background: "#dcfce7", maxWidth: "100%" }}
+                    className="d-inline-flex align-items-center gap-1 flex-wrap border border-success rounded-pill px-2 py-1 bg-body"
+                    style={{ maxWidth: "100%" }}
                     title={row.title}
                   >
                     <span
@@ -121,7 +126,7 @@ export function AvailabilitiesBanner({
                   </button>
                   <button
                     type="button"
-                    className="btn btn-sm btn-light"
+                    className="btn btn-sm btn-outline-secondary"
                     disabled={Boolean(deletingDate)}
                     onClick={() => setConfirmDate(null)}
                   >
