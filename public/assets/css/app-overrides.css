@@ -1,0 +1,53 @@
+/**
+ * Override global : boutons plus arrondis (pill) dans toute l’app.
+ * Chargé après styles.css — ne modifie pas le template source.
+ */
+.btn {
+  --bs-btn-border-radius: 999px;
+  border-radius: 999px !important;
+}
+
+.btn-sm,
+.btn-group-sm > .btn {
+  --bs-btn-border-radius: 999px;
+  border-radius: 999px !important;
+}
+
+.btn-lg,
+.btn-group-lg > .btn {
+  --bs-btn-border-radius: 999px;
+  border-radius: 999px !important;
+}
+
+/* Icônes seules : restent circulaires */
+.btn-icon,
+.btn.btn-icon {
+  --bs-btn-border-radius: 50%;
+  border-radius: 50% !important;
+}
+
+/* Groupes : garder les bords joints sans tout casser */
+.btn-group > .btn:not(:first-child),
+.btn-group > .btn-group:not(:first-child) > .btn {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+.btn-group > .btn:not(:last-child):not(.dropdown-toggle),
+.btn-group > .btn-group:not(:last-child) > .btn {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.btn-group > .btn:first-child:not(:last-child),
+.btn-group > .btn-group:first-child:not(:last-child) > .btn {
+  border-top-left-radius: 999px !important;
+  border-bottom-left-radius: 999px !important;
+}
+
+.btn-group > .btn:last-child:not(:first-child),
+.btn-group > .dropdown-toggle:not(:first-child),
+.btn-group > .btn-group:last-child > .btn {
+  border-top-right-radius: 999px !important;
+  border-bottom-right-radius: 999px !important;
+}

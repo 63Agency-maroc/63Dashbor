@@ -671,8 +671,7 @@ export function MeetingFormModal({
                                 disabled={submitting}
                               />
                               <span className="small">
-                                {[u.prenom, u.nom].filter(Boolean).join(" ") || u.email}
-                                {u.email ? ` · ${u.email}` : ""}
+                                {u.prenom || u.nom || "Utilisateur"}
                               </span>
                             </label>
                           ))

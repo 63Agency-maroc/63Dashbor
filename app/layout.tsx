@@ -32,6 +32,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <link rel="stylesheet" href="/assets/libs/simplebar/simplebar.css" />
         <link rel="stylesheet" href="/assets/libs/node-waves/waves.css" />
         <link rel="stylesheet" href="/assets/css/styles.css" />
+        <link rel="stylesheet" href="/assets/css/app-overrides.css" />
         <meta name="theme-color" content="#5955D1" />
       </head>
       <body>

@@ -33,7 +33,7 @@ type Props = {
 
 function assigneeNames(m: Meeting): string {
   const fromAssignees = (m.assignees ?? [])
-    .map((a) => [a.prenom, a.nom].filter(Boolean).join(" ") || a.email || a.id)
+    .map((a) => a.prenom || a.nom || a.email || a.id)
     .filter(Boolean);
   if (fromAssignees.length) return fromAssignees.join(", ");
   return (m.assignedUserIds ?? []).join(", ") || "—";
@@ -217,7 +217,7 @@ export function MeetingsListSection({
                 <option value="">Tous assignés</option>
                 {assignableUsers.map((u) => (
                   <option key={u.id} value={u.id}>
-                    {[u.prenom, u.nom].filter(Boolean).join(" ") || u.email}
+                    {u.prenom || u.nom || "Utilisateur"}
                   </option>
                 ))}
               </select>

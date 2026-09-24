@@ -75,7 +75,7 @@ export function AvailabilitiesBanner({
                       <span className="d-inline-flex gap-1 ms-1">
                         <button
                           type="button"
-                          className="btn btn-sm btn-link text-success p-0 px-1"
+                          className="btn btn-sm btn-link text-success p-0 px-2 rounded-pill"
                           style={{ fontSize: "0.75rem", textDecoration: "none" }}
                           disabled={Boolean(deletingDate)}
                           onClick={() => {
@@ -87,7 +87,7 @@ export function AvailabilitiesBanner({
                         </button>
                         <button
                           type="button"
-                          className="btn btn-sm btn-link text-danger p-0 px-1"
+                          className="btn btn-sm btn-link text-danger p-0 px-2 rounded-pill"
                           style={{ fontSize: "0.75rem", textDecoration: "none" }}
                           disabled={Boolean(deletingDate)}
                           onClick={() => setConfirmDate(row.date)}
@@ -114,7 +114,7 @@ export function AvailabilitiesBanner({
                 <div className="d-flex gap-2">
                   <button
                     type="button"
-                    className="btn btn-sm btn-danger"
+                    className="btn btn-sm btn-danger rounded-pill px-3"
                     disabled={Boolean(deletingDate)}
                     onClick={() => {
                       const d = confirmRow.date;
@@ -126,7 +126,7 @@ export function AvailabilitiesBanner({
                   </button>
                   <button
                     type="button"
-                    className="btn btn-sm btn-outline-secondary"
+                    className="btn btn-sm btn-outline-secondary rounded-pill px-3"
                     disabled={Boolean(deletingDate)}
                     onClick={() => setConfirmDate(null)}
                   >

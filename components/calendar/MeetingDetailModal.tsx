@@ -19,8 +19,7 @@ type Props = {
 };
 
 function assigneeLabel(a: { prenom?: string; nom?: string; email?: string; id: string }) {
-  const name = [a.prenom, a.nom].filter(Boolean).join(" ");
-  return name || a.email || a.id;
+  return a.prenom || a.nom || a.email || a.id;
 }
 
 function formatRemindersStatus(value: unknown): string {
