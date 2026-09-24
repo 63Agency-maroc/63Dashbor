@@ -1,0 +1,42 @@
+{
+  "name": "dashboard-63",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@fullcalendar/core": "^6.1.19",
+    "@fullcalendar/daygrid": "^6.1.19",
+    "@fullcalendar/interaction": "^6.1.19",
+    "@fullcalendar/react": "^6.1.19",
+    "@fullcalendar/timegrid": "^6.1.19",
+    "apexcharts": "^5.3.5",
+    "bootstrap": "^5.3.8",
+    "flatpickr": "^4.6.13",
+    "luxon": "^3.7.2",
+    "next": "16.3.5",
+    "react": "19.2.8",
+    "react-apexcharts": "^1.8.0",
+    "react-dom": "19.2.8",
+    "react-flatpickr": "^4.0.10",
+    "react-sortablejs": "^6.1.4",
+    "socket.io-client": "^4.8.3",
+    "sortablejs": "^1.15.6"
+  },
+  "devDependencies": {
+    "@types/bootstrap": "^5.2.10",
+    "@types/luxon": "^3.7.5",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/react-flatpickr": "^3.8.11",
+    "@types/sortablejs": "^1.15.8",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.5",
+    "typescript": "^5"
+  }
+}
