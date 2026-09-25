@@ -1,8 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState, type ReactNode } from "react";
 import type { Meeting } from "@/lib/api/meetings";
-import { formatInCasablanca } from "@/lib/datetime/casablanca";
+import { formatInCasablanca, parseIso, getZonedParts } from "@/lib/datetime/casablanca";
 import { getStatusPalette } from "@/lib/calendar/statusPalette";
 import { Select } from "@/components/ui/Select";
 
@@ -15,7 +15,11 @@ type Props = {
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
-  onSendReminder: (dto: { channel: "whatsapp" | "email" | "both"; offset: "2d" | "24h" | "2h"; force: boolean }) => void;
+  onSendReminder: (dto: {
+    channel: "whatsapp" | "email" | "both";
+    offset: "2d" | "24h" | "2h";
+    force: boolean;
+  }) => void;
   onRegenerateMeet: () => void;
 };
 
@@ -23,14 +27,26 @@ function assigneeLabel(a: { prenom?: string; nom?: string; email?: string; id: s
   return a.prenom || a.nom || a.email || a.id;
 }
 
-function formatRemindersStatus(value: unknown): string {
-  if (value == null) return "—";
-  if (typeof value === "string") return value;
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return String(value);
-  }
+function MetaTile({
+  icon,
+  label,
+  children,
+}: {
+  icon: string;
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="meeting-detail__tile">
+      <div className="meeting-detail__tile-icon" aria-hidden>
+        <i className={icon} />
+      </div>
+      <div className="meeting-detail__tile-body min-w-0">
+        <div className="meeting-detail__tile-label">{label}</div>
+        <div className="meeting-detail__tile-value">{children}</div>
+      </div>
+    </div>
+  );
 }
 
 export function MeetingDetailModal({
@@ -67,6 +83,22 @@ export function MeetingDetailModal({
   if (!open || !meeting) return null;
 
   const palette = getStatusPalette(meeting.status);
+  const dateObj = parseIso(meeting.meetingDate);
+  const parts = dateObj ? getZonedParts(dateObj) : null;
+  const dateLabel = formatInCasablanca(meeting.meetingDate, {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+  const timeLabel = parts
+    ? `${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`
+    : formatInCasablanca(meeting.meetingDate, { hour: "2-digit", minute: "2-digit" });
+
+  const assignees = (meeting.assignees ?? []).map(assigneeLabel);
+  const members = (meeting.members ?? []).map(
+    (m) => m.name + (m.phone ? ` (${m.phone})` : ""),
+  );
 
   function handleReminder(e: FormEvent) {
     e.preventDefault();
@@ -77,97 +109,158 @@ export function MeetingDetailModal({
     <>
       <div className="modal fade show" style={{ display: "block" }} tabIndex={-1} role="dialog" aria-modal="true">
         <div className="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title" id="eventTitle">
-                {meeting.title}
-              </h5>
-              <button type="button" className="btn-close" aria-label="Close" onClick={onClose} disabled={busy} />
+          <div className="modal-content meeting-detail-modal">
+            <div className="meeting-detail__accent" aria-hidden />
+
+            <div className="modal-header meeting-detail__header border-0">
+              <div className="meeting-detail__hero min-w-0">
+                <div className="meeting-detail__avatar" aria-hidden>
+                  <i className="fi fi-rr-calendar" />
+                </div>
+                <div className="min-w-0">
+                  <p className="meeting-detail__eyebrow mb-1">Détail du meeting</p>
+                  <h5 className="modal-title mb-2" title={meeting.title}>
+                    {meeting.title}
+                  </h5>
+                  <span className={`badge rounded-pill meeting-detail__status ${palette.badgeClass}`}>
+                    {palette.label || meeting.status}
+                  </span>
+                </div>
+              </div>
+              <button type="button" className="btn-close" aria-label="Fermer" onClick={onClose} disabled={busy} />
             </div>
-            <div className="modal-body">
+
+            <div className="modal-body meeting-detail__body">
               {error ? (
-                <div className="alert alert-danger" role="alert">
+                <div className="alert alert-danger py-2" role="alert">
                   {error}
                 </div>
               ) : null}
 
-              <p className="mb-2">
-                <strong className="text-dark">Date:</strong>{" "}
-                <span>{formatInCasablanca(meeting.meetingDate)}</span>
-                <span className="text-muted small ms-1">(Casablanca)</span>
-              </p>
-              <p className="mb-2">
-                <strong className="text-dark">Status:</strong>{" "}
-                <span className={`badge ${palette.badgeClass}`}>{meeting.status}</span>
-              </p>
-              <p className="mb-2">
-                <strong className="text-dark">Contact:</strong> {meeting.contactName || "—"}
-                {meeting.contactPhone ? ` · ${meeting.contactPhone}` : ""}
-                {meeting.contactEmail ? ` · ${meeting.contactEmail}` : ""}
-              </p>
-              <p className="mb-2">
-                <strong className="text-dark">Assignees:</strong>{" "}
-                {(meeting.assignees ?? []).length
-                  ? (meeting.assignees ?? []).map(assigneeLabel).join(", ")
-                  : "—"}
-              </p>
-              <p className="mb-2">
-                <strong className="text-dark">Members:</strong>{" "}
-                {(meeting.members ?? []).length
-                  ? (meeting.members ?? [])
-                      .map((m) => m.name + (m.phone ? ` (${m.phone})` : ""))
-                      .join(", ")
-                  : "—"}
-              </p>
-              <p className="mb-2">
-                <strong className="text-dark">Meet link:</strong>{" "}
-                {meeting.meetLink ? (
-                  <a href={meeting.meetLink} target="_blank" rel="noreferrer">
-                    {meeting.meetLink}
-                  </a>
-                ) : (
-                  "—"
-                )}
-              </p>
-              <p className="mb-2">
-                <strong className="text-dark">Notes:</strong> {meeting.notes || "—"}
-              </p>
-              <div className="mb-0">
-                <strong className="text-dark">Reminders status:</strong>
-                <pre className="small bg-light rounded p-2 mt-1 mb-0" style={{ whiteSpace: "pre-wrap" }}>
-                  {formatRemindersStatus(meeting.remindersStatus)}
-                </pre>
+              <div className="meeting-detail__schedule">
+                <div className="meeting-detail__schedule-main">
+                  <div className="meeting-detail__schedule-icon" aria-hidden>
+                    <i className="fi fi-rr-clock" />
+                  </div>
+                  <div>
+                    <div className="meeting-detail__schedule-date">{dateLabel}</div>
+                    <div className="meeting-detail__schedule-meta">
+                      <span className="meeting-detail__schedule-time">{timeLabel}</span>
+                      <span className="meeting-detail__schedule-tz">Africa/Casablanca</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
+              <div className="meeting-detail__grid">
+                <MetaTile icon="fi fi-rr-user" label="Contact">
+                  {meeting.contactName ? (
+                    <>
+                      <div>{meeting.contactName}</div>
+                      {meeting.contactPhone ? (
+                        <div className="meeting-detail__sub">
+                          <i className="fi fi-rr-phone-call" aria-hidden /> {meeting.contactPhone}
+                        </div>
+                      ) : null}
+                      {meeting.contactEmail ? (
+                        <div className="meeting-detail__sub">
+                          <i className="fi fi-rr-envelope" aria-hidden /> {meeting.contactEmail}
+                        </div>
+                      ) : null}
+                    </>
+                  ) : (
+                    <span className="meeting-detail__empty">Non renseigné</span>
+                  )}
+                </MetaTile>
+
+                <MetaTile icon="fi fi-rr-users" label="Assignees">
+                  {assignees.length > 0 ? (
+                    <div className="meeting-detail__chips">
+                      {assignees.map((name) => (
+                        <span key={name} className="meeting-detail__chip">
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="meeting-detail__empty">Aucun</span>
+                  )}
+                </MetaTile>
+
+                <MetaTile icon="fi fi-rr-user-add" label="Members">
+                  {members.length > 0 ? (
+                    <div className="meeting-detail__chips">
+                      {members.map((name) => (
+                        <span key={name} className="meeting-detail__chip">
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="meeting-detail__empty">Aucun</span>
+                  )}
+                </MetaTile>
+
+                <MetaTile icon="fi fi-rr-video-camera" label="Google Meet">
+                  {meeting.meetLink ? (
+                    <a
+                      href={meeting.meetLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="meeting-detail__meet-btn"
+                    >
+                      <span className="text-truncate">Ouvrir le lien Meet</span>
+                      <i className="fi fi-rr-arrow-up-right-from-square flex-shrink-0" aria-hidden />
+                    </a>
+                  ) : (
+                    <span className="meeting-detail__empty">Pas de lien</span>
+                  )}
+                </MetaTile>
+              </div>
+
+              {meeting.notes ? (
+                <div className="meeting-detail__notes-block">
+                  <div className="meeting-detail__notes-label">
+                    <i className="fi fi-rr-document" aria-hidden /> Notes
+                  </div>
+                  <p className="meeting-detail__notes-text mb-0">{meeting.notes}</p>
+                </div>
+              ) : null}
+
               {showReminder ? (
-                <form className="border rounded p-3 mt-3" onSubmit={handleReminder}>
-                  <h6 className="mb-3">Envoyer un rappel</h6>
+                <form className="meeting-detail__panel mt-3" onSubmit={handleReminder}>
+                  <div className="d-flex align-items-center gap-2 mb-3">
+                    <div className="meeting-detail__tile-icon meeting-detail__tile-icon--sm" aria-hidden>
+                      <i className="fi fi-rr-bell" />
+                    </div>
+                    <div className="fw-semibold">Envoyer un rappel</div>
+                  </div>
                   <div className="row g-2">
                     <div className="col-md-4">
-                      <label className="form-label">Channel</label>
+                      <label className="form-label">Canal</label>
                       <Select
                         size="sm"
                         value={channel}
                         onChange={(v) => setChannel(v as typeof channel)}
                         disabled={busy}
                         options={[
-                          { value: "both", label: "both" },
-                          { value: "whatsapp", label: "whatsapp" },
-                          { value: "email", label: "email" },
+                          { value: "both", label: "WhatsApp + email" },
+                          { value: "whatsapp", label: "WhatsApp" },
+                          { value: "email", label: "Email" },
                         ]}
                       />
                     </div>
                     <div className="col-md-4">
-                      <label className="form-label">Offset</label>
+                      <label className="form-label">Délai</label>
                       <Select
                         size="sm"
                         value={offset}
                         onChange={(v) => setOffset(v as typeof offset)}
                         disabled={busy}
                         options={[
-                          { value: "2d", label: "2d" },
-                          { value: "24h", label: "24h" },
-                          { value: "2h", label: "2h" },
+                          { value: "2d", label: "2 jours" },
+                          { value: "24h", label: "24 heures" },
+                          { value: "2h", label: "2 heures" },
                         ]}
                       />
                     </div>
@@ -180,7 +273,7 @@ export function MeetingDetailModal({
                           onChange={(e) => setForce(e.target.checked)}
                           disabled={busy}
                         />
-                        Force
+                        Forcer l&apos;envoi
                       </label>
                     </div>
                   </div>
@@ -219,29 +312,37 @@ export function MeetingDetailModal({
                 </div>
               ) : null}
             </div>
-            <div className="modal-footer flex-wrap gap-2">
-              <button type="button" className="btn btn-light waves-effect waves-light" onClick={onClose} disabled={busy}>
-                Close
+
+            <div className="modal-footer meeting-detail__footer border-0 flex-wrap gap-2">
+              <button type="button" className="btn btn-light" onClick={onClose} disabled={busy}>
+                Fermer
               </button>
-              <button type="button" className="btn btn-subtle-primary" onClick={onEdit} disabled={busy}>
-                Éditer
-              </button>
-              <button type="button" className="btn btn-subtle-info" onClick={() => setShowReminder(true)} disabled={busy}>
-                Envoyer rappel
-              </button>
-              {isAdmin ? (
-                <button type="button" className="btn btn-subtle-secondary" onClick={onRegenerateMeet} disabled={busy}>
-                  Régénérer Meet
+              <div className="meeting-detail__footer-actions d-flex flex-wrap gap-2 ms-md-auto">
+                <button type="button" className="btn btn-primary" onClick={onEdit} disabled={busy}>
+                  <i className="fi fi-rr-pencil me-1" aria-hidden /> Éditer
                 </button>
-              ) : null}
-              <button
-                type="button"
-                className="btn btn-subtle-danger"
-                onClick={() => setConfirmDelete(true)}
-                disabled={busy}
-              >
-                Supprimer
-              </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-primary"
+                  onClick={() => setShowReminder(true)}
+                  disabled={busy}
+                >
+                  <i className="fi fi-rr-bell me-1" aria-hidden /> Rappel
+                </button>
+                {isAdmin ? (
+                  <button type="button" className="btn btn-light" onClick={onRegenerateMeet} disabled={busy}>
+                    Régénérer Meet
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="btn btn-outline-danger"
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={busy}
+                >
+                  Supprimer
+                </button>
+              </div>
             </div>
           </div>
         </div>
