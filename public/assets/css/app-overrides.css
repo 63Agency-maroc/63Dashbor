@@ -1139,3 +1139,78 @@ textarea.form-control {
     linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.16) 0%, transparent 55%),
     var(--bs-secondary-bg);
 }
+
+/* =============================================================================
+ * Broadcast wizard — steps pill (segmented control)
+ * ============================================================================= */
+
+.broadcast-steps {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  max-width: none;
+  padding: 0.35rem;
+  border-radius: 999px;
+  background-color: var(--bs-tertiary-bg);
+  border: 1px solid var(--bs-border-color);
+  gap: 0.2rem;
+}
+
+.broadcast-steps__item {
+  flex: 1 1 0;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--bs-secondary-color);
+  font-size: 0.95rem;
+  font-weight: 550;
+  line-height: 1.2;
+  padding: 0.85rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  text-align: center;
+}
+
+.broadcast-steps__item:hover:not(:disabled):not(.is-active) {
+  color: var(--bs-heading-color);
+}
+
+.broadcast-steps__item.is-active {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-heading-color);
+  font-weight: 650;
+  box-shadow: 0 0.1rem 0.35rem rgba(var(--bs-body-color-rgb, 33, 37, 41), 0.1);
+}
+
+.broadcast-steps__item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.broadcast-steps__item:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.35);
+}
+
+[data-bs-theme="dark"] .broadcast-steps {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-bs-theme="dark"] .broadcast-steps__item.is-active {
+  background-color: var(--bs-secondary-bg);
+  box-shadow: 0 0.15rem 0.45rem rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 575.98px) {
+  .broadcast-steps__item {
+    font-size: 0.8rem;
+    padding: 0.7rem 0.45rem;
+  }
+}

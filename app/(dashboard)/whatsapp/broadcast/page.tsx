@@ -1047,40 +1047,37 @@ export default function WhatsappBroadcastPage() {
         </div>
       </div>
 
-      <div className="alert alert-info d-flex align-items-start gap-2" role="status">
-        <i className="fi fi-rr-info mt-1" />
-        <div>
-          <strong>Template WhatsApp et/ou email.</strong> Cochez les canaux à l'étape 2.
-          Perso : WA <code>{"{{1}}"}</code> et email <code>{"{{name}}"}</code> = nom du lead
-          (custom field Full Name).
-        </div>
-      </div>
-
-      <ul className="nav nav-pills mb-3 gap-1 flex-wrap">
+      <div className="broadcast-steps mb-4" role="tablist" aria-label="Étapes du broadcast">
         {(
           [
             [1, "1. Destinataires"],
             [2, "2. Template"],
             [3, "3. Envoi"],
           ] as const
-        ).map(([n, label]) => (
-          <li className="nav-item" key={n}>
+        ).map(([n, label]) => {
+          const disabled =
+            (n === 2 && finalRecipients.length === 0) ||
+            (n === 3 && finalRecipients.length === 0) ||
+            (n === 3 && !channelWhatsapp && !channelEmail) ||
+            (n === 3 && channelWhatsapp && !selectedTemplate);
+          return (
             <button
+              key={n}
               type="button"
-              className={`nav-link${step === n ? " active" : ""}`}
+              role="tab"
+              aria-selected={step === n}
+              disabled={disabled && step !== n}
+              className={`broadcast-steps__item${step === n ? " is-active" : ""}`}
               onClick={() => {
-                if (n === 2 && finalRecipients.length === 0) return;
-                if (n === 3 && finalRecipients.length === 0) return;
-                if (n === 3 && !channelWhatsapp && !channelEmail) return;
-                if (n === 3 && channelWhatsapp && !selectedTemplate) return;
+                if (disabled) return;
                 setStep(n);
               }}
             >
               {label}
             </button>
-          </li>
-        ))}
-      </ul>
+          );
+        })}
+      </div>
 
       {/* ========== —0TAPE 1 ========== */}
       {step === 1 && (
@@ -1099,23 +1096,6 @@ export default function WhatsappBroadcastPage() {
               </p>
               <div className="row g-3 mb-3">
                 <div className="col-md-4">
-                  <label className="form-label" htmlFor="bc-status">
-                    Statut
-                  </label>
-                  <Select
-                    id="bc-status"
-                    value={status}
-                    onChange={setStatus}
-                    disabled={leadsLoading || selectingAllFilter}
-                    placeholder="Tous"
-                    searchable
-                    options={[
-                      { value: "", label: "Tous" },
-                      ...(meta?.statuses ?? []).map((s) => ({ value: s, label: s })),
-                    ]}
-                  />
-                </div>
-                <div className="col-md-4">
                   <label className="form-label" htmlFor="bc-list">
                     Liste ClickUp
                   </label>
@@ -1129,6 +1109,23 @@ export default function WhatsappBroadcastPage() {
                     options={[
                       { value: "", label: "Toutes" },
                       ...(meta?.lists ?? []).map((l) => ({ value: l.id, label: l.name })),
+                    ]}
+                  />
+                </div>
+                <div className="col-md-4">
+                  <label className="form-label" htmlFor="bc-status">
+                    Statut
+                  </label>
+                  <Select
+                    id="bc-status"
+                    value={status}
+                    onChange={setStatus}
+                    disabled={leadsLoading || selectingAllFilter}
+                    placeholder="Tous"
+                    searchable
+                    options={[
+                      { value: "", label: "Tous" },
+                      ...(meta?.statuses ?? []).map((s) => ({ value: s, label: s })),
                     ]}
                   />
                 </div>

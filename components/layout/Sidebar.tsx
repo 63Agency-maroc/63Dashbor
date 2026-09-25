@@ -184,6 +184,7 @@ export function Sidebar() {
                               className={`menu-link${active ? " active" : ""}`}
                               href={item.href}
                               role="button"
+                              onClick={() => collapseSidebarPanel()}
                             >
                               <i className={item.icon} aria-hidden />
                               <span className="menu-label">{item.label}</span>
