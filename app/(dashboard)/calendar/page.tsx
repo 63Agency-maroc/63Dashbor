@@ -41,7 +41,7 @@ import {
 } from "@/lib/api/availabilities";
 import {
   addMinutesIso,
-  CASABLANCA_TZ,
+  effectiveCasablancaTimeZone,
   getZonedParts,
   parseIso,
   toCasablancaYmd,
@@ -678,7 +678,7 @@ export default function CalendarPage() {
                         right: "dayGridMonth,timeGridWeek,timeGridDay",
                       }}
                       height="auto"
-                      timeZone={CASABLANCA_TZ}
+                      timeZone={effectiveCasablancaTimeZone()}
                       events={events}
                       editable={false}
                       selectable

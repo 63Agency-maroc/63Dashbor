@@ -15,13 +15,7 @@ import {
 } from "@/lib/auth/storage";
 import { MOROCCO_CITIES } from "@/lib/constants/morocco-cities";
 import { Select } from "@/components/ui/Select";
-
-function formatJoined(iso?: string) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
-}
+import { formatDate } from "@/lib/utils/date";
 
 export default function ProfilePage() {
   const { user, isLoading, applyUser, refreshUser } = useAuth();
@@ -252,7 +246,9 @@ export default function ProfilePage() {
                 ) : null}
                 <div className="mb-0">
                   <span className="mb-1 d-block text-muted small">Membre depuis</span>
-                  <p className="text-dark fw-semibold mb-0">{formatJoined(user?.createdAt)}</p>
+                  <p className="text-dark fw-semibold mb-0">
+                    {formatDate(user?.createdAt)}
+                  </p>
                 </div>
               </div>
 

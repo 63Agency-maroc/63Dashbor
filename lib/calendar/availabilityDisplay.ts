@@ -1,10 +1,20 @@
 import { DateTime } from "luxon";
 import type { EventInput } from "@fullcalendar/core";
 import type { AvailabilityDay, AvailabilitySlot } from "@/lib/api/availabilities";
-import { CASABLANCA_TZ } from "@/lib/datetime/casablanca";
+import {
+  CASABLANCA_TZ,
+  effectiveCasablancaTimeZone,
+  isCasablancaTzdataStale,
+} from "@/lib/datetime/casablanca";
 import { labelForTimezone } from "@/lib/calendar/countryTimezones";
 
 export { CASABLANCA_TZ };
+
+/** Zone Luxon : Casa correcte même si tzdata navigateur encore en +01. */
+function luxonZone(iana: string): string {
+  if (iana === CASABLANCA_TZ && isCasablancaTzdataStale()) return "UTC";
+  return iana || effectiveCasablancaTimeZone();
+}
 
 export type DisplaySlot = {
   /** Jour civil d’affichage YYYY-MM-DD (dans le timezone d’affichage) */
@@ -55,16 +65,17 @@ export function slotToDisplay(
   availabilityUserId: string,
   viewerUserId: string | null | undefined,
 ): DisplaySlot | null {
-  const zone = sourceTimezone || CASABLANCA_TZ;
+  const zone = luxonZone(sourceTimezone || CASABLANCA_TZ);
   const startLocal = DateTime.fromISO(`${dateYmd}T${slot.start}`, { zone });
   const endLocal = DateTime.fromISO(`${dateYmd}T${slot.end}`, { zone });
   if (!startLocal.isValid || !endLocal.isValid || endLocal <= startLocal) return null;
 
-  const displayZone = displayZoneForViewer(availabilityUserId, viewerUserId, zone);
+  const displayZone = luxonZone(displayZoneForViewer(availabilityUserId, viewerUserId, sourceTimezone || CASABLANCA_TZ));
   const startInDisplay = startLocal.setZone(displayZone);
   const endInDisplay = endLocal.setZone(displayZone);
 
   // FullCalendar est en Casablanca : encoder les murals d’affichage en murals Casa
+  const fcZone = luxonZone(CASABLANCA_TZ);
   const startForFc = DateTime.fromObject(
     {
       year: startInDisplay.year,
@@ -74,7 +85,7 @@ export function slotToDisplay(
       minute: startInDisplay.minute,
       second: 0,
     },
-    { zone: CASABLANCA_TZ },
+    { zone: fcZone },
   );
   const endForFc = DateTime.fromObject(
     {
@@ -85,7 +96,7 @@ export function slotToDisplay(
       minute: endInDisplay.minute,
       second: 0,
     },
-    { zone: CASABLANCA_TZ },
+    { zone: fcZone },
   );
 
   if (!startForFc.isValid || !endForFc.isValid) return null;
@@ -98,7 +109,7 @@ export function slotToDisplay(
     startIso: startForFc.toUTC().toISO()!,
     endIso: endForFc.toUTC().toISO()!,
     userId: availabilityUserId,
-    sourceTimezone: zone,
+    sourceTimezone: sourceTimezone || CASABLANCA_TZ,
   };
 }
 

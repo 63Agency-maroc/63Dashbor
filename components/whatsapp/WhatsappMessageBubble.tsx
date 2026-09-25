@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { WhatsappMessage } from "@/lib/api/whatsapp";
-import { formatInCasablanca } from "@/lib/datetime/casablanca";
+import { formatTime } from "@/lib/utils/date";
 import { getMediaMeta } from "@/lib/api/whatsapp";
 import { WhatsappAudioPlayer } from "@/components/whatsapp/WhatsappAudioPlayer";
 
@@ -73,10 +73,7 @@ function pickMediaId(message: WhatsappMessage): string | null {
 export function WhatsappMessageBubble({ message, onReply }: Props) {
   const isOut = message.direction === "outbound";
   const cls = isOut ? "chat-message-right" : "chat-message-left";
-  const time = formatInCasablanca(message.createdAt, {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const time = formatTime(message.createdAt);
 
   const type = normalizeMessageType(message.type);
   const isAudio = type === "audio" || type === "voice" || type === "ptt" || type === "audio/ogg";

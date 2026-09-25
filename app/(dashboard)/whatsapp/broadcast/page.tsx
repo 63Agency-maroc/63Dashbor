@@ -44,6 +44,7 @@ import {
   detectTemplateVarIndices,
 } from "@/lib/whatsapp/templatePlaceholders";
 import { Select } from "@/components/ui/Select";
+import { formatDateTime } from "@/lib/utils/date";
 
 const LEADS_FETCH = 200;
 const TABLE_PAGE = 15;
@@ -83,19 +84,6 @@ function statusBadge(status: string) {
   if (s === "cancelled" || s === "canceled") return "bg-secondary-subtle text-secondary";
   if (isBroadcastActive(s)) return "bg-primary-subtle text-primary";
   return "bg-warning-subtle text-warning";
-}
-
-function formatDateTime(iso: string | null | undefined) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 function dash(v: string | null | undefined) {

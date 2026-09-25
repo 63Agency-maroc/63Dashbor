@@ -14,7 +14,7 @@ import {
   addCalendarDaysYmd,
   casablancaDayRangeUtc,
   casablancaTodayYmd,
-  formatInCasablanca,
+  formatDateTime,
 } from "@/lib/datetime/casablanca";
 import { getStatusPalette } from "@/lib/calendar/statusPalette";
 import { Select } from "@/components/ui/Select";
@@ -276,7 +276,7 @@ export function MeetingsListSection({
                       const palette = getStatusPalette(m.status);
                       return (
                         <tr key={m.id} style={{ cursor: "pointer" }} onClick={() => onView(m)}>
-                          <td className="text-nowrap">{formatInCasablanca(m.meetingDate)}</td>
+                          <td className="text-nowrap">{formatDateTime(m.meetingDate)}</td>
                           <td>{m.title || "—"}</td>
                           <td>
                             <div>{m.contactName || "—"}</div>

@@ -27,7 +27,7 @@ import {
   type WhatsappMessage,
   type WhatsappTemplate,
 } from "@/lib/api/whatsapp";
-import { formatInCasablanca, parseIso } from "@/lib/datetime/casablanca";
+import { formatTime, parseIso } from "@/lib/utils/date";
 import { getSocket } from "@/lib/realtime/socket";
 import { WhatsappMessageBubble } from "@/components/whatsapp/WhatsappMessageBubble";
 import { AppToast } from "@/components/clients/AppToast";
@@ -959,12 +959,7 @@ export default function WhatsappPage() {
                         </div>
                         <div className="text-end">
                           <small className="time">
-                            {c.lastMessageAt
-                              ? formatInCasablanca(c.lastMessageAt, {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })
-                              : ""}
+                            {c.lastMessageAt ? formatTime(c.lastMessageAt) : ""}
                           </small>
                           {c.unreadCount > 0 ? (
                             <span className="badge badge-sm rounded-pill bg-primary">{c.unreadCount}</span>

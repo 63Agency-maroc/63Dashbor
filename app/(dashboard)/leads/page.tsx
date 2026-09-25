@@ -18,6 +18,7 @@ import { useRealtime } from "@/components/providers/RealtimeProvider";
 import { getSocket } from "@/lib/realtime/socket";
 import { Select } from "@/components/ui/Select";
 import { StatCard, type StatCardAccent } from "@/components/ui/StatCard";
+import { formatDate } from "@/lib/utils/date";
 
 const LIMIT = 50;
 const HIGHLIGHT_MS = 3500;
@@ -64,17 +65,6 @@ function statusStatIcon(status: string) {
 function statusBadgeClass(status: string) {
   const key = status.trim().toLowerCase();
   return STATUS_BADGE[key] || "bg-secondary-subtle text-secondary";
-}
-
-function formatDate(iso: string | undefined) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
 }
 
 function dash(v: string | undefined | null) {

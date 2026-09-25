@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import type { ClickUpCustomField, Lead } from "@/lib/api/leads";
 import { getLeadEmail, getLeadName, getLeadPhoneDisplay } from "@/lib/leads/clickup-fields";
+import { formatDateTime } from "@/lib/utils/date";
 
 type Props = {
   open: boolean;
@@ -25,19 +26,6 @@ function formatFieldValue(value: unknown): string {
   } catch {
     return String(value);
   }
-}
-
-function formatDate(iso: string | undefined) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 export function LeadDetailModal({ open, lead, loading, error, onClose }: Props) {
@@ -96,11 +84,11 @@ export function LeadDetailModal({ open, lead, loading, error, onClose }: Props) 
                     </div>
                     <div className="col-md-6">
                       <small className="text-muted d-block">Created</small>
-                      <strong>{formatDate(lead.createdAt)}</strong>
+                      <strong>{formatDateTime(lead.createdAt)}</strong>
                     </div>
                     <div className="col-md-6">
                       <small className="text-muted d-block">Updated</small>
-                      <strong>{formatDate(lead.updatedAt)}</strong>
+                      <strong>{formatDateTime(lead.updatedAt)}</strong>
                     </div>
                     <div className="col-12">
                       <small className="text-muted d-block">ID</small>

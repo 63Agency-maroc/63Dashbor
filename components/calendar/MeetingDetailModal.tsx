@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState, type ReactNode } from "react";
 import type { Meeting } from "@/lib/api/meetings";
-import { formatInCasablanca, parseIso, getZonedParts } from "@/lib/datetime/casablanca";
+import { formatInCasablanca, formatTime, parseIso, getZonedParts } from "@/lib/datetime/casablanca";
 import { getStatusPalette } from "@/lib/calendar/statusPalette";
 import { Select } from "@/components/ui/Select";
 
@@ -93,7 +93,7 @@ export function MeetingDetailModal({
   });
   const timeLabel = parts
     ? `${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`
-    : formatInCasablanca(meeting.meetingDate, { hour: "2-digit", minute: "2-digit" });
+    : formatTime(meeting.meetingDate);
 
   const assignees = (meeting.assignees ?? []).map(assigneeLabel);
   const members = (meeting.members ?? []).map(
