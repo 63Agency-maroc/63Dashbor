@@ -16,6 +16,8 @@ import { AppToast } from "@/components/clients/AppToast";
 import { LeadDetailModal } from "@/components/leads/LeadDetailModal";
 import { useRealtime } from "@/components/providers/RealtimeProvider";
 import { getSocket } from "@/lib/realtime/socket";
+import { Select } from "@/components/ui/Select";
+import { StatCard, type StatCardAccent } from "@/components/ui/StatCard";
 
 const LIMIT = 50;
 const HIGHLIGHT_MS = 3500;
@@ -36,23 +38,28 @@ const STATUS_BADGE: Record<string, string> = {
   won: "bg-success-subtle text-success",
 };
 
-const STAT_BORDERS = [
-  "action-border-primary",
-  "action-border-success",
-  "action-border-secondary",
-  "action-border-warning",
-  "action-border-info",
-  "action-border-dark",
+const STAT_ACCENTS: StatCardAccent[] = [
+  "primary",
+  "success",
+  "secondary",
+  "warning",
+  "info",
+  "dark",
 ];
 
-const STAT_AVATARS = [
-  "bg-primary-subtle text-primary",
-  "bg-success-subtle text-success",
-  "bg-secondary-subtle text-secondary",
-  "bg-warning-subtle text-warning",
-  "bg-info-subtle text-info",
-  "bg-dark-subtle text-dark",
-];
+const STATUS_STAT_ICONS: Record<string, string> = {
+  new: "icon-sparkles",
+  contacted: "icon-phone",
+  qualified: "icon-badge-check",
+  engaged: "icon-message-circle",
+  lost: "icon-circle-x",
+  won: "icon-trophy",
+};
+
+function statusStatIcon(status: string) {
+  const key = status.trim().toLowerCase();
+  return STATUS_STAT_ICONS[key] || "icon-chart-column";
+}
 
 function statusBadgeClass(status: string) {
   const key = status.trim().toLowerCase();
@@ -461,36 +468,24 @@ export default function LeadsPage() {
         </div>
       ) : (
         <div className="row">
-          <div className="col-xxl-2 col-md-4 mb-3">
-            <div className="card card-action action-border-primary h-100">
-              <div className="card-header border-0 pb-0">
-                <div className="avatar bg-primary-subtle text-primary rounded-3">
-                  <i className="fi fi-rr-user" />
-                </div>
-              </div>
-              <div className="card-body">
-                <h6>Total Leads</h6>
-                <h2 className="mb-1">{stats?.total ?? "—"}</h2>
-                <p className="mb-0 text-muted">Tous statuts</p>
-              </div>
-            </div>
+          <div className="col-12 col-md-6 col-lg-4 col-xxl-2 mb-3">
+            <StatCard
+              label="Total Leads"
+              value={stats?.total ?? "—"}
+              subtext="Tous statuts"
+              iconColor="primary"
+              icon={<i className="icon-users" />}
+            />
           </div>
           {statusEntries.slice(0, 5).map(([label, count], idx) => (
-            <div className="col-xxl-2 col-md-4 mb-3" key={label}>
-              <div className={`card card-action ${STAT_BORDERS[(idx + 1) % STAT_BORDERS.length]} h-100`}>
-                <div className="card-header border-0 pb-0">
-                  <div className={`avatar rounded-3 ${STAT_AVATARS[(idx + 1) % STAT_AVATARS.length]}`}>
-                    <i className="fi fi-rr-chart-histogram" />
-                  </div>
-                </div>
-                <div className="card-body">
-                  <h6 className="text-truncate" title={label}>
-                    {label}
-                  </h6>
-                  <h2 className="mb-1">{count}</h2>
-                  <p className="mb-0 text-muted">par statut</p>
-                </div>
-              </div>
+            <div className="col-12 col-md-6 col-lg-4 col-xxl-2 mb-3" key={label}>
+              <StatCard
+                label={label}
+                value={count}
+                subtext="par statut"
+                iconColor={STAT_ACCENTS[(idx + 1) % STAT_ACCENTS.length]}
+                icon={<i className={statusStatIcon(label)} />}
+              />
             </div>
           ))}
 
@@ -528,32 +523,32 @@ export default function LeadsPage() {
                       onChange={(e) => setSearchInput(e.target.value)}
                     />
                   </div>
-                  <select
-                    className="form-select form-select-sm flex-shrink-0"
-                    style={{ width: 150 }}
+                  <Select
+                    size="sm"
+                    className="flex-shrink-0"
+                    style={{ width: 180, minWidth: 160 }}
                     value={status}
-                    onChange={(e) => onFilterStatus(e.target.value)}
-                  >
-                    <option value="">All statuses</option>
-                    {(meta?.statuses ?? []).map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    className="form-select form-select-sm flex-shrink-0"
-                    style={{ width: 170 }}
+                    onChange={onFilterStatus}
+                    placeholder="All statuses"
+                    options={[
+                      { value: "", label: "All statuses" },
+                      ...(meta?.statuses ?? []).map((s) => ({ value: s, label: s })),
+                    ]}
+                    aria-label="Filter by status"
+                  />
+                  <Select
+                    size="sm"
+                    className="flex-shrink-0"
+                    style={{ width: 200, minWidth: 170 }}
                     value={listId}
-                    onChange={(e) => onFilterList(e.target.value)}
-                  >
-                    <option value="">All lists</option>
-                    {(meta?.lists ?? []).map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={onFilterList}
+                    placeholder="All lists"
+                    options={[
+                      { value: "", label: "All lists" },
+                      ...(meta?.lists ?? []).map((l) => ({ value: l.id, label: l.name })),
+                    ]}
+                    aria-label="Filter by list"
+                  />
                 </div>
               </div>
 

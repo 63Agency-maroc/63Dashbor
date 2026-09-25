@@ -5,12 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { ApiError } from "@/lib/api/client";
 import { AgencyLogo, BRAND_NAME } from "@/components/brand/AgencyLogo";
-import { LOGO_ON_DARK } from "@/lib/constants/brand";
 
-/**
- * Markup porté de authentication/login-cover.html.
- * Côté image (sombre) → logo blanc ; côté formulaire (clair) → logo foncé.
- */
+/** Page login centrée — formulaire seul, sans panneau latéral. */
 export default function LoginPage() {
   const { login } = useAuth();
   const searchParams = useSearchParams();
@@ -63,137 +59,105 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="page-layout">
-      <div className="auth-cover-wrapper">
-        <div className="row g-0">
-          {/* Côté image / fond sombre */}
-          <div className="col-md-6 order-md-1">
-            <div className="auth-cover">
-              <div className="clearfix">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/assets/images/auth/vector1.svg" alt="" className="img-fluid cover-img" />
-                <div className="auth-content">
-                  <div className="mb-4">
-                    {/* Logo blanc sur fond sombre */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={LOGO_ON_DARK}
-                      alt={BRAND_NAME}
-                      style={{ height: 48, width: "auto", objectFit: "contain" }}
-                    />
-                  </div>
-                  <h1 className="display-6 fw-bold">Welcome Back!</h1>
-                  <p>
-                    Welcome to {BRAND_NAME}, your all-in-one solution for smart business management.
-                    Streamline workflows, boost productivity, and grow your business with confidence.
-                  </p>
-                </div>
+    <div className="page-layout login-page-centered">
+      <div className="d-flex align-items-center justify-content-center min-vh-100 px-3 py-5">
+        <div className="w-100 maxw-450px">
+          <div className="mb-4 text-center d-flex justify-content-center">
+            <AgencyLogo variant="auto" href="/login" height={48} />
+          </div>
+          <div className="text-center mb-5">
+            <h5 className="mb-1">Welcome to {BRAND_NAME}</h5>
+            <p className="mb-0 text-muted">Sign in to access your secure admin dashboard.</p>
+          </div>
+          <form onSubmit={onSubmit} noValidate>
+            {error ? (
+              <div className="alert alert-danger" role="alert">
+                {error}
+              </div>
+            ) : null}
+            <div className="mb-4">
+              <label className="form-label" htmlFor="loginEmail">
+                Email Address
+              </label>
+              <input
+                type="email"
+                className="form-control"
+                id="loginEmail"
+                placeholder="info@example.com"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={submitting}
+              />
+            </div>
+            <div className="mb-4">
+              <label className="form-label" htmlFor="loginPassword">
+                Password
+              </label>
+              <div className="password-wrapper">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="form-control password-input"
+                  id="loginPassword"
+                  placeholder="********"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={submitting}
+                />
+                <button
+                  type="button"
+                  id="togglePassword"
+                  className={`toggle-password${showPassword ? " active" : ""}`}
+                  aria-pressed={showPassword}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  title={showPassword ? "Hide password" : "Show password"}
+                  onClick={() => setShowPassword((v) => !v)}
+                >
+                  <i className="close fi fi-rr-eye-crossed" aria-hidden="true" />
+                  <i className="open fi fi-rr-eye" aria-hidden="true" />
+                </button>
               </div>
             </div>
-          </div>
-
-          {/* Côté formulaire / fond clair */}
-          <div className="col-md-6 align-self-center">
-            <div className="px-3 py-5 p-sm-5 maxw-450px m-auto">
-              <div className="mb-4 text-center d-flex justify-content-center">
-                {/* Suit le thème : light → logo foncé, dark → whit63.png */}
-                <AgencyLogo variant="auto" href="/login" height={48} />
-              </div>
-              <div className="text-center mb-5">
-                <h5 className="mb-1">Welcome to {BRAND_NAME}</h5>
-                <p>Sign in to access your secure admin dashboard.</p>
-              </div>
-              <form onSubmit={onSubmit} noValidate>
-                {error ? (
-                  <div className="alert alert-danger" role="alert">
-                    {error}
-                  </div>
-                ) : null}
-                <div className="mb-4">
-                  <label className="form-label" htmlFor="loginEmail">
-                    Email Address
-                  </label>
+            <div className="mb-4">
+              <div className="d-flex justify-content-between">
+                <div className="form-check mb-0">
                   <input
-                    type="email"
-                    className="form-control"
-                    id="loginEmail"
-                    placeholder="info@example.com"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={submitting}
+                    className="form-check-input"
+                    type="checkbox"
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
                   />
-                </div>
-                <div className="mb-4">
-                  <label className="form-label" htmlFor="loginPassword">
-                    Password
+                  <label className="form-check-label" htmlFor="rememberMe">
+                    {" "}
+                    Remember Me{" "}
                   </label>
-                  <div className="password-wrapper">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      className="form-control password-input"
-                      id="loginPassword"
-                      placeholder="********"
-                      autoComplete="current-password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      disabled={submitting}
-                    />
-                    <button
-                      type="button"
-                      id="togglePassword"
-                      className={`toggle-password${showPassword ? " active" : ""}`}
-                      aria-pressed={showPassword}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                      title={showPassword ? "Hide password" : "Show password"}
-                      onClick={() => setShowPassword((v) => !v)}
-                    >
-                      <i className="close fi fi-rr-eye-crossed" aria-hidden="true" />
-                      <i className="open fi fi-rr-eye" aria-hidden="true" />
-                    </button>
-                  </div>
                 </div>
-                <div className="mb-4">
-                  <div className="d-flex justify-content-between">
-                    <div className="form-check mb-0">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id="rememberMe"
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                      />
-                      <label className="form-check-label" htmlFor="rememberMe">
-                        {" "}
-                        Remember Me{" "}
-                      </label>
-                    </div>
-                    <a href="#" onClick={(e) => e.preventDefault()} title="Bientôt disponible">
-                      Forgot Password?
-                    </a>
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <button
-                    type="submit"
-                    className="btn btn-primary waves-effect waves-light w-100"
-                    disabled={submitting}
-                  >
-                    {submitting ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
-                        Connexion…
-                      </>
-                    ) : (
-                      "Login"
-                    )}
-                  </button>
-                </div>
-              </form>
+                <a href="#" onClick={(e) => e.preventDefault()} title="Bientôt disponible">
+                  Forgot Password?
+                </a>
+              </div>
             </div>
-          </div>
+            <div className="mb-3">
+              <button
+                type="submit"
+                className="btn btn-primary waves-effect waves-light w-100"
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
+                    Connexion…
+                  </>
+                ) : (
+                  "Login"
+                )}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

@@ -15,6 +15,7 @@ import { searchLeads, type Lead } from "@/lib/api/leads";
 import { getLeadEmail, getLeadName, getLeadPhoneDisplay } from "@/lib/leads/clickup-fields";
 import { casablancaWallToUtcIso, isoToCasablancaFlatpickr } from "@/lib/datetime/casablanca";
 import { CasablancaDatePicker } from "@/components/calendar/CasablancaDatePicker";
+import { Select } from "@/components/ui/Select";
 
 export type MeetingFormPayload = {
   title: string;
@@ -476,19 +477,13 @@ export function MeetingFormModal({
                 <div className="row">
                   <div className="col-12 mb-3">
                     <label className="form-label">Title</label>
-                    <select
-                      className="form-select"
+                    <Select
                       value={form.title}
-                      onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                      onChange={(v) => setForm((p) => ({ ...p, title: v }))}
                       disabled={submitting}
                       required
-                    >
-                      {MEETING_TITLES.map((t) => (
-                        <option key={t} value={t}>
-                          {t}
-                        </option>
-                      ))}
-                    </select>
+                      options={MEETING_TITLES.map((t) => ({ value: t, label: t }))}
+                    />
                   </div>
 
                   <div className="col-md-4 mb-3">
@@ -506,54 +501,43 @@ export function MeetingFormModal({
 
                   <div className="col-md-4 mb-3">
                     <label className="form-label">Heure</label>
-                    <select
-                      className="form-select"
+                    <Select
                       value={form.timeHm}
-                      onChange={(e) => setForm((p) => ({ ...p, timeHm: e.target.value }))}
+                      onChange={(v) => setForm((p) => ({ ...p, timeHm: v }))}
                       disabled={submitting}
                       required
-                    >
-                      <option value="">Choisir…</option>
-                      {timeOptionsFor(form.timeHm).map((t) => (
-                        <option key={t} value={t}>
-                          {t}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="Choisir…"
+                      searchable
+                      options={[
+                        { value: "", label: "Choisir…" },
+                        ...timeOptionsFor(form.timeHm).map((t) => ({ value: t, label: t })),
+                      ]}
+                    />
                   </div>
 
                   <div className="col-md-4 mb-3">
                     <label className="form-label">Durée</label>
-                    <select
-                      className="form-select"
-                      value={form.durationMinutes}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, durationMinutes: normalizeDuration(Number(e.target.value)) }))
+                    <Select
+                      value={String(form.durationMinutes)}
+                      onChange={(v) =>
+                        setForm((p) => ({ ...p, durationMinutes: normalizeDuration(Number(v)) }))
                       }
                       disabled={submitting}
-                    >
-                      {DURATION_OPTIONS.map((d) => (
-                        <option key={d} value={d}>
-                          {durationLabel(d)}
-                        </option>
-                      ))}
-                    </select>
+                      options={DURATION_OPTIONS.map((d) => ({
+                        value: String(d),
+                        label: durationLabel(d),
+                      }))}
+                    />
                   </div>
 
                   <div className="col-md-6 mb-3">
                     <label className="form-label">Status</label>
-                    <select
-                      className="form-select"
+                    <Select
                       value={form.status}
-                      onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}
+                      onChange={(v) => setForm((p) => ({ ...p, status: v }))}
                       disabled={submitting}
-                    >
-                      {MEETING_STATUSES.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
+                      options={MEETING_STATUSES.map((s) => ({ value: s, label: s }))}
+                    />
                   </div>
 
                   <div className="col-12 mb-3" ref={suggestWrapRef}>

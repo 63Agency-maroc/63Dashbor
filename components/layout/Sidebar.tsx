@@ -13,6 +13,7 @@ import {
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useThemeSettings } from "@/components/providers/ThemeProvider";
 import { AgencyLogo, BrandText } from "@/components/brand/AgencyLogo";
+import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 
 /**
  * Menubar double-rail (markup template) :
@@ -22,9 +23,15 @@ import { AgencyLogo, BrandText } from "@/components/brand/AgencyLogo";
  */
 export function Sidebar() {
   const pathname = usePathname();
-  const { setSidebarHover } = useThemeSettings();
-  const { user } = useAuth();
+  const {
+    setSidebarHover,
+    isSidebarPanelOpen,
+    expandSidebarPanel,
+    collapseSidebarPanel,
+  } = useThemeSettings();
+  const { user, logout } = useAuth();
   const isAdmin = (user?.role ?? "") === "admin";
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   const sections = useMemo(
     () => filterSectionsByRole(menuSections, isAdmin),
@@ -46,7 +53,7 @@ export function Sidebar() {
     void import("bootstrap").then((bootstrap) => {
       if (cancelled) return;
       document
-        .querySelectorAll<HTMLElement>("#appMenubarTabs [data-bs-toggle='tooltip']")
+        .querySelectorAll<HTMLElement>("#appMenubarTabs [data-bs-toggle='tooltip'], #appMenubarLogout [data-bs-toggle='tooltip']")
         .forEach((el) => {
           bootstrap.Tooltip.getOrCreateInstance(el, { placement: "right" });
         });
@@ -55,6 +62,18 @@ export function Sidebar() {
       cancelled = true;
     };
   }, [sections]);
+
+  const onSectionIconClick = (sectionId: string) => {
+    const panelOpen = isSidebarPanelOpen();
+    // Reclic même section déjà ouverte → refermer le panneau
+    if (activeSectionId === sectionId && panelOpen) {
+      collapseSidebarPanel();
+      return;
+    }
+    // Sinon : activer la section + ouvrir le panneau sous-menus
+    setActiveSectionId(sectionId);
+    expandSidebarPanel();
+  };
 
   return (
     <aside
@@ -90,7 +109,7 @@ export function Sidebar() {
                     aria-selected={isActive}
                     onClick={(e) => {
                       e.preventDefault();
-                      setActiveSectionId(section.id);
+                      onSectionIconClick(section.id);
                     }}
                   >
                     <i className={section.icon} aria-hidden />
@@ -103,6 +122,31 @@ export function Sidebar() {
           })}
         </ul>
       </div>
+
+      {/* Logout — bas du rail icônes */}
+      <div className="app-navbar-logout" id="appMenubarLogout">
+        <button
+          type="button"
+          className="menu-link text-danger"
+          data-bs-toggle="tooltip"
+          data-bs-placement="right"
+          data-bs-title="Log Out"
+          aria-label="Log Out"
+          onClick={() => setConfirmLogout(true)}
+        >
+          <i className="fi fi-sr-exit" aria-hidden />
+          <span className="visually-hidden">Log Out</span>
+        </button>
+      </div>
+
+      <LogoutConfirmModal
+        open={confirmLogout}
+        onClose={() => setConfirmLogout(false)}
+        onConfirm={() => {
+          setConfirmLogout(false);
+          logout();
+        }}
+      />
 
       {/* PANNEAU SOUS-MENUS */}
       <div className="app-tab-content">

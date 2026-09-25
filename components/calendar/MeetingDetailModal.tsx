@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import type { Meeting } from "@/lib/api/meetings";
 import { formatInCasablanca } from "@/lib/datetime/casablanca";
 import { getStatusPalette } from "@/lib/calendar/statusPalette";
+import { Select } from "@/components/ui/Select";
 
 type Props = {
   open: boolean;
@@ -144,29 +145,31 @@ export function MeetingDetailModal({
                   <div className="row g-2">
                     <div className="col-md-4">
                       <label className="form-label">Channel</label>
-                      <select
-                        className="form-select form-select-sm"
+                      <Select
+                        size="sm"
                         value={channel}
-                        onChange={(e) => setChannel(e.target.value as typeof channel)}
+                        onChange={(v) => setChannel(v as typeof channel)}
                         disabled={busy}
-                      >
-                        <option value="both">both</option>
-                        <option value="whatsapp">whatsapp</option>
-                        <option value="email">email</option>
-                      </select>
+                        options={[
+                          { value: "both", label: "both" },
+                          { value: "whatsapp", label: "whatsapp" },
+                          { value: "email", label: "email" },
+                        ]}
+                      />
                     </div>
                     <div className="col-md-4">
                       <label className="form-label">Offset</label>
-                      <select
-                        className="form-select form-select-sm"
+                      <Select
+                        size="sm"
                         value={offset}
-                        onChange={(e) => setOffset(e.target.value as typeof offset)}
+                        onChange={(v) => setOffset(v as typeof offset)}
                         disabled={busy}
-                      >
-                        <option value="2d">2d</option>
-                        <option value="24h">24h</option>
-                        <option value="2h">2h</option>
-                      </select>
+                        options={[
+                          { value: "2d", label: "2d" },
+                          { value: "24h", label: "24h" },
+                          { value: "2h", label: "2h" },
+                        ]}
+                      />
                     </div>
                     <div className="col-md-4 d-flex align-items-end">
                       <label className="d-flex align-items-center gap-2 mb-2">

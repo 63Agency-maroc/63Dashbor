@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useThemeSettings } from "@/components/providers/ThemeProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { avatarUrl, displayName, roleLabel } from "@/lib/auth/storage";
+import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 
 const staticNotifications = [
   {
@@ -40,6 +41,7 @@ export function Topbar() {
   const { settings, toggleTheme, toggleSidebar } = useThemeSettings();
   const { user, logout, displayName: authDisplayName } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -76,7 +78,7 @@ export function Topbar() {
           </button>
 
           <div className="app-header-start d-none d-md-flex">
-            <form className="d-flex align-items-center h-100 w-lg-250px w-xxl-300px position-relative" action="#">
+            <form className="d-flex align-items-center h-100 w-lg-250px w-xxl-300px position-relative app-search-field" action="#">
               <button
                 type="button"
                 className="btn btn-sm border-0 position-absolute start-0 ms-3 p-0"
@@ -88,7 +90,7 @@ export function Topbar() {
                 <i className="fi fi-rr-search" />
               </button>
               <input
-                type="text"
+                type="search"
                 className="form-control form-control-fill ps-5"
                 placeholder="Search anything's"
                 data-bs-toggle="modal"
@@ -322,7 +324,7 @@ export function Topbar() {
                   <button
                     type="button"
                     className="dropdown-item d-flex align-items-center gap-2 text-danger"
-                    onClick={() => logout()}
+                    onClick={() => setConfirmLogout(true)}
                   >
                     <i className="fi fi-sr-exit scale-1x" /> Log Out
                   </button>
@@ -333,6 +335,15 @@ export function Topbar() {
         </div>
       </header>
 
+      <LogoutConfirmModal
+        open={confirmLogout}
+        onClose={() => setConfirmLogout(false)}
+        onConfirm={() => {
+          setConfirmLogout(false);
+          logout();
+        }}
+      />
+
       <div className="modal fade" id="searchResultsModal" tabIndex={-1} aria-hidden="true">
         <div className="modal-dialog modal-dialog-centered">
           <div className="modal-content">
@@ -342,7 +353,7 @@ export function Topbar() {
                   <i className="fi fi-rr-search" />
                 </button>
                 <input
-                  type="text"
+                  type="search"
                   className="form-control form-control-lg ps-4 border-0 shadow-none"
                   id="searchInput"
                   placeholder="Search anything's"

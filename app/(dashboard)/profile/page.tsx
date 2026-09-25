@@ -14,6 +14,7 @@ import {
   type AuthUser,
 } from "@/lib/auth/storage";
 import { MOROCCO_CITIES } from "@/lib/constants/morocco-cities";
+import { Select } from "@/components/ui/Select";
 
 function formatJoined(iso?: string) {
   if (!iso) return "—";
@@ -378,25 +379,21 @@ export default function ProfilePage() {
                     <label className="form-label" htmlFor="profile-ville">
                       Ville
                     </label>
-                    <select
+                    <Select
                       id="profile-ville"
-                      className="form-select"
                       value={ville}
-                      onChange={(e) => setVille(e.target.value)}
+                      onChange={setVille}
                       disabled={profileBusy}
-                    >
-                      <option value="">Sélectionner une ville</option>
-                      {/* Conserve une valeur hors liste (données existantes) */}
-                      {ville &&
-                      !(MOROCCO_CITIES as readonly string[]).includes(ville) ? (
-                        <option value={ville}>{ville}</option>
-                      ) : null}
-                      {MOROCCO_CITIES.map((city) => (
-                        <option key={city} value={city}>
-                          {city}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="Sélectionner une ville"
+                      searchable
+                      options={[
+                        { value: "", label: "Sélectionner une ville" },
+                        ...(ville && !(MOROCCO_CITIES as readonly string[]).includes(ville)
+                          ? [{ value: ville, label: ville }]
+                          : []),
+                        ...MOROCCO_CITIES.map((city) => ({ value: city, label: city })),
+                      ]}
+                    />
                   </div>
                 </div>
                 <div className="mb-3">

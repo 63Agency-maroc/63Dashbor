@@ -17,6 +17,7 @@ import {
   formatInCasablanca,
 } from "@/lib/datetime/casablanca";
 import { getStatusPalette } from "@/lib/calendar/statusPalette";
+import { Select } from "@/components/ui/Select";
 
 export type ListPeriod = "today" | "tomorrow" | "all" | "date";
 
@@ -193,34 +194,38 @@ export function MeetingsListSection({
               />
             ) : null}
 
-            <select
-              className="form-select form-select-sm flex-shrink-0"
+            <Select
+              size="sm"
+              className="flex-shrink-0"
               style={{ width: 150 }}
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="">Tous statuts</option>
-              {MEETING_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
+              onChange={setStatus}
+              placeholder="Tous statuts"
+              options={[
+                { value: "", label: "Tous statuts" },
+                ...MEETING_STATUSES.map((s) => ({ value: s, label: s })),
+              ]}
+              aria-label="Filtrer par statut"
+            />
 
             {canAssign ? (
-              <select
-                className="form-select form-select-sm flex-shrink-0"
+              <Select
+                size="sm"
+                className="flex-shrink-0"
                 style={{ width: 170 }}
                 value={assignedUserId}
-                onChange={(e) => setAssignedUserId(e.target.value)}
-              >
-                <option value="">Tous assignés</option>
-                {assignableUsers.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.prenom || u.nom || "Utilisateur"}
-                  </option>
-                ))}
-              </select>
+                onChange={setAssignedUserId}
+                placeholder="Tous assignés"
+                searchable
+                options={[
+                  { value: "", label: "Tous assignés" },
+                  ...assignableUsers.map((u) => ({
+                    value: u.id,
+                    label: u.prenom || u.nom || "Utilisateur",
+                  })),
+                ]}
+                aria-label="Filtrer par assigné"
+              />
             ) : null}
 
             <div className="position-relative flex-grow-1" style={{ minWidth: 140, maxWidth: 220 }}>

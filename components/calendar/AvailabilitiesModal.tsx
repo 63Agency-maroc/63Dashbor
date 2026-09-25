@@ -15,6 +15,7 @@ import {
   labelForTimezone,
 } from "@/lib/calendar/countryTimezones";
 import { addCalendarDaysYmd, casablancaTodayYmd } from "@/lib/datetime/casablanca";
+import { Select } from "@/components/ui/Select";
 
 type Props = {
   open: boolean;
@@ -314,23 +315,23 @@ export function AvailabilitiesModal({ open, onClose, onChanged, focusDate = null
                     <label className="form-label" htmlFor="avail-tz">
                       Pays / timezone
                     </label>
-                    <select
+                    <Select
                       id="avail-tz"
-                      className="form-select"
                       value={timezone}
-                      onChange={(e) => setTimezone(e.target.value)}
+                      onChange={setTimezone}
                       disabled={busy}
                       required
-                    >
-                      {!tzInList && timezone ? (
-                        <option value={timezone}>{labelForTimezone(timezone)}</option>
-                      ) : null}
-                      {COUNTRY_TIMEZONES.map((c) => (
-                        <option key={c.timezone} value={c.timezone}>
-                          {c.country} — {c.timezone}
-                        </option>
-                      ))}
-                    </select>
+                      searchable
+                      options={[
+                        ...(!tzInList && timezone
+                          ? [{ value: timezone, label: labelForTimezone(timezone) }]
+                          : []),
+                        ...COUNTRY_TIMEZONES.map((c) => ({
+                          value: c.timezone,
+                          label: `${c.country} — ${c.timezone}`,
+                        })),
+                      ]}
+                    />
                     <div className="form-text">Heures des créneaux = heure locale de ce pays.</div>
                   </div>
                 </div>

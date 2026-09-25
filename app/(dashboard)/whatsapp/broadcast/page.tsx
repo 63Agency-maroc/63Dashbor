@@ -43,6 +43,7 @@ import {
   applyTemplatePreview,
   detectTemplateVarIndices,
 } from "@/lib/whatsapp/templatePlaceholders";
+import { Select } from "@/components/ui/Select";
 
 const LEADS_FETCH = 200;
 const TABLE_PAGE = 15;
@@ -60,6 +61,19 @@ type SelectedRecipient = {
   name: string;
   source: "lead" | "manual";
   leadId?: string;
+  /** Métadonnées filtre — affichage récap / audit avant envoi */
+  leadStatus?: string;
+  leadListName?: string;
+};
+
+/** Snapshot des filtres utilisés pour « tout le filtre » (confirmation d’envoi). */
+type SelectionFilterSnapshot = {
+  status: string;
+  listId: string;
+  listName: string;
+  search: string;
+  filteredTotal: number;
+  selectedWithContact: number;
 };
 
 function statusBadge(status: string) {
@@ -134,7 +148,27 @@ function leadToRecipient(lead: Lead): SelectedRecipient | null {
     name,
     source: "lead",
     leadId: id,
+    leadStatus: lead.status || undefined,
+    leadListName: lead.listName || undefined,
   };
+}
+
+/** Garde client : un lead hors filtre actif ne doit jamais entrer en sélection. */
+function leadMatchesActiveFilters(
+  lead: Lead,
+  filters: { status: string; listId: string; search: string },
+): boolean {
+  if (filters.status && lead.status !== filters.status) return false;
+  if (filters.listId && lead.listId !== filters.listId) return false;
+  const q = filters.search.trim().toLowerCase();
+  if (q) {
+    const hay = [lead.name, lead.phone, lead.email, getLeadName(lead), getLeadPhone(lead), getLeadEmail(lead)]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  return true;
 }
 
 function applyEmailPlaceholders(html: string, name: string): string {
@@ -184,6 +218,8 @@ export default function WhatsappBroadcastPage() {
   const [manualName, setManualName] = useState("");
   const [manualPhone, setManualPhone] = useState("");
   const [manualEmail, setManualEmail] = useState("");
+  /** Filtres figés au moment de « Sélectionner tout le filtre » (null = sélection manuelle/page). */
+  const [selectionFilter, setSelectionFilter] = useState<SelectionFilterSnapshot | null>(null);
 
   const [selectedTableOffset, setSelectedTableOffset] = useState(0);
 
@@ -259,6 +295,32 @@ export default function WhatsappBroadcastPage() {
     () => pageLeads.filter((l) => leadHasContact(l)),
     [pageLeads],
   );
+
+  const selectedLeadCount = useMemo(
+    () => Object.keys(selectedByLeadId).length,
+    [selectedByLeadId],
+  );
+
+  const activeFilterLabel = useMemo(() => {
+    const statusLabel = status || "Tous";
+    const listLabel =
+      (listId && meta?.lists?.find((l) => l.id === listId)?.name) ||
+      (listId ? listId : "Toutes");
+    const searchLabel = search ? ` · recherche: « ${search} »` : "";
+    return `statut: ${statusLabel}, liste: ${listLabel}${searchLabel}`;
+  }, [status, listId, search, meta]);
+
+  const confirmFilterLabel = useMemo(() => {
+    if (selectionFilter) {
+      const statusLabel = selectionFilter.status || "Tous";
+      const listLabel = selectionFilter.listName || (selectionFilter.listId ? selectionFilter.listId : "Toutes");
+      const searchLabel = selectionFilter.search
+        ? ` · recherche: « ${selectionFilter.search} »`
+        : "";
+      return `statut: ${statusLabel}, liste: ${listLabel}${searchLabel}`;
+    }
+    return activeFilterLabel;
+  }, [selectionFilter, activeFilterLabel]);
   const allPageSelected =
     selectableOnPage.length > 0 &&
     selectableOnPage.every((l) => Boolean(selectedByLeadId[leadIdKey(l)]));
@@ -403,10 +465,13 @@ export default function WhatsappBroadcastPage() {
     void loadLeadsPage();
   }, [allowed, forbidden, loadLeadsPage]);
 
-  // Reset offset when filters change
+  // Reset offset + sélection leads quand les filtres changent (évite cibles hors filtre)
   useEffect(() => {
     setLeadsOffset(0);
-  }, [status, listId]);
+    setSelectedByLeadId({});
+    setSelectionFilter(null);
+    setSelectedTableOffset(0);
+  }, [status, listId, search]);
 
   const applyJobProgress = useCallback(
     (ev: {
@@ -580,8 +645,10 @@ export default function WhatsappBroadcastPage() {
   function toggleLead(lead: Lead) {
     const id = leadIdKey(lead);
     if (!id || !leadHasContact(lead)) return;
+    if (!leadMatchesActiveFilters(lead, { status, listId, search })) return;
     const row = leadToRecipient(lead);
     if (!row) return;
+    setSelectionFilter(null);
     setSelectedByLeadId((prev) => {
       const next = { ...prev };
       if (next[id]) delete next[id];
@@ -591,9 +658,11 @@ export default function WhatsappBroadcastPage() {
   }
 
   function selectPage() {
+    setSelectionFilter(null);
     setSelectedByLeadId((prev) => {
       const next = { ...prev };
       for (const lead of selectableOnPage) {
+        if (!leadMatchesActiveFilters(lead, { status, listId, search })) continue;
         const row = leadToRecipient(lead);
         const id = leadIdKey(lead);
         if (row && id) next[id] = row;
@@ -615,10 +684,20 @@ export default function WhatsappBroadcastPage() {
   function deselectAll() {
     setSelectedByLeadId({});
     setManualRecipients([]);
+    setSelectionFilter(null);
     setSelectedTableOffset(0);
   }
 
   async function selectEntireFilter() {
+    // Figer les filtres actifs au clic (mêmes params que la table affichée)
+    const filters = {
+      status: status.trim(),
+      listId: listId.trim(),
+      search: search.trim(),
+    };
+    const listName =
+      (filters.listId && meta?.lists?.find((l) => l.id === filters.listId)?.name) || "";
+
     setSelectingAllFilter(true);
     setLeadsError(null);
     try {
@@ -627,33 +706,59 @@ export default function WhatsappBroadcastPage() {
       let total = Infinity;
       while (offset < total) {
         const page = await getLeads({
-          status: status || undefined,
-          listId: listId || undefined,
-          search: search || undefined,
+          status: filters.status || undefined,
+          listId: filters.listId || undefined,
+          search: filters.search || undefined,
           limit: LEADS_FETCH,
           offset,
         });
         total = page.total ?? 0;
         const items = page.items ?? [];
-        all.push(...items);
-        offset += items.length;
-        if (items.length === 0 || all.length >= total) break;
-      }
-      setSelectedByLeadId((prev) => {
-        const next = { ...prev };
-        let added = 0;
-        for (const lead of all) {
-          const row = leadToRecipient(lead);
-          const id = leadIdKey(lead);
-          if (!row || !id) continue;
-          next[id] = row;
-          added += 1;
+        // Ne garder QUE les leads qui matchent encore le filtre (filet de sécurité client)
+        for (const lead of items) {
+          if (leadMatchesActiveFilters(lead, filters)) all.push(lead);
         }
-        setToast({
-          message: `${added} lead(s) avec contact sélectionnés sur ${total} filtrés.`,
-          variant: "success",
-        });
-        return next;
+        offset += items.length;
+        if (items.length === 0) break;
+        // Garde-fou boucle : si l’API ignore le filtre, items.raw peut dépasser total filtré
+        if (offset >= total) break;
+      }
+
+      // REMPLACE la sélection leads (pas de merge avec d’anciens leads hors filtre)
+      const next: Record<string, SelectedRecipient> = {};
+      let withContact = 0;
+      let rejected = 0;
+      for (const lead of all) {
+        if (!leadMatchesActiveFilters(lead, filters)) {
+          rejected += 1;
+          continue;
+        }
+        const row = leadToRecipient(lead);
+        const id = leadIdKey(lead);
+        if (!row || !id) continue;
+        next[id] = row;
+        withContact += 1;
+      }
+
+      setSelectedByLeadId(next);
+      setSelectionFilter({
+        status: filters.status,
+        listId: filters.listId,
+        listName,
+        search: filters.search,
+        filteredTotal: total,
+        selectedWithContact: withContact,
+      });
+      setSelectedTableOffset(0);
+      setFilteredTotal(total);
+
+      const rejectHint =
+        rejected > 0
+          ? ` (${rejected} hors filtre ignoré(s) — vérifier l’API).`
+          : "";
+      setToast({
+        message: `${withContact} lead(s) avec contact sélectionnés sur ${total} filtrés (${filters.status || "tous"} / ${listName || filters.listId || "toutes"}).${rejectHint}`,
+        variant: rejected > 0 ? "danger" : "success",
       });
     } catch (err) {
       setLeadsError(
@@ -984,48 +1089,48 @@ export default function WhatsappBroadcastPage() {
             <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
               <h5 className="card-title mb-0">Sélection des leads</h5>
               <span className="badge bg-primary-subtle text-primary fs-6 fw-normal">
-                {finalRecipients.length} sélectionnés sur {filteredTotal} filtrés
+                {selectedLeadCount} leads sélectionnés · {finalRecipients.length} destinataires ·{" "}
+                {filteredTotal} filtrés
               </span>
             </div>
             <div className="card-body">
+              <p className="small text-muted mb-3">
+                Filtre actif : <strong>{activeFilterLabel}</strong>
+              </p>
               <div className="row g-3 mb-3">
                 <div className="col-md-4">
                   <label className="form-label" htmlFor="bc-status">
                     Statut
                   </label>
-                  <select
+                  <Select
                     id="bc-status"
-                    className="form-select"
                     value={status}
-                    onChange={(e) => setStatus(e.target.value)}
+                    onChange={setStatus}
                     disabled={leadsLoading || selectingAllFilter}
-                  >
-                    <option value="">Tous</option>
-                    {(meta?.statuses ?? []).map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Tous"
+                    searchable
+                    options={[
+                      { value: "", label: "Tous" },
+                      ...(meta?.statuses ?? []).map((s) => ({ value: s, label: s })),
+                    ]}
+                  />
                 </div>
                 <div className="col-md-4">
                   <label className="form-label" htmlFor="bc-list">
                     Liste ClickUp
                   </label>
-                  <select
+                  <Select
                     id="bc-list"
-                    className="form-select"
                     value={listId}
-                    onChange={(e) => setListId(e.target.value)}
+                    onChange={setListId}
                     disabled={leadsLoading || selectingAllFilter}
-                  >
-                    <option value="">Toutes</option>
-                    {(meta?.lists ?? []).map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Toutes"
+                    searchable
+                    options={[
+                      { value: "", label: "Toutes" },
+                      ...(meta?.lists ?? []).map((l) => ({ value: l.id, label: l.name })),
+                    ]}
+                  />
                 </div>
                 <div className="col-md-4">
                   <label className="form-label" htmlFor="bc-search">
@@ -1246,12 +1351,24 @@ export default function WhatsappBroadcastPage() {
                 {finalRecipients.length} · WA {waRecipientCount} · Email {emailRecipientCount}
               </span>
             </div>
+            {selectionFilter ? (
+              <div className="px-3 pt-3">
+                <div className="alert alert-info py-2 small mb-0" role="status">
+                  Sélection « tout le filtre » :{" "}
+                  <strong>{selectionFilter.selectedWithContact}</strong> avec contact /{" "}
+                  <strong>{selectionFilter.filteredTotal}</strong> filtrés —{" "}
+                  {confirmFilterLabel}
+                </div>
+              </div>
+            ) : null}
             <div className="card-body p-0">
               <div className="table-responsive">
                 <table className="table table-hover mb-0 align-middle">
                   <thead>
                     <tr>
                       <th>Nom</th>
+                      <th>Statut</th>
+                      <th>Liste</th>
                       <th>Téléphone</th>
                       <th>Email</th>
                       <th>Source</th>
@@ -1261,7 +1378,7 @@ export default function WhatsappBroadcastPage() {
                   <tbody>
                     {selectedPageSlice.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="text-center text-muted py-4">
+                        <td colSpan={7} className="text-center text-muted py-4">
                           Aucun destinataire sélectionné
                         </td>
                       </tr>
@@ -1271,6 +1388,8 @@ export default function WhatsappBroadcastPage() {
                         return (
                           <tr key={key}>
                             <td>{r.name}</td>
+                            <td className="small">{r.source === "lead" ? dash(r.leadStatus) : "—"}</td>
+                            <td className="small">{r.source === "lead" ? dash(r.leadListName) : "—"}</td>
                             <td className="font-monospace small">{dash(r.phoneNumber)}</td>
                             <td className="small">{dash(r.email)}</td>
                             <td>
@@ -1398,19 +1517,20 @@ export default function WhatsappBroadcastPage() {
                   <label className="form-label" htmlFor="bc-tpl">
                     Template
                   </label>
-                  <select
+                  <Select
                     id="bc-tpl"
-                    className="form-select"
                     value={selectedKey}
-                    onChange={(e) => setSelectedKey(e.target.value)}
-                  >
-                    <option value="">— Choisir —</option>
-                    {templates.map((t) => (
-                      <option key={`${t.id}-${t.language}`} value={`${t.name}||${t.language}`}>
-                        {templateLabel(t)}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSelectedKey}
+                    placeholder="— Choisir —"
+                    searchable
+                    options={[
+                      { value: "", label: "— Choisir —" },
+                      ...templates.map((t) => ({
+                        value: `${t.name}||${t.language}`,
+                        label: templateLabel(t),
+                      })),
+                    ]}
+                  />
                 </div>
 
                 {selectedTemplate && (
@@ -1541,7 +1661,14 @@ export default function WhatsappBroadcastPage() {
               <>
                 <dl className="row mb-3">
                   <dt className="col-sm-3">Destinataires</dt>
-                  <dd className="col-sm-9">{finalRecipients.length}</dd>
+                  <dd className="col-sm-9">
+                    <strong>{finalRecipients.length}</strong>
+                    {manualRecipients.length > 0
+                      ? ` (${selectedLeadCount} leads + ${manualRecipients.length} manuels)`
+                      : null}
+                  </dd>
+                  <dt className="col-sm-3">Filtre leads</dt>
+                  <dd className="col-sm-9">{confirmFilterLabel}</dd>
                   <dt className="col-sm-3">Canaux</dt>
                   <dd className="col-sm-9">
                     {channelWhatsapp ? (
@@ -1623,21 +1750,34 @@ export default function WhatsappBroadcastPage() {
                 )}
 
                 {confirmSend ? (
-                  <div className="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2">
-                    <span>
+                  <div className="alert alert-warning" role="alertdialog" aria-label="Confirmer l’envoi">
+                    <p className="mb-2">
                       {channelSendLabel(channelWhatsapp, channelEmail)} à{" "}
                       <strong>{finalRecipients.length}</strong> destinataire(s)
                       {channelWhatsapp ? ` (WA ${waRecipientCount})` : ""}
                       {channelEmail ? ` (email ${emailRecipientCount})` : ""} ?
-                    </span>
-                    <div className="d-flex gap-2">
+                    </p>
+                    <p className="mb-3 small mb-md-3">
+                      Filtre appliqué : <strong>{confirmFilterLabel}</strong>
+                      {selectionFilter ? (
+                        <>
+                          {" "}
+                          — sélection filtre : {selectionFilter.selectedWithContact} /{" "}
+                          {selectionFilter.filteredTotal}
+                        </>
+                      ) : null}
+                      {manualRecipients.length > 0 ? (
+                        <> · + {manualRecipients.length} ajout(s) manuel(s)</>
+                      ) : null}
+                    </p>
+                    <div className="d-flex flex-wrap gap-2 justify-content-end">
                       <button
                         type="button"
                         className="btn btn-sm btn-light"
                         onClick={() => setConfirmSend(false)}
                         disabled={sending}
                       >
-                        Non
+                        Non, annuler
                       </button>
                       <button
                         type="button"
@@ -1647,10 +1787,10 @@ export default function WhatsappBroadcastPage() {
                       >
                         {sending ? (
                           <>
-                            <span className="spinner-border spinner-border-sm me-1" /> Envoi⬦
+                            <span className="spinner-border spinner-border-sm me-1" /> Envoi…
                           </>
                         ) : (
-                          "Oui, envoyer"
+                          `Oui, envoyer à ${finalRecipients.length} destinataire(s)`
                         )}
                       </button>
                     </div>

@@ -32,6 +32,7 @@ import { CalendarActionButtons } from "@/components/calendar/CalendarActionButto
 import { BlockedDaysModal } from "@/components/calendar/BlockedDaysModal";
 import { AvailabilitiesModal } from "@/components/calendar/AvailabilitiesModal";
 import { AvailabilitiesBanner } from "@/components/calendar/AvailabilitiesBanner";
+import { StatCard } from "@/components/ui/StatCard";
 import {
   deleteAvailability,
   getMyAvailabilities,
@@ -589,60 +590,40 @@ export default function CalendarPage() {
         <>
           <div className="row">
             <div className="col-12 col-md-6 col-lg-3 mb-3">
-              <div className="card card-action action-border-primary h-100">
-                <div className="card-header border-0 pb-0">
-                  <div className="avatar bg-primary-subtle text-primary rounded-3">
-                    <i className="fi fi-rr-calendar" />
-                  </div>
-                </div>
-                <div className="card-body">
-                  <h6>Today</h6>
-                  <h2 className="mb-1">{stats?.today ?? "—"}</h2>
-                  <p className="mb-0 text-muted">Meetings</p>
-                </div>
-              </div>
+              <StatCard
+                label="Today"
+                value={stats?.today ?? "—"}
+                subtext="Meetings"
+                iconColor="primary"
+                icon={<i className="icon-calendar" />}
+              />
             </div>
             <div className="col-12 col-md-6 col-lg-3 mb-3">
-              <div className="card card-action action-border-success h-100">
-                <div className="card-header border-0 pb-0">
-                  <div className="avatar bg-success-subtle text-success rounded-3">
-                    <i className="fi fi-rr-calendar-clock" />
-                  </div>
-                </div>
-                <div className="card-body">
-                  <h6>This week</h6>
-                  <h2 className="mb-1">{stats?.thisWeek ?? "—"}</h2>
-                  <p className="mb-0 text-muted">Meetings</p>
-                </div>
-              </div>
+              <StatCard
+                label="This week"
+                value={stats?.thisWeek ?? "—"}
+                subtext="Meetings"
+                iconColor="success"
+                icon={<i className="icon-calendar-days" />}
+              />
             </div>
             <div className="col-12 col-md-6 col-lg-3 mb-3">
-              <div className="card card-action action-border-warning h-100">
-                <div className="card-header border-0 pb-0">
-                  <div className="avatar bg-warning-subtle text-warning rounded-3">
-                    <i className="fi fi-rr-hourglass-end" />
-                  </div>
-                </div>
-                <div className="card-body">
-                  <h6>Pending</h6>
-                  <h2 className="mb-1">{stats?.pending ?? "—"}</h2>
-                  <p className="mb-0 text-muted">À traiter</p>
-                </div>
-              </div>
+              <StatCard
+                label="Pending"
+                value={stats?.pending ?? "—"}
+                subtext="À traiter"
+                iconColor="warning"
+                icon={<i className="icon-hourglass" />}
+              />
             </div>
             <div className="col-12 col-md-6 col-lg-3 mb-3">
-              <div className="card card-action action-border-danger h-100">
-                <div className="card-header border-0 pb-0">
-                  <div className="avatar bg-danger-subtle text-danger rounded-3">
-                    <i className="fi fi-rr-cross-circle" />
-                  </div>
-                </div>
-                <div className="card-body">
-                  <h6>No show</h6>
-                  <h2 className="mb-1">{stats?.noShow ?? "—"}</h2>
-                  <p className="mb-0 text-muted">Absents</p>
-                </div>
-              </div>
+              <StatCard
+                label="No show"
+                value={stats?.noShow ?? "—"}
+                subtext="Absents"
+                iconColor="danger"
+                icon={<i className="icon-user-x" />}
+              />
             </div>
           </div>
 

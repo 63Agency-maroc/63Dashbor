@@ -30,17 +30,8 @@ const TABS: { id: SettingsTab; label: string; soon?: boolean }[] = [
   { id: "developer", label: "Développeur", soon: true },
 ];
 
-const COLOR_OPTIONS: { value: AppColor; label: string; swatch: string }[] = [
-  { value: "blue", label: "Bleu", swatch: "#316AFF" },
-  { value: "indigo", label: "Indigo", swatch: "#6610f2" },
-  { value: "purple", label: "Violet", swatch: "#6f42c1" },
-  { value: "pink", label: "Rose", swatch: "#d63384" },
-  { value: "red", label: "Rouge", swatch: "#dc3545" },
-  { value: "orange", label: "Orange", swatch: "#fd7e14" },
-  { value: "yellow", label: "Jaune", swatch: "#ffc107" },
-  { value: "green", label: "Vert", swatch: "#198754" },
-  { value: "teal", label: "Sarcelle", swatch: "#20c997" },
-  { value: "cyan", label: "Cyan", swatch: "#0dcaf0" },
+const COLOR_OPTIONS: { value: AppColor; label: string; swatch: string; onSwatch?: string }[] = [
+  { value: "gold", label: "Gold (63 Agency)", swatch: "#C9A24B", onSwatch: "#1a1a1a" },
 ];
 
 function ComingSoonPanel({ title, description }: { title: string; description: string }) {
@@ -324,7 +315,10 @@ export default function SettingsPage() {
                               }}
                             >
                               {active ? (
-                                <i className="fi fi-rr-check text-white" style={{ fontSize: 14 }} />
+                                <i
+                                  className="fi fi-rr-check"
+                                  style={{ fontSize: 14, color: c.onSwatch ?? "#fff" }}
+                                />
                               ) : null}
                             </span>
                           </button>
@@ -332,7 +326,7 @@ export default function SettingsPage() {
                       })}
                     </div>
                     <div className="form-text mt-2">
-                      Accent actuel : <strong>{settings.appColor}</strong>
+                      Accent marque 63 Agency : <strong>Gold</strong> (#C9A24B)
                     </div>
                   </div>
                 </div>

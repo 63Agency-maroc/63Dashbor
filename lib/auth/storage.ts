@@ -1,7 +1,8 @@
 /**
  * Stockage session auth (sans React).
  * - localStorage : accessToken + user (source pour le client API)
- * - cookie `nexlink_token` : présence du JWT pour le middleware Next.js
+ * - cookie `nexlink_token` : flag de présence pour le proxy Next.js (pas le JWT —
+ *   évite taille / encoding et les désync cookie↔localStorage)
  */
 
 export const TOKEN_KEY = "nexlink_access_token";
@@ -9,6 +10,8 @@ export const USER_KEY = "nexlink_auth_user";
 export const COOKIE_TOKEN = "nexlink_token";
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 jours
+/** Valeur presence-only — le JWT reste dans localStorage */
+const COOKIE_PRESENT = "1";
 
 export type AuthRole = "admin" | "admin_whatsapp" | "fixed_meeting" | string;
 
@@ -61,19 +64,26 @@ export function getStoredUser(): AuthUser | null {
   }
 }
 
-function setAuthCookie(token: string) {
-  document.cookie = `${COOKIE_TOKEN}=${encodeURIComponent(token)}; Path=/; Max-Age=${COOKIE_MAX_AGE}; SameSite=Lax`;
+function setAuthCookie() {
+  document.cookie = `${COOKIE_TOKEN}=${COOKIE_PRESENT}; Path=/; Max-Age=${COOKIE_MAX_AGE}; SameSite=Lax`;
 }
 
 function clearAuthCookie() {
   document.cookie = `${COOKIE_TOKEN}=; Path=/; Max-Age=0; SameSite=Lax`;
 }
 
+/** Aligne le cookie proxy avec localStorage (appelé au bootstrap). */
+export function syncAuthCookie() {
+  if (!canUseDom()) return;
+  if (getToken()) setAuthCookie();
+  else clearAuthCookie();
+}
+
 export function saveSession(payload: AuthSessionPayload) {
   if (!canUseDom()) return;
   localStorage.setItem(TOKEN_KEY, payload.accessToken);
   localStorage.setItem(USER_KEY, JSON.stringify(payload.user ?? {}));
-  setAuthCookie(payload.accessToken);
+  setAuthCookie();
 }
 
 /** Met à jour uniquement le user en session (après PATCH profil / avatar). */

@@ -28,6 +28,7 @@ export type AppTheme = "light" | "dark";
 /** Valeurs persistées : full | mini. mini-hover = état DOM transitoire (hover). */
 export type AppSidebar = "full" | "mini" | "mini-hover";
 export type AppColor =
+  | "gold"
   | "blue"
   | "indigo"
   | "purple"
@@ -48,7 +49,7 @@ export type AppSettings = {
 const defaults: AppSettings = {
   appTheme: "light",
   appSidebar: "full",
-  appColor: "blue",
+  appColor: "gold",
 };
 
 type ThemeContextValue = {
@@ -56,6 +57,12 @@ type ThemeContextValue = {
   setSettings: (patch: Partial<AppSettings>) => void;
   toggleTheme: () => void;
   toggleSidebar: () => void;
+  /** true si le panneau sous-menus est visible (full / .open). */
+  isSidebarPanelOpen: () => boolean;
+  /** Ouvre le panneau sous-menus (full desktop ou .open ≤1480). */
+  expandSidebarPanel: () => void;
+  /** Ferme / réduit le panneau (mini desktop ou retire .open ≤1480). */
+  collapseSidebarPanel: () => void;
   setSidebarHover: (hover: boolean) => void;
 };
 
@@ -73,7 +80,12 @@ function readStored(): AppSettings {
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       return { ...defaults, appTheme: prefersDark ? "dark" : "light" };
     }
-    return { ...defaults, ...JSON.parse(raw) };
+    const parsed = { ...defaults, ...JSON.parse(raw) } as AppSettings;
+    // Rebrand 63 Agency : accent gold (migre l’ancien défaut « blue »)
+    if (!parsed.appColor || parsed.appColor === "blue" || parsed.appColor === "purple") {
+      parsed.appColor = "gold";
+    }
+    return parsed;
   } catch {
     return defaults;
   }
@@ -201,6 +213,50 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [settings.appSidebar]);
 
+  const isSidebarPanelOpen = useCallback(() => {
+    if (typeof window === "undefined") return false;
+    const menubar = document.getElementById("appMenubar");
+    if (window.innerWidth <= CSS_COMPACT_MAX) {
+      return menubar?.classList.contains("open") ?? false;
+    }
+    const mode = document.documentElement.getAttribute("data-app-sidebar");
+    return mode === "full" || mode === "mini-hover";
+  }, []);
+
+  /** Clic icône rail : garantir que le panneau sous-menus est visible. */
+  const expandSidebarPanel = useCallback(() => {
+    const menubar = document.getElementById("appMenubar");
+    if (window.innerWidth <= CSS_COMPACT_MAX) {
+      menubar?.classList.add("open");
+      syncTogglerActive(true);
+      return;
+    }
+    document.documentElement.setAttribute("data-app-sidebar", "full");
+    menubar?.classList.remove("open");
+    syncTogglerActive(false);
+    setSettingsState((prev) =>
+      prev.appSidebar === "full" ? prev : { ...prev, appSidebar: "full" },
+    );
+  }, []);
+
+  /** Reclic même section : refermer le panneau (toggle naturel). */
+  const collapseSidebarPanel = useCallback(() => {
+    const menubar = document.getElementById("appMenubar");
+    if (window.innerWidth <= CSS_COMPACT_MAX) {
+      menubar?.classList.remove("open");
+      syncTogglerActive(false);
+      return;
+    }
+    document.documentElement.setAttribute("data-app-sidebar", "mini");
+    menubar?.classList.remove("open");
+    syncTogglerActive(true);
+    setSettingsState((prev) =>
+      persistSidebarMode(prev.appSidebar) === "mini"
+        ? prev
+        : { ...prev, appSidebar: "mini" },
+    );
+  }, []);
+
   const setSidebarHover = useCallback((hover: boolean) => {
     // Hover expand seulement en vrai mode mini desktop (comme main.js)
     if (window.innerWidth <= CSS_COMPACT_MAX) return;
@@ -217,8 +273,26 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ settings, setSettings, toggleTheme, toggleSidebar, setSidebarHover }),
-    [settings, setSettings, toggleTheme, toggleSidebar, setSidebarHover],
+    () => ({
+      settings,
+      setSettings,
+      toggleTheme,
+      toggleSidebar,
+      isSidebarPanelOpen,
+      expandSidebarPanel,
+      collapseSidebarPanel,
+      setSidebarHover,
+    }),
+    [
+      settings,
+      setSettings,
+      toggleTheme,
+      toggleSidebar,
+      isSidebarPanelOpen,
+      expandSidebarPanel,
+      collapseSidebarPanel,
+      setSidebarHover,
+    ],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

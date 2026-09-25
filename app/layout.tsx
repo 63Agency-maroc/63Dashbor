@@ -18,7 +18,7 @@ export const metadata: Metadata = {
  */
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" data-bs-theme="light" data-app-sidebar="full" data-color-theme="blue" suppressHydrationWarning>
+    <html lang="fr" data-bs-theme="light" data-app-sidebar="full" data-color-theme="gold" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -33,12 +33,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <link rel="stylesheet" href="/assets/libs/node-waves/waves.css" />
         <link rel="stylesheet" href="/assets/css/styles.css" />
         <link rel="stylesheet" href="/assets/css/app-overrides.css" />
-        <meta name="theme-color" content="#5955D1" />
+        <meta name="theme-color" content="#C9A24B" />
       </head>
       <body>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=JSON.parse(localStorage.getItem('nexlink-app-settings')||'{}');var d=document.documentElement;if(s.appTheme)d.setAttribute('data-bs-theme',s.appTheme);if(s.appColor)d.setAttribute('data-color-theme',s.appColor);if(s.appSidebar&&window.innerWidth>=1191)d.setAttribute('data-app-sidebar',s.appSidebar);}catch(e){}})();`,
+            __html: `(function(){try{var s=JSON.parse(localStorage.getItem('nexlink-app-settings')||'{}');var d=document.documentElement;if(s.appTheme)d.setAttribute('data-bs-theme',s.appTheme);d.setAttribute('data-color-theme',s.appColor||'gold');if(s.appSidebar&&window.innerWidth>=1191)d.setAttribute('data-app-sidebar',s.appSidebar);}catch(e){}})();`,
           }}
         />
         <ThemeProvider>

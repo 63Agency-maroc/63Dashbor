@@ -31,6 +31,7 @@ import { formatInCasablanca, parseIso } from "@/lib/datetime/casablanca";
 import { getSocket } from "@/lib/realtime/socket";
 import { WhatsappMessageBubble } from "@/components/whatsapp/WhatsappMessageBubble";
 import { AppToast } from "@/components/clients/AppToast";
+import { Select } from "@/components/ui/Select";
 
 function displayName(c: WhatsappConversation) {
   return (c.contactName || "").trim() || c.phoneNumber || "Contact";
@@ -898,14 +899,14 @@ export default function WhatsappPage() {
             <div className={`chat-sidebar${mobileSidebarOpen ? " open" : ""}`}>
               <div className="d-flex p-3 align-items-center justify-content-between flex-shrink-0">
                 <form
-                  className="d-flex align-items-center shadow-sm rounded-2 position-relative w-100"
+                  className="d-flex align-items-center shadow-sm position-relative w-100 app-search-field"
                   onSubmit={(e) => e.preventDefault()}
                 >
                   <button type="button" className="btn btn-sm border-0 position-absolute start-0 ms-3 p-0">
                     <i className="fi fi-rr-search" />
                   </button>
                   <input
-                    type="text"
+                    type="search"
                     className="form-control ps-5"
                     placeholder="Search"
                     value={search}
@@ -1069,22 +1070,25 @@ export default function WhatsappPage() {
                           <h6 className="mb-2">Envoyer un template</h6>
                           <div className="row g-2">
                             <div className="col-md-6">
-                              <select
-                                className="form-select form-select-sm"
+                              <Select
+                                size="sm"
                                 value={templateName}
-                                onChange={(e) => {
-                                  setTemplateName(e.target.value);
-                                  const t = templates.find((x) => x.name === e.target.value);
+                                onChange={(v) => {
+                                  setTemplateName(v);
+                                  const t = templates.find((x) => x.name === v);
                                   if (t) setTemplateLang(t.language || "");
                                 }}
-                              >
-                                {templates.length === 0 ? <option value="">Chargement…</option> : null}
-                                {templates.map((t) => (
-                                  <option key={t.id || t.name} value={t.name}>
-                                    {t.name} ({t.language})
-                                  </option>
-                                ))}
-                              </select>
+                                placeholder="Chargement…"
+                                searchable
+                                options={
+                                  templates.length === 0
+                                    ? [{ value: "", label: "Chargement…" }]
+                                    : templates.map((t) => ({
+                                        value: t.name,
+                                        label: `${t.name} (${t.language})`,
+                                      }))
+                                }
+                              />
                             </div>
                             {needsVar1 ? (
                               <div className="col-md-4">

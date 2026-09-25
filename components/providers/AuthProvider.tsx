@@ -18,6 +18,7 @@ import {
   getStoredUser,
   getToken,
   saveSession,
+  syncAuthCookie,
   updateStoredUser,
   type AuthUser,
 } from "@/lib/auth/storage";
@@ -52,9 +53,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     async function bootstrap() {
+      // Cookie proxy ↔ localStorage : coupe la boucle / ↔ /login
+      syncAuthCookie();
+
       const token = getToken();
       if (!token) {
         if (!cancelled) {
+          clearSession();
           setHasToken(false);
           setUser(null);
           setPermissions(null);

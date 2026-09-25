@@ -1,7 +1,194 @@
 /**
- * Override global : boutons plus arrondis (pill) dans toute l’app.
+ * Override global : boutons + formulaires + branding 63 Agency.
  * Chargé après styles.css — ne modifie pas le template source.
  */
+
+/* =============================================================================
+ * 63 Agency — tokens marque (GOLD remplace le violet NexLink)
+ * Primary : #C9A24B · Dark : noir confortable (cartes distinctes du fond)
+ * ============================================================================= */
+
+:root,
+[data-bs-theme="light"] {
+  --agency-gold: #c9a24b;
+  --agency-gold-rgb: 201, 162, 75;
+  --agency-gold-hover: #b8912f;
+  --agency-gold-active: #a07a28;
+  --agency-on-gold: #1a1a1a;
+
+  --bs-primary: #c9a24b;
+  --bs-primary-rgb: 201, 162, 75;
+  --bs-primary-text-emphasis: #7a6220;
+  --bs-primary-bg-subtle: #fbf6ea;
+  --bs-primary-border-subtle: #e8d5a3;
+
+  --bs-link-color: #a8842e;
+  --bs-link-color-rgb: 168, 132, 46;
+  --bs-link-hover-color: #8f7026;
+  --bs-link-hover-color-rgb: 143, 112, 38;
+
+  --bs-focus-ring-color: rgba(201, 162, 75, 0.35);
+
+  --bs-btn-primary-hover: #b8912f;
+  --bs-btn-primary-border-hover: #b8912f;
+  --bs-btn-primary-active: #a07a28;
+
+  --custom-body-bg: #fafaf8;
+  --app-sidebar-bg: #ffffff;
+  --app-header-bg: #fafaf8;
+}
+
+[data-bs-theme="dark"] {
+  --agency-gold: #d4af37;
+  --agency-gold-rgb: 212, 175, 55;
+  --agency-gold-hover: #e0c04a;
+  --agency-gold-active: #c4a030;
+  --agency-on-gold: #1a1a1a;
+
+  /* Fond noir élégant (pas #000) + surfaces un cran plus claires */
+  --bs-body-bg: #121212;
+  --bs-body-bg-rgb: 18, 18, 18;
+  --bs-body-color: #e8e8e8;
+  --bs-body-color-rgb: 232, 232, 232;
+  --bs-secondary-bg: #1c1c1c;
+  --bs-secondary-bg-rgb: 28, 28, 28;
+  --bs-tertiary-bg: #252525;
+  --bs-tertiary-bg-rgb: 37, 37, 37;
+  --bs-emphasis-color: #ffffff;
+  --bs-heading-color: #f2f2f2;
+  --bs-secondary-color: rgba(232, 232, 232, 0.65);
+  --bs-border-color: rgba(255, 255, 255, 0.09);
+  --bs-border-color-translucent: rgba(255, 255, 255, 0.14);
+
+  --bs-light: #2a2a2a;
+  --bs-light-rgb: 42, 42, 42;
+  --bs-dark: #0a0a0a;
+  --bs-dark-rgb: 10, 10, 10;
+
+  --bs-primary: #d4af37;
+  --bs-primary-rgb: 212, 175, 55;
+  --bs-primary-text-emphasis: #e8c96a;
+  --bs-primary-bg-subtle: #2a2415;
+  --bs-primary-border-subtle: #5c4a1e;
+
+  --bs-link-color: #d4af37;
+  --bs-link-color-rgb: 212, 175, 55;
+  --bs-link-hover-color: #e8c96a;
+  --bs-link-hover-color-rgb: 232, 201, 106;
+
+  --bs-focus-ring-color: rgba(212, 175, 55, 0.4);
+
+  --bs-btn-primary-hover: #e0c04a;
+  --bs-btn-primary-border-hover: #e0c04a;
+  --bs-btn-primary-active: #c4a030;
+
+  --custom-body-bg: #121212;
+  --app-sidebar-bg: #161616;
+  --app-header-bg: #1c1c1c;
+}
+
+/* Spécificité > styles.css html[data-bs-theme=dark] (subtiles violet) */
+html[data-bs-theme="dark"],
+body[data-bs-theme="dark"] {
+  --bs-primary-bg-subtle: #2a2415;
+  --bs-primary-border-subtle: #5c4a1e;
+  --bs-primary-text-emphasis: #e8c96a;
+  --bs-tertiary-bg: #252525;
+  --bs-tertiary-bg-rgb: 37, 37, 37;
+  --bs-light: #2a2a2a;
+  --bs-light-rgb: 42, 42, 42;
+  --custom-body-bg: #121212;
+  --app-sidebar-bg: #161616;
+  --app-header-bg: #1c1c1c;
+}
+
+/* Boutons primaire : texte foncé sur gold (contraste) */
+.btn-primary {
+  --bs-btn-color: var(--agency-on-gold);
+  --bs-btn-bg: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-color: var(--agency-on-gold);
+  --bs-btn-hover-bg: var(--bs-btn-primary-hover);
+  --bs-btn-hover-border-color: var(--bs-btn-primary-border-hover);
+  --bs-btn-active-color: var(--agency-on-gold);
+  --bs-btn-active-bg: var(--bs-btn-primary-active);
+  --bs-btn-active-border-color: var(--bs-btn-primary-active);
+  --bs-btn-disabled-color: var(--agency-on-gold);
+  --bs-btn-disabled-bg: var(--bs-primary);
+  --bs-btn-disabled-border-color: var(--bs-primary);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-color: var(--agency-on-gold);
+  --bs-btn-hover-bg: var(--bs-primary);
+  --bs-btn-hover-border-color: var(--bs-primary);
+  --bs-btn-active-color: var(--agency-on-gold);
+  --bs-btn-active-bg: var(--bs-primary);
+  --bs-btn-active-border-color: var(--bs-primary);
+  --bs-btn-disabled-color: var(--bs-primary);
+  --bs-btn-disabled-border-color: var(--bs-primary);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+
+.btn.btn-subtle-primary:hover,
+.btn.btn-subtle-primary:active,
+.btn.btn-subtle-primary:focus {
+  color: var(--agency-on-gold) !important;
+}
+
+/* Texte sur fond gold : foncé (contraste), pas blanc */
+.text-bg-primary,
+.badge.bg-primary,
+.badge.text-bg-primary {
+  color: var(--agency-on-gold) !important;
+}
+
+/* Focus residual violet NexLink → gold */
+.form-select:focus,
+.nav-link:focus-visible {
+  box-shadow: 0 0 0 0.1rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+/* Rail sidebar : actif / hover en gold */
+.app-navbar-tabs .nav-item .menu-link.active,
+.app-navbar-tabs .nav-item .menu-link:hover,
+.app-navbar-tabs .nav-item .menu-link:focus {
+  color: var(--bs-primary);
+  background-color: var(--bs-primary-bg-subtle);
+}
+
+.app-navbar-tabs .nav-item .menu-link.active i,
+.app-navbar-tabs .nav-item .menu-link:hover i,
+.app-navbar-tabs .nav-item .menu-link:focus i {
+  color: var(--bs-primary);
+}
+
+/* Cartes dark : distinction fond / surface */
+[data-bs-theme="dark"] .card,
+[data-bs-theme="dark"] .app-stat-card,
+[data-bs-theme="dark"] .modal-content,
+[data-bs-theme="dark"] .dropdown-menu,
+[data-bs-theme="dark"] .app-select-menu {
+  background-color: var(--bs-secondary-bg);
+  border-color: var(--bs-border-color);
+}
+
+[data-bs-theme="dark"] .app-header {
+  background-color: var(--app-header-bg);
+}
+
+[data-bs-theme="dark"] .app-menubar,
+[data-bs-theme="dark"] .app-navbar-tabs,
+[data-bs-theme="dark"] .side-menubar {
+  background-color: var(--app-sidebar-bg);
+}
+
+/* =============================================================================
+ * Boutons — pill
+ * ============================================================================= */
 .btn {
   --bs-btn-border-radius: 999px;
   border-radius: 999px !important;
@@ -50,4 +237,532 @@
 .btn-group > .btn-group:last-child > .btn {
   border-top-right-radius: 999px !important;
   border-bottom-right-radius: 999px !important;
+}
+
+/* =============================================================================
+ * Formulaires — coins arrondis + focus thème (light / dark)
+ * Couvre : .form-control, .form-select (legacy), textarea, recherche, filtres
+ * Dropdowns : utiliser components/ui/Select (panneau custom, pas le menu natif)
+ * ============================================================================= */
+
+:root {
+  --app-form-radius: 0.875rem; /* ~14px — inputs / textarea */
+  --app-form-radius-sm: 0.75rem;
+  --app-form-radius-lg: 1rem;
+  /* Search + chips Select : même pill que .btn / dropdown-toggle */
+  --app-search-radius: 999px;
+  --app-form-padding-y: 0.6rem;
+  --app-form-padding-x: 1.05rem;
+  --app-form-focus-shadow: 0 0.1rem 0.35rem 0 rgba(var(--bs-primary-rgb), 0.18),
+    0 0 0 1px var(--bs-primary);
+}
+
+.form-control,
+.form-select,
+.input-group-text {
+  border-radius: var(--app-form-radius) !important;
+  padding-top: var(--app-form-padding-y);
+  padding-bottom: var(--app-form-padding-y);
+  border-color: var(--bs-border-color);
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out,
+    background-color 0.15s ease-in-out;
+}
+
+.form-control {
+  padding-left: var(--app-form-padding-x);
+  padding-right: var(--app-form-padding-x);
+}
+
+/*
+ * Champs recherche = pill comme les Select (draw list chips).
+ * Couvre topbar, filtres Leads/Clients/Calendar, WhatsApp, Devis, etc.
+ */
+input[type="search"],
+input[type="search"].form-control,
+.form-control[type="search"],
+.form-control-fill,
+.form-control.form-control-fill,
+.app-header-start .form-control,
+.app-header-start .form-control-fill,
+.app-search-field,
+.app-search-field .form-control,
+.app-search-field .form-control-sm,
+.app-search-field .form-control-fill {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  border-radius: var(--app-search-radius) !important;
+}
+
+input[type="search"].form-control-sm,
+.form-control-sm[type="search"],
+.form-control-sm.form-control-fill {
+  border-radius: var(--app-search-radius) !important;
+}
+
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+}
+
+.form-select {
+  padding-left: var(--app-form-padding-x);
+  padding-right: 2.75rem;
+}
+
+.form-control-sm,
+.form-select-sm,
+.input-group-sm > .form-control,
+.input-group-sm > .form-select,
+.input-group-sm > .input-group-text {
+  border-radius: var(--app-form-radius-sm) !important;
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+
+.form-control-lg,
+.form-select-lg,
+.input-group-lg > .form-control,
+.input-group-lg > .form-select,
+.input-group-lg > .input-group-text {
+  border-radius: var(--app-form-radius-lg) !important;
+}
+
+textarea.form-control {
+  border-radius: var(--app-form-radius);
+  min-height: 6rem;
+}
+
+.form-control::placeholder {
+  color: var(--bs-secondary-color);
+  opacity: 0.85;
+}
+
+.form-control:hover:not(:disabled):not([readonly]),
+.form-select:hover:not(:disabled) {
+  border-color: var(--bs-primary-border-subtle, var(--bs-border-color));
+}
+
+.form-control:focus,
+.form-select:focus {
+  color: var(--bs-body-color);
+  background-color: var(--bs-body-bg);
+  border-color: var(--bs-primary);
+  outline: 0;
+  box-shadow: var(--app-form-focus-shadow);
+}
+
+.form-control:disabled,
+.form-control[readonly],
+.form-select:disabled {
+  background-color: var(--bs-secondary-bg);
+  color: var(--bs-secondary-color);
+  border-color: var(--bs-border-color);
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.form-control[readonly]:not(:disabled) {
+  cursor: default;
+}
+
+/* Validation — garde le radius + ring thématique */
+.was-validated .form-control:invalid,
+.form-control.is-invalid,
+.was-validated .form-select:invalid,
+.form-select.is-invalid {
+  border-color: var(--bs-form-invalid-border-color, var(--bs-danger));
+}
+
+.was-validated .form-control:invalid:focus,
+.form-control.is-invalid:focus,
+.was-validated .form-select:invalid:focus,
+.form-select.is-invalid:focus {
+  border-color: var(--bs-form-invalid-border-color, var(--bs-danger));
+  box-shadow: 0 0.1rem 0.35rem 0 rgba(var(--bs-danger-rgb), 0.18),
+    0 0 0 1px var(--bs-form-invalid-border-color, var(--bs-danger));
+}
+
+.was-validated .form-control:valid,
+.form-control.is-valid,
+.was-validated .form-select:valid,
+.form-select.is-valid {
+  border-color: var(--bs-form-valid-border-color, var(--bs-success));
+}
+
+.was-validated .form-control:valid:focus,
+.form-control.is-valid:focus,
+.was-validated .form-select:valid:focus,
+.form-select.is-valid:focus {
+  border-color: var(--bs-form-valid-border-color, var(--bs-success));
+  box-shadow: 0 0.1rem 0.35rem 0 rgba(var(--bs-success-rgb), 0.18),
+    0 0 0 1px var(--bs-form-valid-border-color, var(--bs-success));
+}
+
+/* input-group : coins arrondis seulement aux extrémités */
+.input-group:not(.has-validation)
+  > :not(:last-child):not(.dropdown-toggle):not(.dropdown-menu):not(.form-floating),
+.input-group:not(.has-validation) > .dropdown-toggle:nth-last-child(n + 3),
+.input-group.has-validation
+  > :nth-last-child(n + 3):not(.dropdown-toggle):not(.dropdown-menu):not(.form-floating),
+.input-group.has-validation > .dropdown-toggle:nth-last-child(n + 4) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.input-group
+  > :not(:first-child):not(.dropdown-menu):not(.valid-tooltip):not(.valid-feedback):not(
+    .invalid-tooltip
+  ):not(.invalid-feedback) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.input-group > :first-child,
+.input-group > .form-floating:first-child > .form-control,
+.input-group > .form-floating:first-child > .form-select {
+  border-top-left-radius: var(--app-form-radius);
+  border-bottom-left-radius: var(--app-form-radius);
+}
+
+.input-group > :last-child,
+.input-group > .form-floating:last-child > .form-control,
+.input-group > .form-floating:last-child > .form-select {
+  border-top-right-radius: var(--app-form-radius);
+  border-bottom-right-radius: var(--app-form-radius);
+}
+
+.input-group-sm > :first-child,
+.input-group-sm > .form-floating:first-child > .form-control,
+.input-group-sm > .form-floating:first-child > .form-select {
+  border-top-left-radius: var(--app-form-radius-sm);
+  border-bottom-left-radius: var(--app-form-radius-sm);
+}
+
+.input-group-sm > :last-child,
+.input-group-sm > .form-floating:last-child > .form-control,
+.input-group-sm > .form-floating:last-child > .form-select {
+  border-top-right-radius: var(--app-form-radius-sm);
+  border-bottom-right-radius: var(--app-form-radius-sm);
+}
+
+.input-group-lg > :first-child,
+.input-group-lg > .form-floating:first-child > .form-control,
+.input-group-lg > .form-floating:first-child > .form-select {
+  border-top-left-radius: var(--app-form-radius-lg);
+  border-bottom-left-radius: var(--app-form-radius-lg);
+}
+
+.input-group-lg > :last-child,
+.input-group-lg > .form-floating:last-child > .form-control,
+.input-group-lg > .form-floating:last-child > .form-select {
+  border-top-right-radius: var(--app-form-radius-lg);
+  border-bottom-right-radius: var(--app-form-radius-lg);
+}
+
+/* Bouton dans un input-group : coins assortis au champ (pas pill) */
+.input-group > .btn:first-child {
+  border-top-left-radius: var(--app-form-radius) !important;
+  border-bottom-left-radius: var(--app-form-radius) !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.input-group > .btn:last-child {
+  border-top-right-radius: var(--app-form-radius) !important;
+  border-bottom-right-radius: var(--app-form-radius) !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+.input-group > .btn:not(:first-child):not(:last-child) {
+  border-radius: 0 !important;
+}
+
+/* Check / radio : léger arrondi cohérent */
+.form-check-input {
+  border-radius: 0.35rem;
+  border-color: var(--bs-border-color);
+}
+
+.form-check-input[type="radio"] {
+  border-radius: 50%;
+}
+
+.form-check-input:focus {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.2);
+}
+
+/* Dark : tokens data-bs-theme */
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select,
+[data-bs-theme="dark"] .input-group-text {
+  background-color: var(--bs-body-bg);
+  border-color: var(--bs-border-color);
+  color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .form-control:disabled,
+[data-bs-theme="dark"] .form-control[readonly],
+[data-bs-theme="dark"] .form-select:disabled {
+  background-color: var(--bs-secondary-bg);
+  color: var(--bs-secondary-color);
+}
+
+/* =============================================================================
+ * App Select — markup NexLink (btn-white + dropdown-menu + dropdown-item)
+ * Panneau en portal (fixed, z-index 2000) : OK modals / overflow tables
+ * ============================================================================= */
+
+.app-select {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Chip trigger — classes Bootstrap/NexLink ; pill déjà via .btn global */
+.app-select-trigger.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  max-width: 100%;
+  font-weight: 500;
+}
+
+.app-select-trigger.dropdown-toggle::after {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.app-select-trigger__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+/* Panneau : tokens dropdown NexLink + coins ~12px + ombre template */
+.app-select-menu.dropdown-menu {
+  --bs-dropdown-border-radius: 0.75rem;
+  --bs-dropdown-padding-x: 6px;
+  --bs-dropdown-padding-y: 6px;
+  --bs-dropdown-item-padding-x: 15px;
+  --bs-dropdown-item-padding-y: 8px;
+  --bs-dropdown-link-hover-bg: var(--bs-tertiary-bg);
+  --bs-dropdown-link-active-bg: var(--bs-tertiary-bg);
+  --bs-dropdown-link-active-color: var(--bs-body-color);
+  border-radius: 0.75rem !important;
+  box-shadow: 0px 5px 10px 0px rgba(0, 0, 0, 0.05);
+  min-width: 10rem;
+}
+
+[data-bs-theme="dark"] .app-select-menu.dropdown-menu {
+  box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.4);
+}
+
+.app-select-menu__list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 0;
+  /* Scrollbar fine (pas gras) */
+  scrollbar-width: thin;
+  scrollbar-color: var(--bs-border-color) transparent;
+}
+
+.app-select-menu__list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.app-select-menu__list::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
+}
+
+.app-select-menu__list::-webkit-scrollbar-thumb {
+  background-color: var(--bs-border-color);
+  border-radius: 999px;
+}
+
+.app-select-menu__list::-webkit-scrollbar-thumb:hover {
+  background-color: var(--bs-secondary-color);
+}
+
+.app-select-menu .dropdown-item {
+  border-radius: 0.375rem;
+  font-weight: 500;
+  width: 100%;
+  text-align: left;
+  white-space: normal;
+}
+
+.app-select-item__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+/* Hover / focus clavier : fond léger (pas de primary lourd) */
+.app-select-menu .dropdown-item:hover,
+.app-select-menu .dropdown-item:focus,
+.app-select-menu .dropdown-item.active {
+  background-color: var(--bs-tertiary-bg);
+  color: var(--bs-body-color);
+}
+
+/* Sélectionnée : checkmark à droite, fond neutre (sauf hover) */
+.app-select-menu .dropdown-item.app-select-item--selected:not(:hover):not(.active) {
+  background-color: transparent;
+  color: var(--bs-body-color);
+}
+
+.app-select-menu .dropdown-item.app-select-item--selected .fi-rr-check {
+  color: var(--bs-primary);
+  font-size: 0.9rem;
+}
+
+.app-select-item__check-spacer {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+/* =============================================================================
+ * StatCard — bandeau stats (demo NexLink)
+ * ============================================================================= */
+
+.app-stat-card {
+  border: var(--bs-border-width) solid var(--bs-border-color);
+  border-radius: 1.35rem; /* plus arrondi */
+  overflow: hidden;
+  background-color: var(--bs-body-bg);
+  box-shadow: 0 0.15rem 0.65rem rgba(var(--bs-body-color-rgb, 33, 37, 41), 0.06);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.app-stat-card:hover {
+  box-shadow: 0 0.35rem 1rem rgba(var(--bs-body-color-rgb, 33, 37, 41), 0.09);
+}
+
+[data-bs-theme="dark"] .app-stat-card {
+  background-color: var(--bs-secondary-bg);
+  box-shadow: 0 0.2rem 0.75rem rgba(0, 0, 0, 0.28);
+}
+
+.app-stat-card .card-body {
+  padding: 1.15rem 1.25rem;
+  overflow: hidden;
+}
+
+.app-stat-card__icon {
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.app-stat-card__body {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app-stat-card__label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color);
+  line-height: 1.35;
+  margin-bottom: 0.25rem;
+  /* Hauteur fixe = 2 lignes → les valeurs s’alignent entre cartes */
+  min-height: calc(1.35em * 2);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.app-stat-card__value {
+  font-size: 1.65rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--bs-body-color);
+  letter-spacing: -0.02em;
+  min-height: 1.2em;
+}
+
+.app-stat-card__subtext {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--bs-secondary-color);
+  line-height: 1.35;
+}
+
+/* =============================================================================
+ * Sidebar — logout (rail + panneau)
+ * ============================================================================= */
+
+.app-menubar-tabs .app-navbar-logout {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 80px;
+  padding: 0.75rem 0 1rem;
+  display: flex;
+  justify-content: center;
+  z-index: 10;
+  background: linear-gradient(to top, var(--app-sidebar-bg) 70%, transparent);
+}
+
+.app-menubar-tabs .app-navbar-logout .menu-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--bs-danger);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.app-menubar-tabs .app-navbar-logout .menu-link:hover {
+  background-color: var(--bs-danger-bg-subtle);
+  color: var(--bs-danger);
+}
+
+.app-menubar-tabs .app-navbar-tabs {
+  padding-bottom: 4.5rem;
+}
+
+/* Login — formulaire centré (sans panneau latéral) */
+.login-page-centered {
+  min-height: 100vh;
+  background-color: var(--bs-body-bg);
+}
+
+.login-page-centered .maxw-450px {
+  max-width: 450px;
 }
