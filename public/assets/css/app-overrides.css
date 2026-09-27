@@ -2044,14 +2044,16 @@ button.agency-list-row {
 
 .cal-page__stage {
   border: 1px solid var(--cal-border);
-  border-radius: var(--cal-radius);
+  border-radius: 1.15rem;
   background: #fff;
   padding: 1rem 1rem 0.75rem;
   box-shadow: 0 0.2rem 0.85rem rgba(0, 0, 0, 0.04);
+  overflow: hidden;
 }
 
 [data-bs-theme="dark"] .cal-page__stage {
   background: var(--bs-secondary-bg);
+  border-color: rgba(255, 255, 255, 0.1);
   box-shadow: 0 0.2rem 0.85rem rgba(0, 0, 0, 0.25);
 }
 
@@ -2142,8 +2144,12 @@ button.agency-list-row {
   ) !important;
 }
 
+[data-bs-theme="dark"] .cal-page .fc .fc-col-header-cell.fc-day-today {
+  background: rgba(212, 175, 55, 0.22) !important;
+}
+
 [data-bs-theme="dark"] .cal-page .fc .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
-  color: #1a1a1a;
+  color: #f5f0e6 !important;
 }
 
 .cal-page .fc .fc-col-header-cell-cushion {
@@ -2302,9 +2308,66 @@ button.agency-list-row {
 }
 
 .cal-page__table .card {
-  border-radius: var(--cal-radius);
-  border-color: var(--cal-border);
+  border-radius: 1.15rem;
+  border: 1px solid var(--cal-border);
   box-shadow: 0 0.15rem 0.55rem rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+  background: var(--bs-body-bg);
+}
+
+.cal-page__table .card-header {
+  background: transparent;
+  border-bottom: 1px solid var(--cal-border);
+  padding: 1rem 1.15rem 0.85rem;
+}
+
+.cal-page__table .card-body {
+  border: 0;
+}
+
+.cal-page__table .table {
+  --bs-table-border-color: var(--cal-border);
+  border-color: var(--cal-border);
+  margin-bottom: 0;
+}
+
+.cal-page__table .table > :not(caption) > * > * {
+  border-bottom-color: var(--cal-border);
+}
+
+.cal-page__table .table-light {
+  --bs-table-bg: var(--cal-muted-bg);
+  --bs-table-color: var(--bs-heading-color);
+  --bs-table-border-color: var(--cal-border);
+}
+
+[data-bs-theme="dark"] .cal-page__table .card {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0.2rem 0.75rem rgba(0, 0, 0, 0.25);
+  background: var(--bs-secondary-bg);
+}
+
+[data-bs-theme="dark"] .cal-page__table .card-header {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-bs-theme="dark"] .cal-page__table .table {
+  --bs-table-border-color: rgba(255, 255, 255, 0.08);
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--bs-body-color);
+  color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .cal-page__table .table > :not(caption) > * > * {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+[data-bs-theme="dark"] .cal-page__table .table-light {
+  --bs-table-bg: rgba(255, 255, 255, 0.04);
+  --bs-table-color: var(--bs-heading-color);
+  --bs-table-border-color: rgba(255, 255, 255, 0.08);
+  color: var(--bs-heading-color);
 }
 
 @media (max-width: 991.98px) {

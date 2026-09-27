@@ -158,7 +158,7 @@ export function MeetingsListSection({
   }
 
   return (
-    <div className="mt-3">
+    <div className="cal-meetings-table">
       <div className="card">
         <div className="card-header d-flex flex-column flex-md-row align-items-stretch align-items-md-center justify-content-between gap-3 border-0 pb-0">
           <h6 className="card-title mb-0 flex-shrink-0">Liste des meetings</h6>
