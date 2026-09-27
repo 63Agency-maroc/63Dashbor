@@ -1,11 +1,11 @@
 /**
  * Override global : boutons + formulaires + branding 63 Agency.
- * Chargé après styles.css — ne modifie pas le template source.
+ * ChargÃ© aprÃ¨s styles.css â€” ne modifie pas le template source.
  */
 
 /* =============================================================================
- * 63 Agency — tokens marque (GOLD remplace le violet NexLink)
- * Primary : #C9A24B · Dark : noir confortable (cartes distinctes du fond)
+ * 63 Agency â€” tokens marque (GOLD remplace le violet NexLink)
+ * Primary : #C9A24B Â· Dark : noir confortable (cartes distinctes du fond)
  * ============================================================================= */
 
 :root,
@@ -45,7 +45,7 @@
   --agency-gold-active: #c4a030;
   --agency-on-gold: #1a1a1a;
 
-  /* Fond noir élégant (pas #000) + surfaces un cran plus claires */
+  /* Fond noir Ã©lÃ©gant (pas #000) + surfaces un cran plus claires */
   --bs-body-bg: #121212;
   --bs-body-bg-rgb: 18, 18, 18;
   --bs-body-color: #e8e8e8;
@@ -87,7 +87,7 @@
   --app-header-bg: #1c1c1c;
 }
 
-/* Spécificité > styles.css html[data-bs-theme=dark] (subtiles violet) */
+/* SpÃ©cificitÃ© > styles.css html[data-bs-theme=dark] (subtiles violet) */
 html[data-bs-theme="dark"],
 body[data-bs-theme="dark"] {
   --bs-primary-bg-subtle: #2a2415;
@@ -102,7 +102,7 @@ body[data-bs-theme="dark"] {
   --app-header-bg: #1c1c1c;
 }
 
-/* Boutons primaire : texte foncé sur gold (contraste) */
+/* Boutons primaire : texte foncÃ© sur gold (contraste) */
 .btn-primary {
   --bs-btn-color: var(--agency-on-gold);
   --bs-btn-bg: var(--bs-primary);
@@ -139,14 +139,14 @@ body[data-bs-theme="dark"] {
   color: var(--agency-on-gold) !important;
 }
 
-/* Texte sur fond gold : foncé (contraste), pas blanc */
+/* Texte sur fond gold : foncÃ© (contraste), pas blanc */
 .text-bg-primary,
 .badge.bg-primary,
 .badge.text-bg-primary {
   color: var(--agency-on-gold) !important;
 }
 
-/* Focus residual violet NexLink → gold */
+/* Focus residual violet NexLink â†’ gold */
 .form-select:focus,
 .nav-link:focus-visible {
   box-shadow: 0 0 0 0.1rem rgba(var(--bs-primary-rgb), 0.25);
@@ -186,7 +186,7 @@ body[data-bs-theme="dark"] {
   background-color: var(--app-sidebar-bg);
 }
 
-/* FullCalendar — colonnes jour / grille (plus de blanc en dark) */
+/* FullCalendar â€” colonnes jour / grille (plus de blanc en dark) */
 :root,
 [data-bs-theme="light"] {
   --fc-page-bg-color: var(--bs-body-bg);
@@ -230,7 +230,7 @@ body[data-bs-theme="dark"] {
   color: var(--bs-body-color);
 }
 
-/* Boutons FC actifs : texte foncé sur gold (contraste) */
+/* Boutons FC actifs : texte foncÃ© sur gold (contraste) */
 .fc .fc-button.fc-button-active,
 .fc .fc-button:active,
 .fc .fc-button:focus,
@@ -239,7 +239,7 @@ body[data-bs-theme="dark"] {
 }
 
 /* =============================================================================
- * Boutons — pill
+ * Boutons â€” pill
  * ============================================================================= */
 .btn {
   --bs-btn-border-radius: 999px;
@@ -258,7 +258,7 @@ body[data-bs-theme="dark"] {
   border-radius: 999px !important;
 }
 
-/* Icônes seules : restent circulaires */
+/* IcÃ´nes seules : restent circulaires */
 .btn-icon,
 .btn.btn-icon {
   --bs-btn-border-radius: 50%;
@@ -292,16 +292,16 @@ body[data-bs-theme="dark"] {
 }
 
 /* =============================================================================
- * Formulaires — coins arrondis + focus thème (light / dark)
+ * Formulaires â€” coins arrondis + focus thÃ¨me (light / dark)
  * Couvre : .form-control, .form-select (legacy), textarea, recherche, filtres
  * Dropdowns : utiliser components/ui/Select (panneau custom, pas le menu natif)
  * ============================================================================= */
 
 :root {
-  --app-form-radius: 0.875rem; /* ~14px — inputs / textarea */
+  --app-form-radius: 0.875rem; /* ~14px â€” inputs / textarea */
   --app-form-radius-sm: 0.75rem;
   --app-form-radius-lg: 1rem;
-  /* Search + chips Select : même pill que .btn / dropdown-toggle */
+  /* Search + chips Select : mÃªme pill que .btn / dropdown-toggle */
   --app-search-radius: 999px;
   --app-form-padding-y: 0.6rem;
   --app-form-padding-x: 1.05rem;
@@ -421,7 +421,7 @@ textarea.form-control {
   cursor: default;
 }
 
-/* Validation — garde le radius + ring thématique */
+/* Validation â€” garde le radius + ring thÃ©matique */
 .was-validated .form-control:invalid,
 .form-control.is-invalid,
 .was-validated .form-select:invalid,
@@ -454,7 +454,7 @@ textarea.form-control {
     0 0 0 1px var(--bs-form-valid-border-color, var(--bs-success));
 }
 
-/* input-group : coins arrondis seulement aux extrémités */
+/* input-group : coins arrondis seulement aux extrÃ©mitÃ©s */
 .input-group:not(.has-validation)
   > :not(:last-child):not(.dropdown-toggle):not(.dropdown-menu):not(.form-floating),
 .input-group:not(.has-validation) > .dropdown-toggle:nth-last-child(n + 3),
@@ -534,7 +534,7 @@ textarea.form-control {
   border-radius: 0 !important;
 }
 
-/* Check / radio : léger arrondi cohérent */
+/* Check / radio : lÃ©ger arrondi cohÃ©rent */
 .form-check-input {
   border-radius: 0.35rem;
   border-color: var(--bs-border-color);
@@ -566,7 +566,7 @@ textarea.form-control {
 }
 
 /* =============================================================================
- * App Select — markup NexLink (btn-white + dropdown-menu + dropdown-item)
+ * App Select â€” markup NexLink (btn-white + dropdown-menu + dropdown-item)
  * Panneau en portal (fixed, z-index 2000) : OK modals / overflow tables
  * ============================================================================= */
 
@@ -577,7 +577,7 @@ textarea.form-control {
   min-width: 0;
 }
 
-/* Chip trigger — classes Bootstrap/NexLink ; pill déjà via .btn global */
+/* Chip trigger â€” classes Bootstrap/NexLink ; pill dÃ©jÃ  via .btn global */
 .app-select-trigger.btn {
   display: inline-flex;
   align-items: center;
@@ -666,7 +666,7 @@ textarea.form-control {
   line-height: 1.35;
 }
 
-/* Hover / focus clavier : fond léger (pas de primary lourd) */
+/* Hover / focus clavier : fond lÃ©ger (pas de primary lourd) */
 .app-select-menu .dropdown-item:hover,
 .app-select-menu .dropdown-item:focus,
 .app-select-menu .dropdown-item.active {
@@ -674,7 +674,7 @@ textarea.form-control {
   color: var(--bs-body-color);
 }
 
-/* Sélectionnée : checkmark à droite, fond neutre (sauf hover) */
+/* SÃ©lectionnÃ©e : checkmark Ã  droite, fond neutre (sauf hover) */
 .app-select-menu .dropdown-item.app-select-item--selected:not(:hover):not(.active) {
   background-color: transparent;
   color: var(--bs-body-color);
@@ -692,7 +692,7 @@ textarea.form-control {
 }
 
 /* =============================================================================
- * StatCard — bandeau stats (demo NexLink)
+ * StatCard â€” bandeau stats (demo NexLink)
  * ============================================================================= */
 
 .app-stat-card {
@@ -743,7 +743,7 @@ textarea.form-control {
   color: var(--bs-secondary-color);
   line-height: 1.35;
   margin-bottom: 0.25rem;
-  /* Hauteur fixe = 2 lignes → les valeurs s’alignent entre cartes */
+  /* Hauteur fixe = 2 lignes â†’ les valeurs sâ€™alignent entre cartes */
   min-height: calc(1.35em * 2);
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -771,7 +771,7 @@ textarea.form-control {
 }
 
 /* =============================================================================
- * Sidebar — logout (rail + panneau)
+ * Sidebar â€” logout (rail + panneau)
  * ============================================================================= */
 
 .app-menubar-tabs .app-navbar-logout {
@@ -809,7 +809,7 @@ textarea.form-control {
   padding-bottom: 4.5rem;
 }
 
-/* Login — formulaire centré (sans panneau latéral) */
+/* Login â€” formulaire centrÃ© (sans panneau latÃ©ral) */
 .login-page-centered {
   min-height: 100vh;
   background-color: var(--bs-body-bg);
@@ -820,7 +820,7 @@ textarea.form-control {
 }
 
 /* =============================================================================
- * Meeting detail modal — fiche premium 63 Agency
+ * Meeting detail modal â€” fiche premium 63 Agency
  * ============================================================================= */
 
 .meeting-detail-modal {
@@ -1141,7 +1141,7 @@ textarea.form-control {
 }
 
 /* =============================================================================
- * Broadcast wizard — steps pill (segmented control)
+ * Broadcast wizard â€” steps pill (segmented control)
  * ============================================================================= */
 
 .broadcast-steps {
@@ -1214,3 +1214,1238 @@ textarea.form-control {
     padding: 0.7rem 0.45rem;
   }
 }
+
+/* =============================================================================
+ * 63 Agency — Design system (premium redesign)
+ * ============================================================================= */
+
+:root,
+[data-bs-theme="light"] {
+  --agency-ink: #0f0f0f;
+  --agency-surface: #ffffff;
+  --agency-surface-muted: #f7f6f3;
+  --agency-border-soft: rgba(15, 15, 15, 0.08);
+  --agency-radius: 0.85rem;
+  --agency-radius-sm: 0.55rem;
+}
+
+[data-bs-theme="dark"] {
+  --agency-ink: #f5f5f5;
+  --agency-surface: #1c1c1c;
+  --agency-surface-muted: #161616;
+  --agency-border-soft: rgba(255, 255, 255, 0.08);
+}
+
+/* Page header */
+.agency-page-header {
+  padding-top: 0.25rem;
+}
+
+.agency-breadcrumb {
+  font-size: 0.8rem;
+}
+
+.agency-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
+  content: "/";
+  color: var(--bs-secondary-color);
+}
+
+.agency-page-title {
+  font-size: clamp(1.35rem, 1.1rem + 0.6vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--bs-heading-color);
+  line-height: 1.25;
+}
+
+.agency-page-desc {
+  font-size: 0.925rem;
+  color: var(--bs-secondary-color);
+  max-width: 42rem;
+  line-height: 1.45;
+}
+
+/* Status badges */
+.agency-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.agency-badge--gold {
+  background: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary-text-emphasis);
+  border-color: var(--bs-primary-border-subtle);
+}
+
+.agency-badge--success {
+  background: var(--bs-success-bg-subtle);
+  color: var(--bs-success-text-emphasis);
+  border-color: var(--bs-success-border-subtle);
+}
+
+.agency-badge--warning {
+  background: var(--bs-warning-bg-subtle);
+  color: var(--bs-warning-text-emphasis);
+  border-color: var(--bs-warning-border-subtle);
+}
+
+.agency-badge--danger {
+  background: var(--bs-danger-bg-subtle);
+  color: var(--bs-danger-text-emphasis);
+  border-color: var(--bs-danger-border-subtle);
+}
+
+.agency-badge--info {
+  background: var(--bs-info-bg-subtle);
+  color: var(--bs-info-text-emphasis);
+  border-color: var(--bs-info-border-subtle);
+}
+
+.agency-badge--neutral {
+  background: var(--bs-secondary-bg-subtle);
+  color: var(--bs-secondary-text-emphasis);
+  border-color: var(--bs-secondary-border-subtle);
+}
+
+.agency-badge--dark {
+  background: rgba(15, 15, 15, 0.08);
+  color: var(--bs-body-color);
+  border-color: var(--agency-border-soft);
+}
+
+[data-bs-theme="dark"] .agency-badge--dark {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Empty states */
+.agency-empty__icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary);
+  font-size: 1.25rem;
+}
+
+.agency-empty__title {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.agency-empty__desc {
+  font-size: 0.875rem;
+  max-width: 22rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Workspace links */
+.agency-workspace-link {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--agency-border-soft);
+  border-radius: var(--agency-radius);
+  background: var(--agency-surface);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  height: 100%;
+}
+
+.agency-workspace-link:hover {
+  border-color: rgba(var(--agency-gold-rgb), 0.45);
+  box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.06);
+  color: inherit;
+  transform: translateY(-1px);
+}
+
+[data-bs-theme="dark"] .agency-workspace-link {
+  background: var(--bs-secondary-bg);
+}
+
+[data-bs-theme="dark"] .agency-workspace-link:hover {
+  box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.35);
+}
+
+.agency-workspace-link__icon {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary);
+  font-size: 1.1rem;
+}
+
+.agency-workspace-link__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1;
+}
+
+.agency-workspace-link__title {
+  font-weight: 650;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+
+.agency-workspace-link__desc {
+  font-size: 0.8rem;
+  color: var(--bs-secondary-color);
+  line-height: 1.35;
+}
+
+.agency-workspace-link__meta {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--bs-primary);
+  margin-top: 0.2rem;
+}
+
+.agency-workspace-link__chevron {
+  color: var(--bs-secondary-color);
+  flex-shrink: 0;
+}
+
+/* Command center attention strip */
+.agency-attention {
+  border: 1px solid var(--agency-border-soft);
+  border-left: 3px solid var(--agency-gold);
+  border-radius: var(--agency-radius);
+  background: var(--agency-surface);
+  padding: 0.85rem 1.1rem;
+}
+
+[data-bs-theme="dark"] .agency-attention {
+  background: var(--bs-secondary-bg);
+}
+
+.agency-attention__label {
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bs-primary);
+  margin-bottom: 0.35rem;
+}
+
+.agency-list-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--agency-border-soft);
+  text-decoration: none;
+  color: inherit;
+  background: transparent;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  width: 100%;
+  text-align: left;
+}
+
+.agency-list-row:last-child {
+  border-bottom: 0;
+}
+
+button.agency-list-row {
+  cursor: pointer;
+}
+
+.agency-list-row:hover {
+  color: inherit;
+}
+
+.agency-list-row__avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.agency-list-row__title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: -0.01em;
+}
+
+.agency-list-row__meta {
+  font-size: 0.78rem;
+  color: var(--bs-secondary-color);
+}
+
+/* Pipeline board */
+.pipeline-board {
+  display: flex;
+  gap: 0.85rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  align-items: flex-start;
+}
+
+.pipeline-col {
+  flex: 0 0 260px;
+  max-width: 280px;
+  background: var(--agency-surface-muted);
+  border: 1px solid var(--agency-border-soft);
+  border-radius: var(--agency-radius);
+  min-height: 12rem;
+}
+
+[data-bs-theme="dark"] .pipeline-col {
+  background: var(--bs-tertiary-bg);
+}
+
+.pipeline-col__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.85rem 0.9rem 0.65rem;
+  border-bottom: 1px solid var(--agency-border-soft);
+}
+
+.pipeline-col__head > div {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.pipeline-col__dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--agency-gold);
+  flex-shrink: 0;
+}
+
+.pipeline-col--success .pipeline-col__dot { background: var(--bs-success); }
+.pipeline-col--info .pipeline-col__dot { background: var(--bs-info); }
+.pipeline-col--warning .pipeline-col__dot { background: var(--bs-warning); }
+.pipeline-col--danger .pipeline-col__dot { background: var(--bs-danger); }
+.pipeline-col--muted .pipeline-col__dot { background: var(--bs-secondary-color); }
+
+.pipeline-col__title {
+  font-size: 0.8rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  text-transform: capitalize;
+}
+
+.pipeline-col__count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--bs-secondary-color);
+  background: var(--agency-surface);
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--agency-border-soft);
+}
+
+[data-bs-theme="dark"] .pipeline-col__count {
+  background: var(--bs-secondary-bg);
+}
+
+.pipeline-col__body {
+  padding: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  max-height: min(70vh, 640px);
+  overflow-y: auto;
+}
+
+.pipeline-col__empty {
+  font-size: 0.78rem;
+  color: var(--bs-secondary-color);
+  text-align: center;
+  padding: 1.25rem 0.5rem;
+}
+
+.pipeline-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--agency-border-soft);
+  border-radius: var(--agency-radius-sm);
+  background: var(--agency-surface);
+  padding: 0.7rem 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+[data-bs-theme="dark"] .pipeline-card {
+  background: var(--bs-secondary-bg);
+}
+
+.pipeline-card:hover {
+  border-color: rgba(var(--agency-gold-rgb), 0.5);
+  box-shadow: 0 0.2rem 0.6rem rgba(0, 0, 0, 0.06);
+}
+
+.pipeline-card__avatar {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  background: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.pipeline-card__name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.pipeline-card__meta,
+.pipeline-card__list,
+.pipeline-card__date {
+  font-size: 0.72rem;
+  color: var(--bs-secondary-color);
+}
+
+.pipeline-card__list {
+  max-width: 55%;
+}
+
+/* Quieter cards in ops pages */
+.agency-panel {
+  border: 1px solid var(--agency-border-soft);
+  border-radius: var(--agency-radius);
+  background: var(--agency-surface);
+  overflow: hidden;
+}
+
+[data-bs-theme="dark"] .agency-panel {
+  background: var(--bs-secondary-bg);
+}
+
+.agency-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.95rem 1.15rem;
+  border-bottom: 1px solid var(--agency-border-soft);
+}
+
+.agency-panel__title {
+  font-size: 0.9rem;
+  font-weight: 650;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.agency-panel__body {
+  padding: 0.35rem 1.15rem 0.85rem;
+}
+
+/* =============================================================================
+ * Calendar page — template layout (63 Agency gold/black), page-only
+ * ============================================================================= */
+
+.cal-page {
+  --cal-gold: #c9a24b;
+  --cal-gold-hover: #b8912f;
+  --cal-ink: #1a1a1a;
+  --cal-border: rgba(26, 26, 26, 0.08);
+  --cal-muted-bg: #f7f6f3;
+  --cal-radius: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+[data-bs-theme="dark"] .cal-page {
+  --cal-border: rgba(255, 255, 255, 0.1);
+  --cal-muted-bg: #1a1a1a;
+  --cal-ink: #f2f2f2;
+  --cal-gold: #d4af37;
+  --cal-gold-hover: #e0c04a;
+}
+
+.cal-page__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.cal-page__nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.cal-page__icon-btn {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--cal-border);
+  background: #fff;
+  color: var(--bs-body-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-bs-theme="dark"] .cal-page__icon-btn {
+  background: var(--bs-secondary-bg);
+}
+
+.cal-page__icon-btn:hover {
+  border-color: var(--cal-gold);
+  color: var(--cal-gold-hover);
+}
+
+.cal-page__period {
+  font-weight: 650;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+  margin: 0 0.25rem;
+  color: var(--bs-heading-color);
+  min-width: 8rem;
+}
+
+.cal-page__chip {
+  border: 1px solid var(--cal-border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .cal-page__chip {
+  background: var(--bs-secondary-bg);
+}
+
+.cal-page__chip:hover {
+  border-color: var(--cal-gold);
+}
+
+.cal-page__views {
+  display: inline-flex;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: var(--cal-muted-bg);
+  border: 1px solid var(--cal-border);
+  gap: 0.1rem;
+}
+
+.cal-page__view-btn {
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--bs-secondary-color);
+}
+
+.cal-page__view-btn.is-active {
+  background: #fff;
+  color: var(--bs-heading-color);
+  box-shadow: 0 0.15rem 0.45rem rgba(0, 0, 0, 0.08);
+}
+
+[data-bs-theme="dark"] .cal-page__view-btn.is-active {
+  background: var(--cal-gold);
+  color: #1a1a1a;
+}
+
+.cal-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.cal-page__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 650;
+  padding: 0.5rem 1rem;
+  border: 1px solid transparent;
+  line-height: 1.2;
+}
+
+.cal-page__btn--ghost {
+  background: #fff;
+  border-color: var(--cal-border);
+  color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .cal-page__btn--ghost {
+  background: var(--bs-secondary-bg);
+}
+
+.cal-page__btn--ghost:hover {
+  border-color: var(--cal-gold);
+}
+
+.cal-page__btn--primary {
+  background: var(--cal-gold);
+  color: #1a1a1a;
+  border-color: var(--cal-gold);
+}
+
+.cal-page__btn--primary:hover {
+  background: var(--cal-gold-hover);
+  border-color: var(--cal-gold-hover);
+  color: #1a1a1a;
+}
+
+.cal-page__filters {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cal-page__search {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 160px;
+  max-width: 280px;
+}
+
+.cal-page__search i {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--bs-secondary-color);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.cal-page__search input {
+  width: 100%;
+  border: 1px solid var(--cal-border);
+  border-radius: 999px;
+  background: #fff;
+  padding: 0.5rem 0.9rem 0.5rem 2.25rem;
+  font-size: 0.85rem;
+  color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .cal-page__search input {
+  background: var(--bs-secondary-bg);
+}
+
+.cal-page__search input:focus {
+  outline: none;
+  border-color: var(--cal-gold);
+  box-shadow: 0 0 0 0.15rem rgba(201, 162, 75, 0.2);
+}
+
+.cal-page__filter-pills {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.cal-page__select {
+  flex-shrink: 0;
+  width: auto !important;
+}
+
+.cal-page__select .btn,
+.cal-page__select .dropdown-toggle {
+  white-space: nowrap;
+}
+
+.cal-page__colorby {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.cal-page__colorby-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--bs-secondary-color);
+}
+
+.cal-page__colorby-toggle {
+  display: inline-flex;
+  padding: 0.15rem;
+  border-radius: 999px;
+  background: var(--cal-muted-bg);
+  border: 1px solid var(--cal-border);
+}
+
+.cal-page__colorby-toggle button {
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--bs-secondary-color);
+}
+
+.cal-page__colorby-toggle button.is-active {
+  background: #fff;
+  color: var(--bs-heading-color);
+  box-shadow: 0 0.1rem 0.3rem rgba(0, 0, 0, 0.06);
+}
+
+[data-bs-theme="dark"] .cal-page__colorby-toggle button.is-active {
+  background: var(--cal-gold);
+  color: #1a1a1a;
+}
+
+.cal-page__stage {
+  border: 1px solid var(--cal-border);
+  border-radius: var(--cal-radius);
+  background: #fff;
+  padding: 1rem 1rem 0.75rem;
+  box-shadow: 0 0.2rem 0.85rem rgba(0, 0, 0, 0.04);
+}
+
+[data-bs-theme="dark"] .cal-page__stage {
+  background: var(--bs-secondary-bg);
+  box-shadow: 0 0.2rem 0.85rem rgba(0, 0, 0, 0.25);
+}
+
+.cal-page__grid-wrap {
+  min-height: 28rem;
+}
+
+.cal-page__loading {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: var(--cal-radius);
+}
+
+[data-bs-theme="dark"] .cal-page__loading {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.cal-page .fc {
+  --fc-border-color: var(--cal-border);
+  --fc-today-bg-color: rgba(201, 162, 75, 0.08);
+  --fc-now-indicator-color: var(--cal-gold);
+  --fc-page-bg-color: transparent;
+  font-size: 0.85rem;
+}
+
+.cal-page .fc .fc-col-header-cell-cushion {
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--bs-secondary-color);
+  text-decoration: none !important;
+  padding: 0.55rem 0.25rem;
+}
+
+.cal-page .fc .fc-day-sun .fc-col-header-cell-cushion,
+.cal-page .fc .fc-day-sun .fc-timegrid-axis-cushion {
+  color: var(--cal-gold-hover);
+}
+
+.cal-page .fc .fc-timegrid-slot-label-cushion {
+  font-size: 0.72rem;
+  color: var(--bs-secondary-color);
+}
+
+.cal-page .fc .fc-event {
+  border-radius: 0.35rem !important;
+  border: 0 !important;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.1rem 0.25rem;
+}
+
+.cal-page .fc .fc-event-cancelled .fc-event-title {
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+.cal-page .fc .fc-button {
+  display: none !important;
+}
+
+.cal-page__legend {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--cal-border);
+}
+
+.cal-page__legend-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  align-items: baseline;
+  margin-bottom: 0.45rem;
+}
+
+.cal-page__legend-stat {
+  font-size: 0.85rem;
+}
+
+.cal-page__hint {
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+  text-align: center;
+  margin-bottom: 0.65rem !important;
+}
+
+.cal-page__legend-statuses {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.cal-page__legend-label {
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--bs-secondary-color);
+  margin-right: 0.25rem;
+}
+
+.cal-page__status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  background: var(--cal-muted-bg);
+  border: 1px solid var(--cal-border);
+  color: var(--bs-body-color);
+}
+
+.cal-page__status-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cal-page__agenda-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.25rem 0 0.5rem;
+}
+
+.cal-page__agenda-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--cal-border);
+  border-radius: 0.75rem;
+  background: var(--cal-muted-bg);
+  padding: 0.7rem 0.85rem;
+}
+
+.cal-page__agenda-row:hover {
+  border-color: rgba(201, 162, 75, 0.5);
+}
+
+.cal-page__agenda-time {
+  display: flex;
+  flex-direction: column;
+  min-width: 5.5rem;
+  font-size: 0.78rem;
+}
+
+.cal-page__agenda-time small {
+  color: var(--bs-secondary-color);
+  font-size: 0.68rem;
+}
+
+.cal-page__agenda-dot {
+  width: 0.4rem;
+  align-self: stretch;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.cal-page__agenda-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.cal-page__agenda-title {
+  font-weight: 650;
+  font-size: 0.9rem;
+  color: var(--bs-heading-color);
+}
+
+.cal-page__agenda-meta {
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+}
+
+.cal-page__table .card {
+  border-radius: var(--cal-radius);
+  border-color: var(--cal-border);
+  box-shadow: 0 0.15rem 0.55rem rgba(0, 0, 0, 0.03);
+}
+
+@media (max-width: 991.98px) {
+  .cal-page__filters {
+    flex-wrap: nowrap;
+  }
+
+  .cal-page__colorby {
+    margin-left: 0.25rem;
+    width: auto;
+  }
+
+  .cal-page__bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cal-page__actions {
+    justify-content: flex-start;
+  }
+}
+
+/* =============================================================================
+ * Meeting form modal — template layout, 63 Agency colors (design only)
+ * ============================================================================= */
+
+.meeting-form-overlay {
+  z-index: 1055;
+}
+
+.meeting-form-overlay + .modal-backdrop {
+  z-index: 1050;
+  background: rgba(18, 18, 18, 0.55);
+}
+
+.meeting-form-dialog {
+  max-width: 640px;
+  max-height: 92vh;
+  margin: 1.25rem auto;
+}
+
+.meeting-form-modal {
+  max-height: 92vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 0;
+  border-radius: 1.15rem;
+  box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.18);
+}
+
+.meeting-form__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.35rem 1.5rem 1rem;
+  border-bottom: 1px solid rgba(26, 26, 26, 0.06);
+}
+
+[data-bs-theme="dark"] .meeting-form__header {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.meeting-form__title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--bs-heading-color);
+  margin: 0;
+}
+
+.meeting-form__summary {
+  font-size: 0.85rem;
+  color: var(--bs-secondary-color);
+}
+
+.meeting-form__close {
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--bs-secondary-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.meeting-form__close:hover {
+  background: rgba(201, 162, 75, 0.12);
+  color: var(--bs-heading-color);
+}
+
+.meeting-form__form {
+  display: block;
+}
+
+.meeting-form__body {
+  padding: 1.15rem 1.5rem 1.25rem;
+}
+
+.meeting-form__label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color);
+  margin-bottom: 0.4rem;
+}
+
+.meeting-form__sublabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color);
+  margin-bottom: 0.35rem;
+}
+
+.meeting-form__hint {
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+  margin-top: 0.35rem;
+}
+
+.meeting-form__control,
+.meeting-form-modal .form-control,
+.meeting-form-modal .form-select {
+  border-radius: 0.75rem !important;
+  border-color: rgba(26, 26, 26, 0.1);
+  padding: 0.65rem 0.9rem;
+  min-height: 2.65rem;
+  box-shadow: none;
+}
+
+[data-bs-theme="dark"] .meeting-form__control,
+[data-bs-theme="dark"] .meeting-form-modal .form-control {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.meeting-form-modal .form-control:focus {
+  border-color: #c9a24b;
+  box-shadow: 0 0 0 0.15rem rgba(201, 162, 75, 0.2);
+}
+
+.meeting-form-modal .app-select .btn,
+.meeting-form-modal .dropdown-toggle {
+  border-radius: 0.75rem !important;
+  min-height: 2.65rem;
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+}
+
+.meeting-form__field-icon {
+  position: relative;
+}
+
+.meeting-form__field-icon .form-control,
+.meeting-form__field-icon input,
+.meeting-form__field-icon .app-select .btn,
+.meeting-form__field-icon .dropdown-toggle {
+  padding-right: 2.4rem !important;
+}
+
+.meeting-form__icon {
+  position: absolute;
+  right: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--bs-secondary-color);
+  pointer-events: none;
+  font-size: 0.95rem;
+  z-index: 2;
+}
+
+.meeting-form__card {
+  border: 1px solid rgba(26, 26, 26, 0.08);
+  border-radius: 0.9rem;
+  padding: 1rem 1.1rem 1.1rem;
+  margin-bottom: 1.15rem;
+  background: #fafaf8;
+}
+
+[data-bs-theme="dark"] .meeting-form__card {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.meeting-form__card-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color);
+  margin-bottom: 0.75rem;
+}
+
+.meeting-form__assignees {
+  border: 1px solid rgba(26, 26, 26, 0.08);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  max-height: 140px;
+  overflow-y: auto;
+  background: #fff;
+}
+
+[data-bs-theme="dark"] .meeting-form__assignees {
+  background: var(--bs-secondary-bg);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.meeting-form__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+  cursor: pointer;
+}
+
+.meeting-form__add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid rgba(26, 26, 26, 0.12);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--bs-body-color);
+}
+
+.meeting-form__add-btn:hover {
+  border-color: #c9a24b;
+  color: #a8842e;
+}
+
+[data-bs-theme="dark"] .meeting-form__add-btn {
+  background: var(--bs-secondary-bg);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.meeting-form__section {
+  padding-top: 0.25rem;
+}
+
+.meeting-form__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  padding: 1rem 1.5rem 1.25rem;
+  border-top: 1px solid rgba(26, 26, 26, 0.06);
+  background: var(--bs-body-bg);
+}
+
+[data-bs-theme="dark"] .meeting-form__footer {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.meeting-form__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 650;
+  padding: 0.6rem 1.25rem;
+  border: 1px solid transparent;
+  line-height: 1.2;
+}
+
+.meeting-form__btn--ghost {
+  background: transparent;
+  border-color: rgba(26, 26, 26, 0.12);
+  color: var(--bs-body-color);
+}
+
+.meeting-form__btn--ghost:hover {
+  border-color: #c9a24b;
+}
+
+.meeting-form__btn--primary {
+  background: #c9a24b;
+  color: #1a1a1a;
+  border-color: #c9a24b;
+}
+
+.meeting-form__btn--primary:hover:not(:disabled) {
+  background: #b8912f;
+  border-color: #b8912f;
+  color: #1a1a1a;
+}
+
+.meeting-form__btn--primary:disabled {
+  opacity: 0.65;
+}
+
+[data-bs-theme="dark"] .meeting-form__btn--primary {
+  background: #d4af37;
+  border-color: #d4af37;
+}
+
+

@@ -28,11 +28,10 @@ import { AppToast } from "@/components/clients/AppToast";
 import { MeetingDetailModal } from "@/components/calendar/MeetingDetailModal";
 import { MeetingFormModal, type MeetingFormPayload } from "@/components/calendar/MeetingFormModal";
 import { MeetingsListSection } from "@/components/calendar/MeetingsListSection";
-import { CalendarActionButtons } from "@/components/calendar/CalendarActionButtons";
 import { BlockedDaysModal } from "@/components/calendar/BlockedDaysModal";
 import { AvailabilitiesModal } from "@/components/calendar/AvailabilitiesModal";
 import { AvailabilitiesBanner } from "@/components/calendar/AvailabilitiesBanner";
-import { StatCard } from "@/components/ui/StatCard";
+import { CalendarPageShell, type CalView } from "@/components/calendar/CalendarPageShell";
 import {
   deleteAvailability,
   getMyAvailabilities,
@@ -46,6 +45,8 @@ import {
   parseIso,
   toCasablancaYmd,
   casablancaTodayYmd,
+  formatDateTime,
+  formatTime,
 } from "@/lib/datetime/casablanca";
 import { getStatusPalette } from "@/lib/calendar/statusPalette";
 import {
@@ -55,23 +56,54 @@ import {
 } from "@/lib/calendar/availabilityDisplay";
 
 const DEFAULT_DURATION_MIN = 30;
+const DEFAULT_VIEW: CalView = "timeGridWeek";
 
-function meetingToEvent(m: Meeting): EventInput {
+const TYPE_COLORS: Record<string, { bg: string; border: string; text: string }> = {
+  "Audit Performance Marketing": { bg: "#C9A24B", border: "#C9A24B", text: "#1a1a1a" },
+  "Audit Performance Marketing présentiel": { bg: "#1a1a1a", border: "#1a1a1a", text: "#ffffff" },
+  "Audit Performance Marketing online": { bg: "#D4AF37", border: "#D4AF37", text: "#1a1a1a" },
+  "Appel téléphonique": { bg: "#6b7280", border: "#6b7280", text: "#ffffff" },
+};
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function dateClickToWall(date: Date, allDay: boolean): string {
+  const p = getZonedParts(date);
+  if (!p) return "";
+  if (allDay) return `${p.year}-${pad2(p.month)}-${pad2(p.day)} 10:00`;
+  return `${p.year}-${pad2(p.month)}-${pad2(p.day)} ${pad2(p.hour)}:${pad2(p.minute)}`;
+}
+
+function closerLabel(m: Meeting): string {
+  const a = m.assignees?.[0];
+  if (!a) return "";
+  const name = [a.prenom, a.nom].filter(Boolean).join(" ").trim();
+  return name || a.email || "";
+}
+
+function meetingToEvent(m: Meeting, colorBy: "status" | "type"): EventInput {
   const palette = getStatusPalette(m.status);
-  const start = m.meetingDate;
+  const typeColor = TYPE_COLORS[m.title];
+  const colors =
+    colorBy === "type" && typeColor
+      ? typeColor
+      : { bg: palette.bg, border: palette.border, text: palette.text };
   const duration =
     typeof m.durationMinutes === "number" && m.durationMinutes > 0
       ? m.durationMinutes
       : DEFAULT_DURATION_MIN;
-  const end = addMinutesIso(start, duration) ?? undefined;
+  const closer = closerLabel(m);
+  const title = [m.contactName || m.title, closer ? `· ${closer}` : ""].filter(Boolean).join(" ");
   return {
     id: m.id,
-    title: `${m.title}${m.contactName ? ` — ${m.contactName}` : ""}`,
-    start,
-    end,
-    backgroundColor: palette.bg,
-    borderColor: palette.border,
-    textColor: palette.text,
+    title,
+    start: m.meetingDate,
+    end: addMinutesIso(m.meetingDate, duration) ?? undefined,
+    backgroundColor: colors.bg,
+    borderColor: colors.border,
+    textColor: colors.text,
     classNames: palette.classNames,
     extendedProps: { meeting: m, kind: "meeting" as const },
   };
@@ -83,22 +115,9 @@ function blockedToEvent(b: BlockedDay): EventInput {
     start: b.date,
     allDay: true,
     display: "background",
-    backgroundColor: "rgba(148, 163, 184, 0.4)",
+    backgroundColor: "rgba(148, 163, 184, 0.35)",
     extendedProps: { blockedDay: b, kind: "blocked" as const },
   };
-}
-
-function pad2(n: number) {
-  return String(n).padStart(2, "0");
-}
-
-function dateClickToWall(date: Date, allDay: boolean): string {
-  const p = getZonedParts(date);
-  if (!p) return "";
-  if (allDay) {
-    return `${p.year}-${pad2(p.month)}-${pad2(p.day)} 10:00`;
-  }
-  return `${p.year}-${pad2(p.month)}-${pad2(p.day)} ${pad2(p.hour)}:${pad2(p.minute)}`;
 }
 
 export default function CalendarPage() {
@@ -113,6 +132,15 @@ export default function CalendarPage() {
   const calendarRef = useRef<FullCalendar | null>(null);
 
   const [mounted, setMounted] = useState(false);
+  const [activeView, setActiveView] = useState<CalView>(DEFAULT_VIEW);
+  const [periodTitle, setPeriodTitle] = useState("");
+  const [search, setSearch] = useState("");
+  const [assigneeFilter, setAssigneeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [colorBy, setColorBy] = useState<"status" | "type">("status");
+  const [showAvail, setShowAvail] = useState(false);
+
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [blockedDays, setBlockedDays] = useState<BlockedDay[]>([]);
   const [stats, setStats] = useState<MeetingsStats | null>(null);
@@ -167,7 +195,6 @@ export default function CalendarPage() {
       const users = await getAssignableUsers();
       setAssignableUsers(Array.isArray(users) ? users : []);
     } catch {
-      /* fixed_meeting peut ne pas y avoir accès — ok */
       if (!canAssign) setAssignableUsers([]);
     }
   }, [canAssign]);
@@ -176,29 +203,22 @@ export default function CalendarPage() {
     async (users: AssignableUser[]) => {
       setAvailLoading(true);
       try {
-        // Bandeau = dispo du jour (Casablanca), indépendant de la vue calendrier
         const today = casablancaTodayYmd();
         const from = today;
         const to = today;
-
         const adminIds = [
           ...new Set(
             users.filter((u) => (u.role ?? "").toLowerCase() === "admin").map((u) => String(u.id)),
           ),
         ];
         const viewerId = user?.id != null ? String(user.id) : null;
-        if (isAdmin && viewerId && !adminIds.includes(viewerId)) {
-          adminIds.push(viewerId);
-        }
+        if (isAdmin && viewerId && !adminIds.includes(viewerId)) adminIds.push(viewerId);
 
         if (adminIds.length === 0) {
           if (isAdmin) {
             const res = await getMyAvailabilities({ from, to });
-            const items = Array.isArray(res.items) ? res.items : [];
-            setAvailabilityDays(items.filter((d) => d.date === today));
-          } else {
-            setAvailabilityDays([]);
-          }
+            setAvailabilityDays((Array.isArray(res.items) ? res.items : []).filter((d) => d.date === today));
+          } else setAvailabilityDays([]);
           return;
         }
 
@@ -219,7 +239,6 @@ export default function CalendarPage() {
               }),
           ),
         );
-
         const byKey = new Map<string, AvailabilityDay>();
         for (const list of results) {
           for (const day of list) {
@@ -236,43 +255,36 @@ export default function CalendarPage() {
     [isAdmin, user?.id],
   );
 
-  const loadRange = useCallback(
-    async (from: string, to: string) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const fromD = parseIso(from);
-        const toD = parseIso(to);
-        // FullCalendar `end` est exclusif → -1 ms pour la borne to YYYY-MM-DD
-        const blockedFrom = fromD ? toCasablancaYmd(fromD) : from.slice(0, 10);
-        const blockedTo = toD
-          ? toCasablancaYmd(new Date(toD.getTime() - 1))
-          : to.slice(0, 10);
-
-        const [mRes, bRes] = await Promise.all([
-          getMeetings({ from, to }),
-          getBlockedDays({
-            from: blockedFrom || from.slice(0, 10),
-            to: blockedTo || to.slice(0, 10),
-          }),
-        ]);
-        setMeetings(Array.isArray(mRes.items) ? mRes.items : []);
-        setBlockedDays(Array.isArray(bRes.items) ? bRes.items : []);
-        setForbidden(false);
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 403) {
-          setForbidden(true);
-          setMeetings([]);
-          setBlockedDays([]);
-          return;
-        }
-        setError(err instanceof ApiError ? err.message : "Impossible de charger le calendrier.");
-      } finally {
-        setLoading(false);
+  const loadRange = useCallback(async (from: string, to: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const fromD = parseIso(from);
+      const toD = parseIso(to);
+      const blockedFrom = fromD ? toCasablancaYmd(fromD) : from.slice(0, 10);
+      const blockedTo = toD ? toCasablancaYmd(new Date(toD.getTime() - 1)) : to.slice(0, 10);
+      const [mRes, bRes] = await Promise.all([
+        getMeetings({ from, to }),
+        getBlockedDays({
+          from: blockedFrom || from.slice(0, 10),
+          to: blockedTo || to.slice(0, 10),
+        }),
+      ]);
+      setMeetings(Array.isArray(mRes.items) ? mRes.items : []);
+      setBlockedDays(Array.isArray(bRes.items) ? bRes.items : []);
+      setForbidden(false);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        setForbidden(true);
+        setMeetings([]);
+        setBlockedDays([]);
+        return;
       }
-    },
-    [],
-  );
+      setError(err instanceof ApiError ? err.message : "Impossible de charger le calendrier.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     void loadStats();
@@ -305,7 +317,6 @@ export default function CalendarPage() {
       const self =
         (typeof user?.firstName === "string" && user.firstName.trim()) ||
         (typeof user?.prenom === "string" && String(user.prenom).trim()) ||
-        (typeof user?.name === "string" && user.name.trim().split(/\s+/)[0]) ||
         map.get(viewerUserId) ||
         "Admin";
       if (!map.has(viewerUserId)) map.set(viewerUserId, self);
@@ -323,14 +334,34 @@ export default function CalendarPage() {
     [availabilityDays, viewerUserId],
   );
 
-  // Temps réel meeting:* — backend n'émet peut-être pas encore
-  useEffect(() => {
-    // TODO: pas d'API socket meeting:* pour l'instant
-  }, []);
+  const filteredMeetings = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return meetings.filter((m) => {
+      if (statusFilter && m.status !== statusFilter) return false;
+      if (typeFilter && m.title !== typeFilter) return false;
+      if (assigneeFilter) {
+        const ids = m.assignedUserIds ?? [];
+        const fromAssignees = (m.assignees ?? []).map((a) => a.id);
+        if (![...ids, ...fromAssignees].includes(assigneeFilter)) return false;
+      }
+      if (q) {
+        const hay = `${m.title} ${m.contactName} ${m.contactPhone ?? ""} ${m.contactEmail ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [meetings, search, statusFilter, typeFilter, assigneeFilter]);
 
-  const events = useMemo<EventInput[]>(() => {
-    return [...meetings.map(meetingToEvent), ...blockedDays.map(blockedToEvent)];
-  }, [meetings, blockedDays]);
+  const events = useMemo<EventInput[]>(
+    () => [...filteredMeetings.map((m) => meetingToEvent(m, colorBy)), ...blockedDays.map(blockedToEvent)],
+    [filteredMeetings, blockedDays, colorBy],
+  );
+
+  const agendaSorted = useMemo(() => {
+    return [...filteredMeetings].sort(
+      (a, b) => new Date(a.meetingDate).getTime() - new Date(b.meetingDate).getTime(),
+    );
+  }, [filteredMeetings]);
 
   function upsertMeeting(m: Meeting) {
     setMeetings((prev) => {
@@ -348,11 +379,46 @@ export default function CalendarPage() {
   }
 
   function handleDatesSet(arg: DatesSetArg) {
+    setPeriodTitle(arg.view.title);
     const from = arg.start.toISOString();
     const to = arg.end.toISOString();
     setRange((prev) => {
       if (prev?.from === from && prev?.to === to) return prev;
       return { from, to };
+    });
+  }
+
+  function getApi() {
+    return calendarRef.current?.getApi() ?? null;
+  }
+
+  function onPrev() {
+    if (activeView === "agenda") return;
+    getApi()?.prev();
+  }
+
+  function onNext() {
+    if (activeView === "agenda") return;
+    getApi()?.next();
+  }
+
+  function onToday() {
+    if (activeView === "agenda") return;
+    getApi()?.today();
+  }
+
+  function onViewChange(view: CalView) {
+    setActiveView(view);
+    if (view === "agenda") {
+      setPeriodTitle("Agenda");
+      return;
+    }
+    requestAnimationFrame(() => {
+      const api = getApi();
+      if (api) {
+        api.changeView(view);
+        setPeriodTitle(api.view.title);
+      }
     });
   }
 
@@ -405,7 +471,6 @@ export default function CalendarPage() {
         setToast({ message: "Meeting créé.", variant: "success" });
         void loadStats();
       } else if (formInitial) {
-        // PATCH replace : renvoyer members / assignees / reminders COMPLETS
         const updated = await updateMeeting(formInitial.id, {
           title: payload.title,
           meetingDate: payload.meetingDate,
@@ -427,7 +492,6 @@ export default function CalendarPage() {
       }
       setFormOpen(false);
     } catch (err) {
-      // 409 indispo / jour bloqué et autres : garder le modal ouvert pour correction
       setFormError(formatMeetingSaveError(err));
     } finally {
       setFormSubmitting(false);
@@ -463,10 +527,7 @@ export default function CalendarPage() {
     setDetailError(null);
     try {
       const res = await sendReminder(detailMeeting.id, dto);
-      setToast({
-        message: res.ok ? "Rappel envoyé." : "Rappel traité.",
-        variant: "success",
-      });
+      setToast({ message: res.ok ? "Rappel envoyé." : "Rappel traité.", variant: "success" });
     } catch (err) {
       setDetailError(err instanceof ApiError ? err.message : "Envoi du rappel impossible.");
     } finally {
@@ -491,8 +552,7 @@ export default function CalendarPage() {
   }
 
   function onEventClick(arg: EventClickArg) {
-    const kind = arg.event.extendedProps?.kind;
-    if (kind === "blocked") return;
+    if (arg.event.extendedProps?.kind === "blocked") return;
     const meeting = arg.event.extendedProps?.meeting as Meeting | undefined;
     if (meeting) openDetail(meeting);
   }
@@ -508,19 +568,13 @@ export default function CalendarPage() {
   }
 
   function onSelect(arg: DateSelectArg) {
-    const wall = dateClickToWall(arg.start, arg.allDay);
-    openCreate(wall);
+    openCreate(dateClickToWall(arg.start, arg.allDay));
     arg.view.calendar.unselect();
   }
 
   function refreshCalendarRange() {
     if (range) void loadRange(range.from, range.to);
     void loadAvailabilities(assignableUsers);
-  }
-
-  function openAvailModal(focusDate: string | null = null) {
-    setAvailFocusDate(focusDate);
-    setAvailModalOpen(true);
   }
 
   async function handleBannerDelete(dateYmd: string) {
@@ -541,179 +595,194 @@ export default function CalendarPage() {
     }
   }
 
-  const actionButtons = (
-    <CalendarActionButtons
-      canManageBlocked={canManageBlocked}
-      canManageAvailabilities={canManageAvailabilities}
-      onAddMeeting={() => openCreate(null)}
-      onBlockDate={() => setBlockModalOpen(true)}
-      onAvailabilities={() => openAvailModal(null)}
-    />
-  );
+  const assigneeOptions = assignableUsers.map((u) => ({
+    value: u.id,
+    label: [u.prenom, u.nom].filter(Boolean).join(" ") || u.email || "Utilisateur",
+  }));
+
+  const showGrid = activeView !== "agenda";
 
   return (
     <div className="container-fluid">
-      <style>{`.fc-event-cancelled .fc-event-title{text-decoration:line-through;opacity:.75}`}</style>
       <AppToast
         message={toast?.message ?? null}
         variant={toast?.variant ?? "success"}
         onClose={() => setToast(null)}
       />
 
-      <div className="app-page-head d-flex flex-wrap align-items-center justify-content-between gap-2">
-        <nav aria-label="breadcrumb">
-          <ol className="breadcrumb mb-0">
-            <li className="breadcrumb-item">
-              <a href="/">
-                <i className="fi fi-rr-home" /> Home
-              </a>
-            </li>
-            <li className="breadcrumb-item active" aria-current="page">
-              Calendar
-            </li>
-          </ol>
-        </nav>
-        {actionButtons}
-      </div>
-
       {forbidden ? (
-        <div className="card">
-          <div className="card-body text-center py-5">
-            <div className="avatar avatar-lg bg-warning-subtle text-warning rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
-              <i className="fi fi-rr-lock scale-2x" />
-            </div>
+        <div className="cal-page">
+          <div className="cal-page__stage text-center py-5">
             <h5 className="mb-2">Accès non autorisé au calendrier</h5>
             <p className="text-muted mb-0">Votre rôle ne permet pas de consulter les meetings.</p>
           </div>
         </div>
       ) : (
         <>
-          <div className="row">
-            <div className="col-12 col-md-6 col-lg-3 mb-3">
-              <StatCard
-                label="Today"
-                value={stats?.today ?? "—"}
-                subtext="Meetings"
-                iconColor="primary"
-                icon={<i className="icon-calendar" />}
-              />
-            </div>
-            <div className="col-12 col-md-6 col-lg-3 mb-3">
-              <StatCard
-                label="This week"
-                value={stats?.thisWeek ?? "—"}
-                subtext="Meetings"
-                iconColor="success"
-                icon={<i className="icon-calendar-days" />}
-              />
-            </div>
-            <div className="col-12 col-md-6 col-lg-3 mb-3">
-              <StatCard
-                label="Pending"
-                value={stats?.pending ?? "—"}
-                subtext="À traiter"
-                iconColor="warning"
-                icon={<i className="icon-hourglass" />}
-              />
-            </div>
-            <div className="col-12 col-md-6 col-lg-3 mb-3">
-              <StatCard
-                label="No show"
-                value={stats?.noShow ?? "—"}
-                subtext="Absents"
-                iconColor="danger"
-                icon={<i className="icon-user-x" />}
-              />
-            </div>
-          </div>
-
-          {error ? (
-            <div className="alert alert-danger" role="alert">
-              {error}
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-danger ms-3"
-                onClick={() => range && void loadRange(range.from, range.to)}
-              >
-                Réessayer
-              </button>
-            </div>
-          ) : null}
-
-          <div className="d-flex flex-wrap align-items-center justify-content-end gap-2 mb-3">
-            {actionButtons}
-          </div>
-
-          <AvailabilitiesBanner
-            rows={availabilityBannerRows}
-            legend={availabilityLegend}
-            loading={availLoading}
-            canManage={canManageAvailabilities}
-            deletingDate={availDeletingDate}
-            onEdit={(dateYmd) => openAvailModal(dateYmd)}
-            onDelete={(dateYmd) => void handleBannerDelete(dateYmd)}
-          />
-
-          <div className="row">
-            <div className="col-12">
-              <div className="card">
-                <div className="card-body p-4 position-relative">
-                  {loading ? (
-                    <div
-                      className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-                      style={{ background: "rgba(255,255,255,0.45)", zIndex: 2 }}
-                    >
-                      <div className="spinner-border text-primary" role="status" />
-                    </div>
-                  ) : null}
-
-                  {mounted ? (
-                    <FullCalendar
-                      ref={calendarRef}
-                      plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                      initialView="dayGridMonth"
-                      headerToolbar={{
-                        left: "prev,next today",
-                        center: "title",
-                        right: "dayGridMonth,timeGridWeek,timeGridDay",
-                      }}
-                      height="auto"
-                      timeZone={effectiveCasablancaTimeZone()}
-                      events={events}
-                      editable={false}
-                      selectable
-                      selectMirror
-                      dayMaxEvents
-                      datesSet={handleDatesSet}
-                      eventClick={onEventClick}
-                      dateClick={onDateClick}
-                      select={onSelect}
-                      eventDidMount={(info) => {
-                        if (info.event.extendedProps?.kind === "meeting") {
-                          const m = info.event.extendedProps.meeting as Meeting;
-                          if (!parseIso(m.meetingDate)) {
-                            info.el.title = "Date invalide";
-                          }
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div className="text-center py-5">
-                      <div className="spinner-border text-primary" role="status" />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <MeetingsListSection
+          <CalendarPageShell
+            periodTitle={periodTitle}
+            activeView={activeView}
+            stats={stats}
+            meetingCount={filteredMeetings.length}
+            canManageBlocked={canManageBlocked}
+            canManageAvailabilities={canManageAvailabilities}
             canAssign={canAssign}
-            assignableUsers={assignableUsers}
-            reloadToken={listReloadToken}
-            onView={openDetail}
-            onEdit={openEdit}
-          />
+            search={search}
+            assigneeFilter={assigneeFilter}
+            statusFilter={statusFilter}
+            typeFilter={typeFilter}
+            colorBy={colorBy}
+            assigneeOptions={assigneeOptions}
+            onPrev={onPrev}
+            onNext={onNext}
+            onToday={onToday}
+            onViewChange={onViewChange}
+            onSearchChange={setSearch}
+            onAssigneeFilter={setAssigneeFilter}
+            onStatusFilter={setStatusFilter}
+            onTypeFilter={setTypeFilter}
+            onColorBy={setColorBy}
+            onAddMeeting={() => openCreate(null)}
+            onBlockDate={() => setBlockModalOpen(true)}
+            onAvailabilities={() => {
+              setAvailFocusDate(null);
+              setAvailModalOpen(true);
+            }}
+          >
+            {error ? (
+              <div className="alert alert-danger mb-3" role="alert">
+                {error}
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-danger ms-3"
+                  onClick={() => range && void loadRange(range.from, range.to)}
+                >
+                  Réessayer
+                </button>
+              </div>
+            ) : null}
+
+            {canManageAvailabilities ? (
+              <div className="mb-2">
+                <button
+                  type="button"
+                  className="cal-page__chip"
+                  onClick={() => setShowAvail((v) => !v)}
+                >
+                  {showAvail ? "Masquer dispos" : "Voir dispos du jour"}
+                </button>
+              </div>
+            ) : null}
+
+            {showAvail ? (
+              <AvailabilitiesBanner
+                rows={availabilityBannerRows}
+                legend={availabilityLegend}
+                loading={availLoading}
+                canManage={canManageAvailabilities}
+                deletingDate={availDeletingDate}
+                onEdit={(dateYmd) => {
+                  setAvailFocusDate(dateYmd);
+                  setAvailModalOpen(true);
+                }}
+                onDelete={(dateYmd) => void handleBannerDelete(dateYmd)}
+              />
+            ) : null}
+
+            <div className={`cal-page__grid-wrap position-relative${showGrid ? "" : " d-none"}`}>
+              {loading && showGrid ? (
+                <div className="cal-page__loading">
+                  <div className="spinner-border text-primary" role="status" />
+                </div>
+              ) : null}
+              {mounted ? (
+                <FullCalendar
+                  ref={calendarRef}
+                  plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                  initialView={DEFAULT_VIEW}
+                  headerToolbar={false}
+                  height="auto"
+                  slotMinTime="08:00:00"
+                  slotMaxTime="20:00:00"
+                  allDaySlot={false}
+                  nowIndicator
+                  timeZone={effectiveCasablancaTimeZone()}
+                  events={events}
+                  editable={false}
+                  selectable
+                  selectMirror
+                  dayMaxEvents={3}
+                  views={{
+                    timeGridThreeDay: {
+                      type: "timeGrid",
+                      duration: { days: 3 },
+                      buttonText: "3 jours",
+                    },
+                  }}
+                  datesSet={handleDatesSet}
+                  eventClick={onEventClick}
+                  dateClick={onDateClick}
+                  select={onSelect}
+                />
+              ) : (
+                <div className="text-center py-5">
+                  <div className="spinner-border text-primary" role="status" />
+                </div>
+              )}
+            </div>
+
+            {!showGrid ? (
+              <div className="cal-page__agenda-list">
+                {agendaSorted.length === 0 ? (
+                  <p className="text-muted text-center py-4 mb-0">Aucun rendez-vous pour cette période.</p>
+                ) : (
+                  agendaSorted.map((m) => {
+                    const palette = getStatusPalette(m.status);
+                    const closer = closerLabel(m);
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        className="cal-page__agenda-row"
+                        onClick={() => openDetail(m)}
+                      >
+                        <span className="cal-page__agenda-time">
+                          <strong>{formatTime(m.meetingDate)}</strong>
+                          <small>{formatDateTime(m.meetingDate)}</small>
+                        </span>
+                        <span
+                          className="cal-page__agenda-dot"
+                          style={{ background: palette.bg }}
+                          aria-hidden
+                        />
+                        <span className="cal-page__agenda-body min-w-0">
+                          <span className="cal-page__agenda-title text-truncate">
+                            {m.contactName || m.title}
+                          </span>
+                          <span className="cal-page__agenda-meta text-truncate">
+                            {m.title}
+                            {closer ? ` · ${closer}` : " · Unassigned"}
+                          </span>
+                        </span>
+                        <span className={`badge ${palette.badgeClass}`}>{palette.label}</span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            ) : null}
+          </CalendarPageShell>
+
+          {/* Tableau conservé en bas */}
+          <div className="cal-page__table mt-3">
+            <MeetingsListSection
+              canAssign={canAssign}
+              assignableUsers={assignableUsers}
+              reloadToken={listReloadToken}
+              onView={openDetail}
+              onEdit={openEdit}
+            />
+          </div>
         </>
       )}
 

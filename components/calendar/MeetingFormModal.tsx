@@ -440,31 +440,58 @@ export function MeetingFormModal({
 
   const showDropdown = suggestOpen && form.contactName.trim().length >= 2;
 
+  const summaryDate = (() => {
+    if (!form.dateYmd) return null;
+    try {
+      const [y, m, d] = form.dateYmd.split("-").map(Number);
+      if (!y || !m || !d) return form.dateYmd;
+      const dt = new Date(Date.UTC(y, m - 1, d, 12));
+      return new Intl.DateTimeFormat("fr-FR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        timeZone: "UTC",
+      }).format(dt);
+    } catch {
+      return form.dateYmd;
+    }
+  })();
+
+  const summaryParts = [
+    summaryDate,
+    form.timeHm || null,
+    form.durationMinutes ? durationLabel(form.durationMinutes) : null,
+  ].filter(Boolean);
+
   return (
     <>
-      <div className="modal fade show" style={{ display: "block" }} tabIndex={-1} role="dialog" aria-modal="true">
-        <div
-          className="modal-dialog modal-dialog-centered modal-lg"
-          style={{ maxHeight: "90vh", margin: "1.75rem auto" }}
-        >
-          <div
-            className="modal-content"
-            style={{ maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}
-          >
-            <div className="modal-header flex-shrink-0">
-              <h5 className="modal-title" id="modalAddEventLabel">
-                {mode === "create" ? "Ajouter un meeting" : "Modifier le meeting"}
-              </h5>
-              <button type="button" className="btn-close" aria-label="Close" onClick={onClose} disabled={submitting} />
-            </div>
-            <form
-              onSubmit={handleSubmit}
-              style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, overflow: "hidden" }}
-            >
-              <div
-                className="modal-body"
-                style={{ overflowY: "auto", flex: "1 1 auto", maxHeight: "calc(80vh - 8rem)" }}
+      <div className="modal fade show meeting-form-overlay" style={{ display: "block" }} tabIndex={-1} role="dialog" aria-modal="true">
+        <div className="modal-dialog modal-dialog-centered modal-lg meeting-form-dialog">
+          <div className="modal-content meeting-form-modal">
+            <div className="meeting-form__header">
+              <div className="min-w-0">
+                <h5 className="meeting-form__title mb-1">
+                  {mode === "create" ? "Nouveau rendez-vous" : "Modifier le rendez-vous"}
+                </h5>
+                {summaryParts.length > 0 ? (
+                  <p className="meeting-form__summary mb-0">{summaryParts.join(" · ")}</p>
+                ) : (
+                  <p className="meeting-form__summary mb-0">Planifier un meeting 63 Agency</p>
+                )}
+              </div>
+              <button
+                type="button"
+                className="meeting-form__close"
+                aria-label="Fermer"
+                onClick={onClose}
+                disabled={submitting}
               >
+                <i className="fi fi-rr-cross-small" aria-hidden />
+              </button>
+            </div>
+
+            <form className="meeting-form__form" onSubmit={handleSubmit}>
+              <div className="meeting-form__body">
                 {(localError || error) && (
                   <div className="alert alert-danger d-flex align-items-start gap-2" role="alert">
                     <i className="fi fi-rr-exclamation mt-1" aria-hidden />
@@ -474,33 +501,66 @@ export function MeetingFormModal({
                     </div>
                   </div>
                 )}
-                <div className="row">
-                  <div className="col-12 mb-3">
-                    <label className="form-label">Title</label>
-                    <Select
-                      value={form.title}
-                      onChange={(v) => setForm((p) => ({ ...p, title: v }))}
-                      disabled={submitting}
-                      required
-                      options={MEETING_TITLES.map((t) => ({ value: t, label: t }))}
-                    />
-                  </div>
 
-                  <div className="col-md-4 mb-3">
-                    <label className="form-label" htmlFor="meeting-date-ymd">
-                      Date <span className="text-muted small">(Casablanca)</span>
+                {/* Type + closer */}
+                <section className="meeting-form__card">
+                  <div className="meeting-form__card-label">Meeting</div>
+                  <div className="row g-3">
+                    <div className={showAssignees ? "col-md-6" : "col-12"}>
+                      <label className="meeting-form__label">Type de rendez-vous</label>
+                      <Select
+                        value={form.title}
+                        onChange={(v) => setForm((p) => ({ ...p, title: v }))}
+                        disabled={submitting}
+                        required
+                        options={MEETING_TITLES.map((t) => ({ value: t, label: t }))}
+                      />
+                    </div>
+                    {showAssignees ? (
+                      <div className="col-md-6">
+                        <label className="meeting-form__label">Closer / équipe</label>
+                        <div className="meeting-form__assignees">
+                          {assignableUsers.length === 0 ? (
+                            <span className="text-muted small">Aucun utilisateur assignable</span>
+                          ) : (
+                            assignableUsers.map((u) => (
+                              <label key={u.id} className="meeting-form__check">
+                                <input
+                                  type="checkbox"
+                                  className="form-check-input m-0"
+                                  checked={form.assignedUserIds.includes(u.id)}
+                                  onChange={() => toggleAssignee(u.id)}
+                                  disabled={submitting}
+                                />
+                                <span>{u.prenom || u.nom || "Utilisateur"}</span>
+                              </label>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </section>
+
+                {/* Date / heure — template 2-col; durée conservée */}
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <label className="meeting-form__label" htmlFor="meeting-date-ymd">
+                      Date
                     </label>
-                    <CasablancaDatePicker
-                      id="meeting-date-ymd"
-                      value={form.dateYmd}
-                      onChange={(ymd) => setForm((p) => ({ ...p, dateYmd: ymd }))}
-                      disabled={submitting}
-                      placeholder="jj/mm/aaaa"
-                    />
+                    <div className="meeting-form__field-icon">
+                      <CasablancaDatePicker
+                        id="meeting-date-ymd"
+                        value={form.dateYmd}
+                        onChange={(ymd) => setForm((p) => ({ ...p, dateYmd: ymd }))}
+                        disabled={submitting}
+                        placeholder="jj/mm/aaaa"
+                      />
+                      <i className="fi fi-rr-calendar meeting-form__icon" aria-hidden />
+                    </div>
                   </div>
-
-                  <div className="col-md-4 mb-3">
-                    <label className="form-label">Heure</label>
+                  <div className="col-md-6">
+                    <label className="meeting-form__label">Heure</label>
                     <Select
                       value={form.timeHm}
                       onChange={(v) => setForm((p) => ({ ...p, timeHm: v }))}
@@ -514,9 +574,8 @@ export function MeetingFormModal({
                       ]}
                     />
                   </div>
-
-                  <div className="col-md-4 mb-3">
-                    <label className="form-label">Durée</label>
+                  <div className="col-md-6">
+                    <label className="meeting-form__label">Durée</label>
                     <Select
                       value={String(form.durationMinutes)}
                       onChange={(v) =>
@@ -529,26 +588,19 @@ export function MeetingFormModal({
                       }))}
                     />
                   </div>
+                </div>
 
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label">Status</label>
-                    <Select
-                      value={form.status}
-                      onChange={(v) => setForm((p) => ({ ...p, status: v }))}
-                      disabled={submitting}
-                      options={MEETING_STATUSES.map((s) => ({ value: s, label: s }))}
-                    />
-                  </div>
-
-                  <div className="col-12 mb-3" ref={suggestWrapRef}>
-                    <label className="form-label" htmlFor="meeting-contact-name">
-                      Contact name <span className="text-danger">*</span>
+                {/* Client — nom | e-mail, téléphone | statut */}
+                <div className="row g-3 mt-1">
+                  <div className="col-md-6" ref={suggestWrapRef}>
+                    <label className="meeting-form__label" htmlFor="meeting-contact-name">
+                      Nom du client <span className="text-danger">*</span>
                     </label>
                     <div className="position-relative">
                       <input
                         id="meeting-contact-name"
                         type="text"
-                        className="form-control"
+                        className="form-control meeting-form__control"
                         value={form.contactName}
                         onChange={(e) => onContactNameChange(e.target.value)}
                         onFocus={() => {
@@ -611,174 +663,159 @@ export function MeetingFormModal({
                         </ul>
                       ) : null}
                     </div>
-                    <div className="form-text">
+                    <div className="meeting-form__hint">
                       Sélectionnez un lead pour préremplir, ou saisissez un contact hors ClickUp.
                     </div>
                   </div>
 
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label">Contact phone</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={form.contactPhone}
-                      onChange={(e) => setForm((p) => ({ ...p, contactPhone: e.target.value }))}
-                      disabled={submitting}
-                    />
-                  </div>
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label">Contact email</label>
+                  <div className="col-md-6">
+                    <label className="meeting-form__label">E-mail</label>
                     <input
                       type="email"
-                      className="form-control"
+                      className="form-control meeting-form__control"
                       value={form.contactEmail}
                       onChange={(e) => setForm((p) => ({ ...p, contactEmail: e.target.value }))}
                       disabled={submitting}
                     />
                   </div>
 
-                  {showAssignees ? (
-                    <div className="col-12 mb-3">
-                      <label className="form-label">Assignees</label>
-                      <div className="border rounded p-2" style={{ maxHeight: 140, overflowY: "auto" }}>
-                        {assignableUsers.length === 0 ? (
-                          <span className="text-muted small">Aucun utilisateur assignable</span>
-                        ) : (
-                          assignableUsers.map((u) => (
-                            <label key={u.id} className="d-flex align-items-center gap-2 mb-1">
-                              <input
-                                type="checkbox"
-                                className="form-check-input m-0"
-                                checked={form.assignedUserIds.includes(u.id)}
-                                onChange={() => toggleAssignee(u.id)}
-                                disabled={submitting}
-                              />
-                              <span className="small">
-                                {u.prenom || u.nom || "Utilisateur"}
-                              </span>
-                            </label>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <div className="col-12 mb-3">
-                    <div className="d-flex align-items-center justify-content-between mb-2">
-                      <label className="form-label mb-0">Members (optional)</label>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-subtle-primary"
-                        onClick={() => setForm((p) => ({ ...p, members: [...p.members, emptyMember()] }))}
-                        disabled={submitting}
-                      >
-                        <i className="fi fi-rr-plus me-1" /> Add
-                      </button>
-                    </div>
-                    {form.members.map((m, idx) => (
-                      <div key={idx} className="row g-2 mb-2 align-items-end">
-                        <div className="col-md-4">
-                          <input
-                            type="text"
-                            className="form-control form-control-sm"
-                            placeholder="Name"
-                            value={m.name}
-                            onChange={(e) => updateMember(idx, { name: e.target.value })}
-                            disabled={submitting}
-                          />
-                        </div>
-                        <div className="col-md-3">
-                          <input
-                            type="text"
-                            className="form-control form-control-sm"
-                            placeholder="Phone"
-                            value={m.phone ?? ""}
-                            onChange={(e) => updateMember(idx, { phone: e.target.value })}
-                            disabled={submitting}
-                          />
-                        </div>
-                        <div className="col-md-4">
-                          <input
-                            type="email"
-                            className="form-control form-control-sm"
-                            placeholder="Email"
-                            value={m.email ?? ""}
-                            onChange={(e) => updateMember(idx, { email: e.target.value })}
-                            disabled={submitting}
-                          />
-                        </div>
-                        <div className="col-md-1">
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-subtle-danger btn-icon"
-                            onClick={() =>
-                              setForm((p) => ({ ...p, members: p.members.filter((_, i) => i !== idx) }))
-                            }
-                            disabled={submitting}
-                          >
-                            <i className="fi fi-rr-trash" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="col-12 mb-3">
-                    <label className="form-label">Reminders</label>
-                    <div className="row g-2">
-                      {(["whatsapp", "email"] as const).map((channel) => (
-                        <div className="col-md-6" key={channel}>
-                          <div className="small text-muted text-uppercase mb-1">{channel}</div>
-                          {(["2d", "24h", "2h"] as const).map((offset) => (
-                            <label key={offset} className="d-inline-flex align-items-center gap-1 me-3 mb-1">
-                              <input
-                                type="checkbox"
-                                className="form-check-input m-0"
-                                checked={Boolean(form.reminders[channel]?.[offset])}
-                                onChange={(e) => setReminder(channel, offset, e.target.checked)}
-                                disabled={submitting}
-                              />
-                              <span className="small">{offset}</span>
-                            </label>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {mode === "create" ? (
-                    <div className="col-12 mb-3">
-                      <label className="d-flex align-items-center gap-2">
-                        <input
-                          type="checkbox"
-                          className="form-check-input m-0"
-                          checked={form.notifyOnCreate}
-                          onChange={(e) => setForm((p) => ({ ...p, notifyOnCreate: e.target.checked }))}
-                          disabled={submitting}
-                        />
-                        <span>Envoyer confirmation maintenant</span>
-                      </label>
-                    </div>
-                  ) : null}
-
-                  <div className="col-12 mb-0">
-                    <label className="form-label">Notes</label>
-                    <textarea
-                      className="form-control"
-                      rows={3}
-                      maxLength={5000}
-                      value={form.notes}
-                      onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+                  <div className="col-md-6">
+                    <label className="meeting-form__label">Téléphone</label>
+                    <input
+                      type="text"
+                      className="form-control meeting-form__control"
+                      value={form.contactPhone}
+                      onChange={(e) => setForm((p) => ({ ...p, contactPhone: e.target.value }))}
                       disabled={submitting}
                     />
                   </div>
+
+                  <div className="col-md-6">
+                    <label className="meeting-form__label">Statut</label>
+                    <Select
+                      value={form.status}
+                      onChange={(v) => setForm((p) => ({ ...p, status: v }))}
+                      disabled={submitting}
+                      options={MEETING_STATUSES.map((s) => ({ value: s, label: s }))}
+                    />
+                  </div>
+                </div>
+
+                {/* Members */}
+                <section className="meeting-form__section mt-3">
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <label className="meeting-form__label mb-0">Participants (optionnel)</label>
+                    <button
+                      type="button"
+                      className="meeting-form__add-btn"
+                      onClick={() => setForm((p) => ({ ...p, members: [...p.members, emptyMember()] }))}
+                      disabled={submitting}
+                    >
+                      <i className="fi fi-rr-plus" aria-hidden /> Ajouter
+                    </button>
+                  </div>
+                  {form.members.map((m, idx) => (
+                    <div key={idx} className="row g-2 mb-2 align-items-end">
+                      <div className="col-md-4">
+                        <input
+                          type="text"
+                          className="form-control meeting-form__control"
+                          placeholder="Name"
+                          value={m.name}
+                          onChange={(e) => updateMember(idx, { name: e.target.value })}
+                          disabled={submitting}
+                        />
+                      </div>
+                      <div className="col-md-3">
+                        <input
+                          type="text"
+                          className="form-control meeting-form__control"
+                          placeholder="Phone"
+                          value={m.phone ?? ""}
+                          onChange={(e) => updateMember(idx, { phone: e.target.value })}
+                          disabled={submitting}
+                        />
+                      </div>
+                      <div className="col-md-4">
+                        <input
+                          type="email"
+                          className="form-control meeting-form__control"
+                          placeholder="Email"
+                          value={m.email ?? ""}
+                          onChange={(e) => updateMember(idx, { email: e.target.value })}
+                          disabled={submitting}
+                        />
+                      </div>
+                      <div className="col-md-1">
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-subtle-danger btn-icon"
+                          onClick={() =>
+                            setForm((p) => ({ ...p, members: p.members.filter((_, i) => i !== idx) }))
+                          }
+                          disabled={submitting}
+                        >
+                          <i className="fi fi-rr-trash" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </section>
+
+                {/* Reminders */}
+                <section className="meeting-form__section mt-3">
+                  <label className="meeting-form__label">Rappels</label>
+                  <div className="row g-2">
+                    {(["whatsapp", "email"] as const).map((channel) => (
+                      <div className="col-md-6" key={channel}>
+                        <div className="meeting-form__sublabel">{channel}</div>
+                        {(["2d", "24h", "2h"] as const).map((offset) => (
+                          <label key={offset} className="meeting-form__check me-3 mb-1">
+                            <input
+                              type="checkbox"
+                              className="form-check-input m-0"
+                              checked={Boolean(form.reminders[channel]?.[offset])}
+                              onChange={(e) => setReminder(channel, offset, e.target.checked)}
+                              disabled={submitting}
+                            />
+                            <span>{offset}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {mode === "create" ? (
+                  <label className="meeting-form__check mt-3">
+                    <input
+                      type="checkbox"
+                      className="form-check-input m-0"
+                      checked={form.notifyOnCreate}
+                      onChange={(e) => setForm((p) => ({ ...p, notifyOnCreate: e.target.checked }))}
+                      disabled={submitting}
+                    />
+                    <span>Envoyer confirmation maintenant</span>
+                  </label>
+                ) : null}
+
+                <div className="mt-3">
+                  <label className="meeting-form__label">Notes</label>
+                  <textarea
+                    className="form-control meeting-form__control"
+                    rows={3}
+                    maxLength={5000}
+                    value={form.notes}
+                    onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+                    disabled={submitting}
+                  />
                 </div>
               </div>
-              <div className="modal-footer flex-shrink-0 border-top bg-body">
+
+              <div className="meeting-form__footer">
                 <button
                   type="button"
-                  className="btn btn-light waves-effect waves-light"
+                  className="meeting-form__btn meeting-form__btn--ghost"
                   onClick={onClose}
                   disabled={submitting}
                 >
@@ -786,7 +823,7 @@ export function MeetingFormModal({
                 </button>
                 <button
                   type="submit"
-                  className="btn btn-primary waves-effect waves-light ms-2"
+                  className="meeting-form__btn meeting-form__btn--primary"
                   disabled={!canSubmit}
                 >
                   {submitting ? (
@@ -795,7 +832,7 @@ export function MeetingFormModal({
                       {mode === "create" ? "Création…" : "Enregistrement…"}
                     </>
                   ) : mode === "create" ? (
-                    "Créer"
+                    "Créer le rendez-vous"
                   ) : (
                     "Enregistrer"
                   )}
