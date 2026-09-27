@@ -19,6 +19,7 @@ import {
   isWhatsapp24hError,
   isWhatsappPaginationCursor,
   markRead,
+  normalizeWhatsappConversation,
   normalizeWhatsappMessage,
   sendMessage,
   sendTemplate,
@@ -32,6 +33,8 @@ import { getSocket } from "@/lib/realtime/socket";
 import { WhatsappMessageBubble } from "@/components/whatsapp/WhatsappMessageBubble";
 import { AppToast } from "@/components/clients/AppToast";
 import { Select } from "@/components/ui/Select";
+
+type ConvFilter = "all" | "needs_reply" | "unread" | "waiting";
 
 function displayName(c: WhatsappConversation) {
   return (c.contactName || "").trim() || c.phoneNumber || "Contact";
@@ -48,6 +51,45 @@ function sortConversations(list: WhatsappConversation[]) {
     const tb = parseIso(b.lastMessageAt)?.getTime() ?? 0;
     return tb - ta;
   });
+}
+
+/** Client a écrit en dernier → l’équipe doit répondre */
+function needsReply(c: WhatsappConversation) {
+  if ((c.unreadCount || 0) > 0) return true;
+  return c.lastMessageDirection === "inbound";
+}
+
+/** On a écrit en dernier → en attente du client */
+function waitingOnClient(c: WhatsappConversation) {
+  if ((c.unreadCount || 0) > 0) return false;
+  return c.lastMessageDirection === "outbound";
+}
+
+function matchesConvFilter(c: WhatsappConversation, filter: ConvFilter) {
+  switch (filter) {
+    case "needs_reply":
+      return needsReply(c);
+    case "unread":
+      return (c.unreadCount || 0) > 0;
+    case "waiting":
+      return waitingOnClient(c);
+    default:
+      return true;
+  }
+}
+
+function latestMessage(items: WhatsappMessage[]): WhatsappMessage | null {
+  if (!items.length) return null;
+  let best = items[0];
+  let bestTs = parseIso(best.createdAt)?.getTime() ?? 0;
+  for (let i = 1; i < items.length; i++) {
+    const ts = parseIso(items[i].createdAt)?.getTime() ?? 0;
+    if (ts >= bestTs) {
+      best = items[i];
+      bestTs = ts;
+    }
+  }
+  return best;
 }
 
 function upsertById(list: WhatsappMessage[], msg: WhatsappMessage): WhatsappMessage[] {
@@ -80,6 +122,7 @@ export default function WhatsappPage() {
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [convFilter, setConvFilter] = useState<ConvFilter>("all");
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<WhatsappMessage[]>([]);
@@ -124,12 +167,30 @@ export default function WhatsappPage() {
 
   const filteredConversations = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return conversations;
     return conversations.filter((c) => {
+      if (!matchesConvFilter(c, convFilter)) return false;
+      if (!q) return true;
       const hay = `${c.contactName ?? ""} ${c.phoneNumber ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [conversations, search]);
+  }, [conversations, search, convFilter]);
+
+  const filterCounts = useMemo(() => {
+    let needs = 0;
+    let unread = 0;
+    let waiting = 0;
+    for (const c of conversations) {
+      if (needsReply(c)) needs += 1;
+      if ((c.unreadCount || 0) > 0) unread += 1;
+      if (waitingOnClient(c)) waiting += 1;
+    }
+    return {
+      all: conversations.length,
+      needs_reply: needs,
+      unread,
+      waiting,
+    };
+  }, [conversations]);
 
   const loadConversations = useCallback(async () => {
     if (!allowed) {
@@ -200,6 +261,22 @@ export default function WhatsappPage() {
         olderCursorRef.current = cursor;
         setHasMore(Boolean(page.hasMore && cursor));
 
+        const last = latestMessage(items);
+        if (last?.direction) {
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === id
+                ? {
+                    ...c,
+                    lastMessageDirection: last.direction,
+                    lastMessageText: last.body ?? c.lastMessageText,
+                    lastMessageAt: last.createdAt || c.lastMessageAt,
+                  }
+                : c,
+            ),
+          );
+        }
+
         // Scroll bas après paint (messages récents visibles)
         requestAnimationFrame(() => {
           scrollToBottom(false);
@@ -213,7 +290,18 @@ export default function WhatsappPage() {
           const updated = await markRead(id);
           if (seq !== openSeqRef.current) return;
           setConversations((prev) =>
-            sortConversations(prev.map((c) => (c.id === id ? { ...c, ...updated, unreadCount: 0 } : c))),
+            sortConversations(
+              prev.map((c) => {
+                if (c.id !== id) return c;
+                const merged = { ...c, ...updated, unreadCount: 0 };
+                // Ne pas écraser la direction si l’API read ne la renvoie pas
+                if (!updated.lastMessageDirection && c.lastMessageDirection) {
+                  merged.lastMessageDirection = c.lastMessageDirection;
+                }
+                if (last?.direction) merged.lastMessageDirection = last.direction;
+                return merged;
+              }),
+            ),
           );
         } catch {
           setConversations((prev) =>
@@ -330,6 +418,8 @@ export default function WhatsappPage() {
                   ...c,
                   lastMessageText: text,
                   lastMessageAt: created.createdAt,
+                  lastMessageDirection: "outbound",
+                  unreadCount: 0,
                 }
               : c,
           ),
@@ -389,6 +479,21 @@ export default function WhatsappPage() {
       setVariable1("");
       stickToBottomRef.current = true;
       requestAnimationFrame(() => scrollToBottom(true));
+      setConversations((prev) =>
+        sortConversations(
+          prev.map((c) =>
+            c.id === activeId
+              ? {
+                  ...c,
+                  lastMessageText: created.body || c.lastMessageText,
+                  lastMessageAt: created.createdAt,
+                  lastMessageDirection: "outbound",
+                  unreadCount: 0,
+                }
+              : c,
+          ),
+        ),
+      );
       setToast({ message: "Template envoyé.", variant: "success" });
     } catch (err) {
       setToast({
@@ -422,6 +527,21 @@ export default function WhatsappPage() {
       setReplyTo(null);
       stickToBottomRef.current = true;
       requestAnimationFrame(() => scrollToBottom(true));
+      setConversations((prev) =>
+        sortConversations(
+          prev.map((c) =>
+            c.id === activeId
+              ? {
+                  ...c,
+                  lastMessageText: created.body || draft.trim() || c.lastMessageText,
+                  lastMessageAt: created.createdAt,
+                  lastMessageDirection: "outbound",
+                  unreadCount: 0,
+                }
+              : c,
+          ),
+        ),
+      );
     } catch (err) {
       if (isWhatsapp24hError(err)) {
         setWindow24hHint(true);
@@ -467,7 +587,16 @@ export default function WhatsappPage() {
         }
         void markRead(openId).then((updated) => {
           setConversations((prev) =>
-            sortConversations(prev.map((c) => (c.id === openId ? { ...c, ...updated, unreadCount: 0 } : c))),
+            sortConversations(
+              prev.map((c) => {
+                if (c.id !== openId) return c;
+                const merged = { ...c, ...updated, unreadCount: 0 };
+                if (!updated.lastMessageDirection && msg.direction) {
+                  merged.lastMessageDirection = msg.direction;
+                }
+                return merged;
+              }),
+            ),
           );
         }).catch(() => undefined);
       }
@@ -480,11 +609,14 @@ export default function WhatsappPage() {
               const bumpUnread =
                 msg.direction === "inbound" && openId !== msg.conversationId
                   ? (c.unreadCount || 0) + 1
-                  : c.unreadCount;
+                  : openId === msg.conversationId
+                    ? 0
+                    : c.unreadCount;
               return {
                 ...c,
                 lastMessageText: msg.body || c.lastMessageText,
                 lastMessageAt: msg.createdAt,
+                lastMessageDirection: msg.direction,
                 unreadCount: bumpUnread,
               };
             })
@@ -498,12 +630,20 @@ export default function WhatsappPage() {
       });
     };
 
-    const onConversationUpdated = (conv: WhatsappConversation) => {
+    const onConversationUpdated = (convRaw: WhatsappConversation) => {
+      const conv = normalizeWhatsappConversation(convRaw);
       if (!conv?.id) return;
       setConversations((prev) => {
         const exists = prev.some((c) => c.id === conv.id);
         const next = exists
-          ? prev.map((c) => (c.id === conv.id ? { ...c, ...conv } : c))
+          ? prev.map((c) => {
+              if (c.id !== conv.id) return c;
+              const merged = { ...c, ...conv };
+              if (!conv.lastMessageDirection && c.lastMessageDirection) {
+                merged.lastMessageDirection = c.lastMessageDirection;
+              }
+              return merged;
+            })
           : [conv, ...prev];
         return sortConversations(next);
       });
@@ -908,7 +1048,7 @@ export default function WhatsappPage() {
                   <input
                     type="search"
                     className="form-control ps-5"
-                    placeholder="Search"
+                    placeholder="Rechercher un contact…"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                   />
@@ -920,6 +1060,35 @@ export default function WhatsappPage() {
                 >
                   <i className="fi fi-sr-cross" />
                 </button>
+              </div>
+
+              <div className="wa-filters px-3 pb-2 flex-shrink-0" role="tablist" aria-label="Filtres conversations">
+                {(
+                  [
+                    { id: "all", label: "Toutes" },
+                    { id: "needs_reply", label: "À répondre" },
+                    { id: "unread", label: "Non lus" },
+                    { id: "waiting", label: "En attente" },
+                  ] as const
+                ).map((f) => {
+                  const count = filterCounts[f.id];
+                  const active = convFilter === f.id;
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      className={`wa-filters__pill${active ? " is-active" : ""}${
+                        f.id === "needs_reply" && count > 0 && !active ? " has-alert" : ""
+                      }`}
+                      onClick={() => setConvFilter(f.id)}
+                    >
+                      <span>{f.label}</span>
+                      <span className="wa-filters__count">{count}</span>
+                    </button>
+                  );
+                })}
               </div>
 
               <div className="chat-nav" role="tablist">
@@ -935,7 +1104,17 @@ export default function WhatsappPage() {
                     </button>
                   </div>
                 ) : filteredConversations.length === 0 ? (
-                  <div className="p-3 text-muted small">Aucune conversation</div>
+                  <div className="p-3 text-muted small">
+                    {convFilter === "needs_reply"
+                      ? "Aucune conversation à répondre."
+                      : convFilter === "unread"
+                        ? "Aucun message non lu."
+                        : convFilter === "waiting"
+                          ? "Aucune conversation en attente du client."
+                          : search.trim()
+                            ? "Aucun contact trouvé."
+                            : "Aucune conversation"}
+                  </div>
                 ) : (
                   filteredConversations.map((c) => (
                     <a
@@ -952,7 +1131,14 @@ export default function WhatsappPage() {
                       </div>
                       <div className="chat-avatar-info">
                         <div className="clearfix">
-                          <h6 className="name">{displayName(c)}</h6>
+                          <h6 className="name d-flex align-items-center gap-1">
+                            <span className="text-truncate">{displayName(c)}</span>
+                            {needsReply(c) ? (
+                              <span className="wa-need-reply" title="À répondre">
+                                !
+                              </span>
+                            ) : null}
+                          </h6>
                           <span className="text text-truncate d-block" style={{ maxWidth: 140 }}>
                             {c.lastMessageText || "—"}
                           </span>
@@ -963,6 +1149,8 @@ export default function WhatsappPage() {
                           </small>
                           {c.unreadCount > 0 ? (
                             <span className="badge badge-sm rounded-pill bg-primary">{c.unreadCount}</span>
+                          ) : needsReply(c) ? (
+                            <span className="badge badge-sm rounded-pill wa-badge-reply">Répondre</span>
                           ) : null}
                         </div>
                       </div>

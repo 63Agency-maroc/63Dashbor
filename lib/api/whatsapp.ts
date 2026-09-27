@@ -2,18 +2,21 @@ import { api, ApiError } from "@/lib/api/client";
 import { API_BASE_URL } from "@/lib/api/config";
 import { getToken } from "@/lib/auth/storage";
 
+export type MessageDirection = "inbound" | "outbound";
+
 export type WhatsappConversation = {
   id: string;
   phoneNumber: string;
   contactName: string | null;
   lastMessageText: string | null;
   lastMessageAt: string | null;
+  /** Direction du dernier message — utile pour filtres « À répondre » / « En attente » */
+  lastMessageDirection?: MessageDirection | null;
   unreadCount: number;
   status: string | null;
   source: string | null;
 };
 
-export type MessageDirection = "inbound" | "outbound";
 export type MessageType = "text" | "image" | "video" | "document" | "audio" | "template";
 export type MessageStatus = "sent" | "delivered" | "read" | "failed" | string;
 
@@ -72,13 +75,41 @@ function buildQuery(params: Record<string, string | number | undefined | null>):
   return q ? `?${q}` : "";
 }
 
-/** Liste brute (pas { items }) */
-export function getConversations() {
-  return api.get<WhatsappConversation[]>("/whatsapp/conversations");
+/** Liste brute (pas { items }) — normalise chaque conversation */
+export async function getConversations() {
+  const list = await api.get<unknown>("/whatsapp/conversations");
+  const arr = Array.isArray(list) ? list : [];
+  return arr.map(normalizeWhatsappConversation);
 }
 
-export function getConversation(id: string) {
-  return api.get<WhatsappConversation>(`/whatsapp/conversations/${id}`);
+export async function getConversation(id: string) {
+  const raw = await api.get<unknown>(`/whatsapp/conversations/${id}`);
+  return normalizeWhatsappConversation(raw);
+}
+
+/** Normalise une conversation API (camelCase / snake_case) */
+export function normalizeWhatsappConversation(raw: unknown): WhatsappConversation {
+  const c = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const dirRaw = asTrimmedString(
+    c.lastMessageDirection ?? c.last_message_direction ?? c.lastDirection ?? c.last_direction,
+  );
+  const direction: MessageDirection | null =
+    dirRaw === "inbound" || dirRaw === "outbound" ? dirRaw : null;
+  return {
+    id: String(c.id ?? ""),
+    phoneNumber: String(c.phoneNumber ?? c.phone_number ?? ""),
+    contactName: asTrimmedString(c.contactName ?? c.contact_name),
+    lastMessageText: asTrimmedString(c.lastMessageText ?? c.last_message_text),
+    lastMessageAt: asTrimmedString(c.lastMessageAt ?? c.last_message_at),
+    lastMessageDirection: direction,
+    unreadCount: typeof c.unreadCount === "number"
+      ? c.unreadCount
+      : typeof c.unread_count === "number"
+        ? c.unread_count
+        : Number(c.unreadCount ?? c.unread_count ?? 0) || 0,
+    status: asTrimmedString(c.status),
+    source: asTrimmedString(c.source),
+  };
 }
 
 function asTrimmedString(value: unknown): string | null {
@@ -206,8 +237,9 @@ export async function sendTemplate(conversationId: string, dto: SendTemplateDto)
   return normalizeWhatsappMessage(created);
 }
 
-export function markRead(conversationId: string) {
-  return api.patch<WhatsappConversation>(`/whatsapp/conversations/${conversationId}/read`);
+export async function markRead(conversationId: string) {
+  const raw = await api.patch<unknown>(`/whatsapp/conversations/${conversationId}/read`);
+  return normalizeWhatsappConversation(raw);
 }
 
 export function getTemplates() {

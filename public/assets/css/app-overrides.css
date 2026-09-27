@@ -2448,4 +2448,109 @@ button.agency-list-row {
   border-color: #d4af37;
 }
 
+/* =============================================================================
+ * WhatsApp — conversation filters (équipe)
+ * ============================================================================= */
+
+.wa-filters {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.4rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.wa-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.wa-filters__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  border: 1px solid rgba(26, 26, 26, 0.1);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.28rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--bs-secondary-color);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.wa-filters__pill:hover {
+  border-color: rgba(201, 162, 75, 0.55);
+  color: var(--bs-heading-color);
+}
+
+.wa-filters__pill.is-active {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+  color: #fff;
+}
+
+.wa-filters__pill.has-alert {
+  border-color: rgba(201, 162, 75, 0.65);
+  color: #a8842e;
+}
+
+.wa-filters__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: rgba(26, 26, 26, 0.06);
+  color: inherit;
+}
+
+.wa-filters__pill.is-active .wa-filters__count {
+  background: rgba(201, 162, 75, 0.95);
+  color: #1a1a1a;
+}
+
+[data-bs-theme="dark"] .wa-filters__pill {
+  background: var(--bs-secondary-bg);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-bs-theme="dark"] .wa-filters__pill.is-active {
+  background: #c9a24b;
+  border-color: #c9a24b;
+  color: #1a1a1a;
+}
+
+[data-bs-theme="dark"] .wa-filters__count {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.wa-need-reply {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 50%;
+  background: #c9a24b;
+  color: #1a1a1a;
+  font-size: 0.65rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.wa-badge-reply {
+  background: rgba(201, 162, 75, 0.2) !important;
+  color: #8a6d24 !important;
+  font-weight: 650;
+}
+
+
 
