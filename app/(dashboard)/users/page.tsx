@@ -1,5 +1,6 @@
-import { ComingSoonPage } from "@/components/layout/ComingSoonPage";
+import { redirect } from "next/navigation";
 
-export default function UsersPage() {
-  return <ComingSoonPage title="Users" description="Gestion des utilisateurs — à brancher ensuite." />;
+/** Ancienne route /users → Employés */
+export default function UsersRedirectPage() {
+  redirect("/employees");
 }

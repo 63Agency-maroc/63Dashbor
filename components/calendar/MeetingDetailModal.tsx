@@ -125,7 +125,10 @@ export function MeetingDetailModal({
                   {meeting.title}
                 </h5>
                 <p className="meeting-detail__summary mb-2">{summaryParts.join(" · ")}</p>
-                <span className={`badge rounded-pill meeting-detail__status ${palette.badgeClass}`}>
+                <span
+                  className="badge rounded-pill meeting-detail__status"
+                  style={{ backgroundColor: palette.bg, color: palette.text }}
+                >
                   {palette.label || meeting.status}
                 </span>
               </div>

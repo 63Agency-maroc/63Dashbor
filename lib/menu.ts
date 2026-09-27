@@ -24,7 +24,10 @@ export const menuSections: MenuSection[] = [
     id: "dashboard",
     label: "Dashboard",
     icon: "fi fi-rr-house-blank",
-    items: [{ label: "Vue d'ensemble", href: "/", icon: "fi fi-rr-dashboard" }],
+    items: [
+      { label: "Vue d'ensemble", href: "/", icon: "fi fi-rr-dashboard" },
+      { label: "Employees", href: "/employees", icon: "fi fi-rr-employee-man", adminOnly: true },
+    ],
   },
   {
     id: "crm",
@@ -64,7 +67,6 @@ export const menuSections: MenuSection[] = [
     label: "Administration",
     icon: "fi fi-rr-settings",
     items: [
-      { label: "Users", href: "/users", icon: "fi fi-rr-users", adminOnly: true },
       { label: "Settings", href: "/settings", icon: "fi fi-rr-settings", adminOnly: true },
       { label: "Profile", href: "/profile", icon: "fi fi-rr-user" },
     ],

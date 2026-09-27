@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { MeetingsStats } from "@/lib/api/meetings";
 import { MEETING_STATUSES, MEETING_TITLES } from "@/lib/api/meetings";
 import { STATUS_PALETTE } from "@/lib/calendar/statusPalette";
+import { getAssigneeColor } from "@/lib/calendar/assigneePalette";
 import { Select } from "@/components/ui/Select";
 
 export type CalView =
@@ -25,7 +26,7 @@ type Props = {
   assigneeFilter: string;
   statusFilter: string;
   typeFilter: string;
-  colorBy: "status" | "type";
+  colorBy: "status" | "type" | "assignee";
   assigneeOptions: { value: string; label: string }[];
   onPrev: () => void;
   onNext: () => void;
@@ -35,7 +36,7 @@ type Props = {
   onAssigneeFilter: (v: string) => void;
   onStatusFilter: (v: string) => void;
   onTypeFilter: (v: string) => void;
-  onColorBy: (v: "status" | "type") => void;
+  onColorBy: (v: "status" | "type" | "assignee") => void;
   onAddMeeting: () => void;
   onBlockDate: () => void;
   onAvailabilities: () => void;
@@ -121,16 +122,22 @@ export function CalendarPageShell({
         <div className="cal-page__actions">
           {canManageAvailabilities ? (
             <button type="button" className="cal-page__btn cal-page__btn--ghost" onClick={onAvailabilities}>
-              <i className="fi fi-rr-clock" aria-hidden /> Dispos
+              <i className="fi fi-rr-clock" aria-hidden />{" "}
+              <span className="cal-page__btn-long">Dispos</span>
+              <span className="cal-page__btn-short">Dispos</span>
             </button>
           ) : null}
           {canManageBlocked ? (
             <button type="button" className="cal-page__btn cal-page__btn--ghost" onClick={onBlockDate}>
-              <i className="fi fi-rr-ban" aria-hidden /> Bloquer un créneau
+              <i className="fi fi-rr-ban" aria-hidden />{" "}
+              <span className="cal-page__btn-long">Bloquer un créneau</span>
+              <span className="cal-page__btn-short">Bloquer</span>
             </button>
           ) : null}
           <button type="button" className="cal-page__btn cal-page__btn--primary" onClick={onAddMeeting}>
-            <i className="fi fi-rr-plus" aria-hidden /> Nouveau rendez-vous
+            <i className="fi fi-rr-plus" aria-hidden />{" "}
+            <span className="cal-page__btn-long">Nouveau rendez-vous</span>
+            <span className="cal-page__btn-short">Nouveau</span>
           </button>
         </div>
       </div>
@@ -195,10 +202,10 @@ export function CalendarPageShell({
           <div className="cal-page__colorby-toggle">
             <button
               type="button"
-              className={colorBy === "type" ? "is-active" : ""}
-              onClick={() => onColorBy("type")}
+              className={colorBy === "assignee" ? "is-active" : ""}
+              onClick={() => onColorBy("assignee")}
             >
-              Type
+              Équipe
             </button>
             <button
               type="button"
@@ -206,6 +213,13 @@ export function CalendarPageShell({
               onClick={() => onColorBy("status")}
             >
               Statut
+            </button>
+            <button
+              type="button"
+              className={colorBy === "type" ? "is-active" : ""}
+              onClick={() => onColorBy("type")}
+            >
+              Type
             </button>
           </div>
         </div>
@@ -231,16 +245,39 @@ export function CalendarPageShell({
           Touchez un créneau libre pour réserver · Cliquez un rendez-vous pour ouvrir le détail
         </p>
         <div className="cal-page__legend-statuses">
-          <span className="cal-page__legend-label">Légende des statuts</span>
-          {LEGEND_STATUSES.map((key) => {
-            const p = STATUS_PALETTE[key];
-            return (
-              <span key={key} className="cal-page__status-pill">
-                <span className="cal-page__status-dot" style={{ background: p.bg }} />
-                {p.label}
-              </span>
-            );
-          })}
+          <span className="cal-page__legend-label">
+            {colorBy === "assignee"
+              ? "Légende équipe (closers)"
+              : colorBy === "type"
+                ? "Légende des types"
+                : "Légende des statuts"}
+          </span>
+          {colorBy === "assignee"
+            ? assigneeOptions.map((a) => {
+                const c = getAssigneeColor(a.value);
+                return (
+                  <span key={a.value} className="cal-page__status-pill">
+                    <span className="cal-page__status-dot" style={{ background: c.bg }} />
+                    {a.label}
+                  </span>
+                );
+              })
+            : colorBy === "type"
+              ? MEETING_TITLES.map((t) => (
+                  <span key={t} className="cal-page__status-pill">
+                    <span className="cal-page__status-dot" style={{ background: "#C9A24B" }} />
+                    {t}
+                  </span>
+                ))
+              : LEGEND_STATUSES.map((key) => {
+                  const p = STATUS_PALETTE[key];
+                  return (
+                    <span key={key} className="cal-page__status-pill">
+                      <span className="cal-page__status-dot" style={{ background: p.bg }} />
+                      {p.label}
+                    </span>
+                  );
+                })}
         </div>
       </div>
     </div>

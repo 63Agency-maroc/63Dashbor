@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import type { ClickUpCustomField, Lead } from "@/lib/api/leads";
 import { getLeadEmail, getLeadName, getLeadPhoneDisplay } from "@/lib/leads/clickup-fields";
+import { getLeadStatusPalette } from "@/lib/leads/statusPalette";
 import { formatDateTime } from "@/lib/utils/date";
 
 type Props = {
@@ -68,7 +69,17 @@ export function LeadDetailModal({ open, lead, loading, error, onClose }: Props) 
                   <div className="row g-3 mb-3">
                     <div className="col-md-6">
                       <small className="text-muted d-block">Status</small>
-                      <strong>{lead.status || "—"}</strong>
+                      {(() => {
+                        const p = getLeadStatusPalette(lead.status);
+                        return (
+                          <span
+                            className="badge rounded-pill"
+                            style={{ backgroundColor: p.bg, color: p.text }}
+                          >
+                            {lead.status || "—"}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <div className="col-md-6">
                       <small className="text-muted d-block">List</small>

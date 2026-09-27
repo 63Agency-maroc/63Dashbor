@@ -19,6 +19,7 @@ import { getSocket } from "@/lib/realtime/socket";
 import { Select } from "@/components/ui/Select";
 import { StatCard, type StatCardAccent } from "@/components/ui/StatCard";
 import { formatDate } from "@/lib/utils/date";
+import { getLeadStatusPalette } from "@/lib/leads/statusPalette";
 
 const LIMIT = 50;
 const HIGHLIGHT_MS = 3500;
@@ -30,13 +31,13 @@ type LeadDeletedPayload = {
   clickupTaskId: string | null;
 };
 
-const STATUS_BADGE: Record<string, string> = {
-  new: "bg-primary-subtle text-primary",
-  contacted: "bg-info-subtle text-info",
-  qualified: "bg-success-subtle text-success",
-  engaged: "bg-warning-subtle text-warning",
-  lost: "bg-danger-subtle text-danger",
-  won: "bg-success-subtle text-success",
+const STATUS_STAT_ICONS: Record<string, string> = {
+  new: "icon-sparkles",
+  contacted: "icon-phone",
+  qualified: "icon-badge-check",
+  engaged: "icon-message-circle",
+  lost: "icon-circle-x",
+  won: "icon-trophy",
 };
 
 const STAT_ACCENTS: StatCardAccent[] = [
@@ -48,23 +49,9 @@ const STAT_ACCENTS: StatCardAccent[] = [
   "dark",
 ];
 
-const STATUS_STAT_ICONS: Record<string, string> = {
-  new: "icon-sparkles",
-  contacted: "icon-phone",
-  qualified: "icon-badge-check",
-  engaged: "icon-message-circle",
-  lost: "icon-circle-x",
-  won: "icon-trophy",
-};
-
 function statusStatIcon(status: string) {
   const key = status.trim().toLowerCase();
   return STATUS_STAT_ICONS[key] || "icon-chart-column";
-}
-
-function statusBadgeClass(status: string) {
-  const key = status.trim().toLowerCase();
-  return STATUS_BADGE[key] || "bg-secondary-subtle text-secondary";
 }
 
 function dash(v: string | undefined | null) {
@@ -633,7 +620,15 @@ export default function LeadsPage() {
                                 </div>
                               </td>
                               <td>
-                                <span className={`badge ${statusBadgeClass(lead.status)}`}>{dash(lead.status)}</span>
+                                <span
+                                  className="badge rounded-pill"
+                                  style={{
+                                    backgroundColor: getLeadStatusPalette(lead.status).bg,
+                                    color: getLeadStatusPalette(lead.status).text,
+                                  }}
+                                >
+                                  {dash(lead.status)}
+                                </span>
                               </td>
                               <td>{dash(getLeadPhoneDisplay(lead) || lead.phone)}</td>
                               <td>{dash(getLeadEmail(lead) || lead.email)}</td>

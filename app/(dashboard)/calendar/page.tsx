@@ -49,6 +49,7 @@ import {
   formatTime,
 } from "@/lib/datetime/casablanca";
 import { getStatusPalette } from "@/lib/calendar/statusPalette";
+import { getMeetingAssigneeColor } from "@/lib/calendar/assigneePalette";
 import {
   availabilityDisplayLegend,
   buildAvailabilityBannerRows,
@@ -83,13 +84,13 @@ function closerLabel(m: Meeting): string {
   return name || a.email || "";
 }
 
-function meetingToEvent(m: Meeting, colorBy: "status" | "type"): EventInput {
+function meetingToEvent(m: Meeting, colorBy: "status" | "type" | "assignee"): EventInput {
   const palette = getStatusPalette(m.status);
   const typeColor = TYPE_COLORS[m.title];
-  const colors =
-    colorBy === "type" && typeColor
-      ? typeColor
-      : { bg: palette.bg, border: palette.border, text: palette.text };
+  const assigneeColor = getMeetingAssigneeColor(m);
+  let colors = { bg: palette.bg, border: palette.border, text: palette.text };
+  if (colorBy === "type" && typeColor) colors = typeColor;
+  else if (colorBy === "assignee") colors = assigneeColor;
   const duration =
     typeof m.durationMinutes === "number" && m.durationMinutes > 0
       ? m.durationMinutes
@@ -138,7 +139,7 @@ export default function CalendarPage() {
   const [assigneeFilter, setAssigneeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
-  const [colorBy, setColorBy] = useState<"status" | "type">("status");
+  const [colorBy, setColorBy] = useState<"status" | "type" | "assignee">("assignee");
   const [showAvail, setShowAvail] = useState(false);
 
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -738,7 +739,9 @@ export default function CalendarPage() {
                 ) : (
                   agendaSorted.map((m) => {
                     const palette = getStatusPalette(m.status);
+                    const teamColor = getMeetingAssigneeColor(m);
                     const closer = closerLabel(m);
+                    const dotColor = colorBy === "assignee" ? teamColor.bg : palette.bg;
                     return (
                       <button
                         key={m.id}
@@ -752,7 +755,7 @@ export default function CalendarPage() {
                         </span>
                         <span
                           className="cal-page__agenda-dot"
-                          style={{ background: palette.bg }}
+                          style={{ background: dotColor }}
                           aria-hidden
                         />
                         <span className="cal-page__agenda-body min-w-0">
@@ -764,7 +767,15 @@ export default function CalendarPage() {
                             {closer ? ` · ${closer}` : " · Unassigned"}
                           </span>
                         </span>
-                        <span className={`badge ${palette.badgeClass}`}>{palette.label}</span>
+                        <span
+                          className="badge rounded-pill"
+                          style={{
+                            backgroundColor: palette.bg,
+                            color: palette.text,
+                          }}
+                        >
+                          {palette.label}
+                        </span>
                       </button>
                     );
                   })

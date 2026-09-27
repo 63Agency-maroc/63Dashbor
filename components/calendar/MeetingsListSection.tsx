@@ -285,7 +285,15 @@ export function MeetingsListSection({
                             </small>
                           </td>
                           <td>
-                            <span className={`badge ${palette.badgeClass}`}>{m.status}</span>
+                            <span
+                              className="badge rounded-pill"
+                              style={{
+                                backgroundColor: palette.bg,
+                                color: palette.text,
+                              }}
+                            >
+                              {palette.label || m.status}
+                            </span>
                           </td>
                           <td>
                             <span className="small">{assigneeNames(m)}</span>

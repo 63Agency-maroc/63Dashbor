@@ -18,6 +18,8 @@ import {
 import { AppToast } from "@/components/clients/AppToast";
 import { DocumentEmailModal } from "@/components/documents/DocumentEmailModal";
 import { DocumentFormModal } from "@/components/documents/DocumentFormModal";
+import { DocStatusBadge, DocsPageShell } from "@/components/documents/DocsPageShell";
+import { getDocumentStatusPalette } from "@/lib/documents/statusPalette";
 
 const PAGE_SIZE = 10;
 
@@ -44,17 +46,6 @@ function formatDate(ymd: string | undefined) {
   return `${m[3]}/${m[2]}/${m[1]}`;
 }
 
-function statusBadge(status: string) {
-  const s = (status || "").toLowerCase();
-  if (s === "draft" || s === "brouillon") return "bg-secondary-subtle text-secondary";
-  if (s === "sent" || s === "envoyé" || s === "envoye") return "bg-info-subtle text-info";
-  if (s === "paid" || s === "payé" || s === "paye") return "bg-success-subtle text-success";
-  if (s === "cancelled" || s === "annulé" || s === "annule") return "bg-danger-subtle text-danger";
-  if (s === "accepted" || s === "accepté" || s === "accepte") return "bg-success-subtle text-success";
-  if (s === "rejected" || s === "refusé" || s === "refuse") return "bg-danger-subtle text-danger";
-  return "bg-warning-subtle text-warning";
-}
-
 export default function FacturesPage() {
   const [items, setItems] = useState<FactureListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +53,7 @@ export default function FacturesPage() {
   const [listError, setListError] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("dateEmission");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
@@ -115,8 +107,11 @@ export default function FacturesPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let rows = items;
+    if (statusFilter) {
+      rows = rows.filter((d) => (d.status || "").toLowerCase() === statusFilter.toLowerCase());
+    }
     if (q) {
-      rows = items.filter((d) =>
+      rows = rows.filter((d) =>
         [d.numero, d.clientNom, d.status, d.clientEmail, d.clientTelephone]
           .join(" ")
           .toLowerCase()
@@ -138,7 +133,18 @@ export default function FacturesPage() {
       return 0;
     });
     return sorted;
-  }, [items, search, sortKey, sortDir]);
+  }, [items, search, statusFilter, sortKey, sortDir]);
+
+  const statusOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const d of items) {
+      const s = (d.status || "").trim();
+      if (s) set.add(s);
+    }
+    return [...set]
+      .sort((a, b) => a.localeCompare(b, "fr"))
+      .map((s) => ({ value: s, label: getDocumentStatusPalette(s).label }));
+  }, [items]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -146,7 +152,7 @@ export default function FacturesPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, sortKey, sortDir]);
+  }, [search, statusFilter, sortKey, sortDir]);
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -285,180 +291,161 @@ export default function FacturesPage() {
         onClose={() => setToast(null)}
       />
 
-      <div className="app-page-head d-flex flex-wrap gap-3 align-items-center justify-content-between">
-        <nav aria-label="breadcrumb">
-          <ol className="breadcrumb mb-0">
-            <li className="breadcrumb-item">
-              <a href="/">
-                <i className="fi fi-rr-home" /> Home
-              </a>
-            </li>
-            <li className="breadcrumb-item active" aria-current="page">
-              Factures
-            </li>
-          </ol>
-        </nav>
-        <button type="button" className="btn btn-primary" onClick={openCreate} disabled={formLoading}>
-          <i className="fi fi-rr-plus me-1" /> Nouvelle facture
-        </button>
-      </div>
-
-      <div className="card">
-        <div className="card-header d-flex flex-wrap gap-2 align-items-center justify-content-between">
-          <h5 className="card-title mb-0">Liste des factures</h5>
-          <div className="d-flex gap-2 align-items-center">
-            <input
-              type="search"
-              className="form-control form-control-sm"
-              style={{ minWidth: 220 }}
-              placeholder="Rechercher…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <button
-              type="button"
-              className="btn btn-sm btn-light"
-              onClick={() => void loadList()}
-              disabled={loading}
-            >
-              Actualiser
-            </button>
-          </div>
-        </div>
-        <div className="card-body p-0">
-          {listError && (
-            <div className="alert alert-danger m-3 mb-0" role="alert">
-              {listError}
-            </div>
-          )}
-          {loading ? (
-            <div className="text-center py-5">
-              <div className="spinner-border text-primary" role="status" />
-            </div>
-          ) : (
-            <div className="table-responsive">
-              <table className="table table-hover align-middle mb-0">
-                <thead>
-                  <tr>
-                    {(
-                      [
-                        ["numero", "N°"],
-                        ["clientNom", "Client"],
-                        ["dateEmission", "Date"],
-                        ["totalTtc", "Total TTC"],
-                        ["status", "Statut"],
-                      ] as const
-                    ).map(([key, label]) => (
-                      <th key={key}>
-                        <button
-                          type="button"
-                          className="btn btn-link btn-sm text-decoration-none p-0 text-body"
-                          onClick={() => toggleSort(key)}
-                        >
-                          {label}
-                          {sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
-                        </button>
-                      </th>
-                    ))}
-                    <th className="text-end">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pageRows.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="text-center text-muted py-5">
-                        Aucune facture
-                      </td>
-                    </tr>
-                  ) : (
-                    pageRows.map((row) => (
-                      <tr key={row.id}>
-                        <td className="fw-medium">{dash(row.numero)}</td>
-                        <td>{dash(row.clientNom)}</td>
-                        <td>{formatDate(row.dateEmission)}</td>
-                        <td className="font-monospace">{money(row.totals?.totalTtc)} MAD</td>
-                        <td>
-                          <span className={`badge ${statusBadge(row.status)}`}>{dash(row.status)}</span>
-                        </td>
-                        <td className="text-end">
-                          <div className="btn-group">
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-subtle-primary"
-                              title="Éditer"
-                              onClick={() => void openEdit(row)}
-                            >
-                              <i className="fi fi-rr-pencil" />
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-subtle-secondary"
-                              title="PDF"
-                              disabled={pdfBusyId === row.id}
-                              onClick={() => void handlePdf(row)}
-                            >
-                              {pdfBusyId === row.id ? (
-                                <span className="spinner-border spinner-border-sm" />
-                              ) : (
-                                <i className="fi fi-rr-file-pdf" />
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-subtle-info"
-                              title="Email"
-                              onClick={() => {
-                                setEmailError(null);
-                                setEmailTarget(row);
-                              }}
-                            >
-                              <i className="fi fi-rr-envelope" />
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-subtle-danger"
-                              title="Supprimer"
-                              onClick={() => {
-                                setDeleteError(null);
-                                setDeleteTarget(row);
-                              }}
-                            >
-                              <i className="fi fi-rr-trash" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-        {!loading && filtered.length > PAGE_SIZE && (
-          <div className="card-footer d-flex justify-content-between align-items-center">
-            <button
-              type="button"
-              className="btn btn-sm btn-light"
-              disabled={currentPage <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Précédent
-            </button>
-            <span className="small text-muted">
-              Page {currentPage} / {totalPages} · {filtered.length} factures
-            </span>
-            <button
-              type="button"
-              className="btn btn-sm btn-light"
-              disabled={currentPage >= totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            >
-              Suivant
-            </button>
+      <DocsPageShell
+        title="Factures"
+        breadcrumb="Factures"
+        count={filtered.length}
+        search={search}
+        statusFilter={statusFilter}
+        statusOptions={statusOptions}
+        onSearchChange={setSearch}
+        onStatusFilter={setStatusFilter}
+        onRefresh={() => void loadList()}
+        refreshing={loading}
+        actions={
+          <button type="button" className="btn btn-primary" onClick={openCreate} disabled={formLoading}>
+            <i className="fi fi-rr-plus me-1" />
+            <span className="docs-page__btn-long">Nouvelle facture</span>
+            <span className="docs-page__btn-short">Nouvelle</span>
+          </button>
+        }
+        footer={
+          !loading && filtered.length > 0 ? (
+            <>
+              <span className="small text-muted">
+                Page {currentPage} / {totalPages}
+              </span>
+              <div className="btn-group btn-group-sm">
+                <button
+                  type="button"
+                  className="btn btn-white btn-shadow"
+                  disabled={currentPage <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  Préc.
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-white btn-shadow"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Suiv.
+                </button>
+              </div>
+            </>
+          ) : null
+        }
+      >
+        {listError && (
+          <div className="alert alert-danger m-3 mb-0" role="alert">
+            {listError}
           </div>
         )}
-      </div>
+        {loading ? (
+          <div className="text-center py-5">
+            <div className="spinner-border text-primary" role="status" />
+          </div>
+        ) : (
+          <div className="table-responsive">
+            <table className="table align-middle mb-0">
+              <thead>
+                <tr>
+                  {(
+                    [
+                      ["numero", "N°"],
+                      ["clientNom", "Client"],
+                      ["dateEmission", "Date"],
+                      ["totalTtc", "Total TTC"],
+                      ["status", "Statut"],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <th key={key}>
+                      <button
+                        type="button"
+                        className="btn btn-link btn-sm text-decoration-none p-0 text-body"
+                        onClick={() => toggleSort(key)}
+                      >
+                        {label}
+                        {sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
+                      </button>
+                    </th>
+                  ))}
+                  <th className="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center text-muted py-5">
+                      Aucune facture
+                    </td>
+                  </tr>
+                ) : (
+                  pageRows.map((row) => (
+                    <tr key={row.id}>
+                      <td className="fw-medium">{dash(row.numero)}</td>
+                      <td>{dash(row.clientNom)}</td>
+                      <td>{formatDate(row.dateEmission)}</td>
+                      <td className="font-monospace">{money(row.totals?.totalTtc)} MAD</td>
+                      <td>
+                        <DocStatusBadge status={row.status} />
+                      </td>
+                      <td className="text-end">
+                        <div className="btn-group">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-subtle-primary"
+                            title="Éditer"
+                            onClick={() => void openEdit(row)}
+                          >
+                            <i className="fi fi-rr-pencil" />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-subtle-secondary"
+                            title="PDF"
+                            disabled={pdfBusyId === row.id}
+                            onClick={() => void handlePdf(row)}
+                          >
+                            {pdfBusyId === row.id ? (
+                              <span className="spinner-border spinner-border-sm" />
+                            ) : (
+                              <i className="fi fi-rr-file-pdf" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-subtle-info"
+                            title="Email"
+                            onClick={() => {
+                              setEmailError(null);
+                              setEmailTarget(row);
+                            }}
+                          >
+                            <i className="fi fi-rr-envelope" />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-subtle-danger"
+                            title="Supprimer"
+                            onClick={() => {
+                              setDeleteError(null);
+                              setDeleteTarget(row);
+                            }}
+                          >
+                            <i className="fi fi-rr-trash" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </DocsPageShell>
 
       <DocumentFormModal
         open={formOpen}
