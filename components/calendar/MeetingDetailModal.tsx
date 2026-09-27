@@ -95,6 +95,8 @@ export function MeetingDetailModal({
     ? `${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`
     : formatTime(meeting.meetingDate);
 
+  const summaryParts = [dateLabel, timeLabel, "Casablanca"].filter(Boolean);
+
   const assignees = (meeting.assignees ?? []).map(assigneeLabel);
   const members = (meeting.members ?? []).map(
     (m) => m.name + (m.phone ? ` (${m.phone})` : ""),
@@ -107,30 +109,38 @@ export function MeetingDetailModal({
 
   return (
     <>
-      <div className="modal fade show" style={{ display: "block" }} tabIndex={-1} role="dialog" aria-modal="true">
-        <div className="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+      <div
+        className="modal fade show meeting-detail-overlay"
+        style={{ display: "block" }}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="modal-dialog modal-dialog-centered modal-lg meeting-detail-dialog">
           <div className="modal-content meeting-detail-modal">
-            <div className="meeting-detail__accent" aria-hidden />
-
-            <div className="modal-header meeting-detail__header border-0">
-              <div className="meeting-detail__hero min-w-0">
-                <div className="meeting-detail__avatar" aria-hidden>
-                  <i className="fi fi-rr-calendar" />
-                </div>
-                <div className="min-w-0">
-                  <p className="meeting-detail__eyebrow mb-1">Détail du meeting</p>
-                  <h5 className="modal-title mb-2" title={meeting.title}>
-                    {meeting.title}
-                  </h5>
-                  <span className={`badge rounded-pill meeting-detail__status ${palette.badgeClass}`}>
-                    {palette.label || meeting.status}
-                  </span>
-                </div>
+            <div className="meeting-detail__header">
+              <div className="min-w-0">
+                <p className="meeting-detail__eyebrow mb-1">Détail du meeting</p>
+                <h5 className="meeting-detail__title mb-1" title={meeting.title}>
+                  {meeting.title}
+                </h5>
+                <p className="meeting-detail__summary mb-2">{summaryParts.join(" · ")}</p>
+                <span className={`badge rounded-pill meeting-detail__status ${palette.badgeClass}`}>
+                  {palette.label || meeting.status}
+                </span>
               </div>
-              <button type="button" className="btn-close" aria-label="Fermer" onClick={onClose} disabled={busy} />
+              <button
+                type="button"
+                className="meeting-detail__close"
+                aria-label="Fermer"
+                onClick={onClose}
+                disabled={busy}
+              >
+                <i className="fi fi-rr-cross-small" aria-hidden />
+              </button>
             </div>
 
-            <div className="modal-body meeting-detail__body">
+            <div className="meeting-detail__body">
               {error ? (
                 <div className="alert alert-danger py-2" role="alert">
                   {error}
@@ -173,7 +183,7 @@ export function MeetingDetailModal({
                   )}
                 </MetaTile>
 
-                <MetaTile icon="fi fi-rr-users" label="Assignees">
+                <MetaTile icon="fi fi-rr-users" label="Closers">
                   {assignees.length > 0 ? (
                     <div className="meeting-detail__chips">
                       {assignees.map((name) => (
@@ -187,7 +197,7 @@ export function MeetingDetailModal({
                   )}
                 </MetaTile>
 
-                <MetaTile icon="fi fi-rr-user-add" label="Members">
+                <MetaTile icon="fi fi-rr-user-add" label="Participants">
                   {members.length > 0 ? (
                     <div className="meeting-detail__chips">
                       {members.map((name) => (
@@ -237,7 +247,7 @@ export function MeetingDetailModal({
                   </div>
                   <div className="row g-2">
                     <div className="col-md-4">
-                      <label className="form-label">Canal</label>
+                      <label className="meeting-detail__field-label">Canal</label>
                       <Select
                         size="sm"
                         value={channel}
@@ -251,7 +261,7 @@ export function MeetingDetailModal({
                       />
                     </div>
                     <div className="col-md-4">
-                      <label className="form-label">Délai</label>
+                      <label className="meeting-detail__field-label">Délai</label>
                       <Select
                         size="sm"
                         value={offset}
@@ -278,12 +288,12 @@ export function MeetingDetailModal({
                     </div>
                   </div>
                   <div className="mt-3 d-flex gap-2">
-                    <button type="submit" className="btn btn-sm btn-primary" disabled={busy}>
+                    <button type="submit" className="meeting-detail__btn meeting-detail__btn--primary" disabled={busy}>
                       Envoyer
                     </button>
                     <button
                       type="button"
-                      className="btn btn-sm btn-light"
+                      className="meeting-detail__btn meeting-detail__btn--ghost"
                       onClick={() => setShowReminder(false)}
                       disabled={busy}
                     >
@@ -302,7 +312,7 @@ export function MeetingDetailModal({
                     </button>
                     <button
                       type="button"
-                      className="btn btn-sm btn-light"
+                      className="meeting-detail__btn meeting-detail__btn--ghost"
                       onClick={() => setConfirmDelete(false)}
                       disabled={busy}
                     >
@@ -313,30 +323,45 @@ export function MeetingDetailModal({
               ) : null}
             </div>
 
-            <div className="modal-footer meeting-detail__footer border-0 flex-wrap gap-2">
-              <button type="button" className="btn btn-light" onClick={onClose} disabled={busy}>
+            <div className="meeting-detail__footer">
+              <button
+                type="button"
+                className="meeting-detail__btn meeting-detail__btn--ghost"
+                onClick={onClose}
+                disabled={busy}
+              >
                 Fermer
               </button>
-              <div className="meeting-detail__footer-actions d-flex flex-wrap gap-2 ms-md-auto">
-                <button type="button" className="btn btn-primary" onClick={onEdit} disabled={busy}>
+              <div className="meeting-detail__footer-actions">
+                <button
+                  type="button"
+                  className="meeting-detail__btn meeting-detail__btn--primary"
+                  onClick={onEdit}
+                  disabled={busy}
+                >
                   <i className="fi fi-rr-pencil me-1" aria-hidden /> Éditer
                 </button>
                 <button
                   type="button"
-                  className="btn btn-outline-primary"
+                  className="meeting-detail__btn meeting-detail__btn--ghost"
                   onClick={() => setShowReminder(true)}
                   disabled={busy}
                 >
                   <i className="fi fi-rr-bell me-1" aria-hidden /> Rappel
                 </button>
                 {isAdmin ? (
-                  <button type="button" className="btn btn-light" onClick={onRegenerateMeet} disabled={busy}>
+                  <button
+                    type="button"
+                    className="meeting-detail__btn meeting-detail__btn--ghost"
+                    onClick={onRegenerateMeet}
+                    disabled={busy}
+                  >
                     Régénérer Meet
                   </button>
                 ) : null}
                 <button
                   type="button"
-                  className="btn btn-outline-danger"
+                  className="meeting-detail__btn meeting-detail__btn--danger"
                   onClick={() => setConfirmDelete(true)}
                   disabled={busy}
                 >
