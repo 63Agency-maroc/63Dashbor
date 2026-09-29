@@ -31,7 +31,9 @@ const TABS: { id: SettingsTab; label: string; soon?: boolean }[] = [
 ];
 
 const COLOR_OPTIONS: { value: AppColor; label: string; swatch: string; onSwatch?: string }[] = [
-  { value: "gold", label: "Gold (63 Agency)", swatch: "#C9A24B", onSwatch: "#1a1a1a" },
+  { value: "blue", label: "Ink Blue", swatch: "#1F4E79", onSwatch: "#ffffff" },
+  { value: "teal", label: "Teal", swatch: "#0F766E", onSwatch: "#ffffff" },
+  { value: "slate", label: "Slate", swatch: "#334155", onSwatch: "#ffffff" },
 ];
 
 function ComingSoonPanel({ title, description }: { title: string; description: string }) {
@@ -326,7 +328,7 @@ export default function SettingsPage() {
                       })}
                     </div>
                     <div className="form-text mt-2">
-                      Accent marque 63 Agency : <strong>Gold</strong> (#C9A24B)
+                      Accent marque 63 Agency : <strong>Ink Blue</strong> (#1F4E79) — Teal ou Slate en option
                     </div>
                   </div>
                 </div>

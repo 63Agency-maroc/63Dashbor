@@ -10,16 +10,16 @@ export type AssigneeColor = {
 };
 
 const TEAM_PALETTE: AssigneeColor[] = [
-  { bg: "#C9A24B", border: "#C9A24B", text: "#1a1a1a" }, // gold 63
+  { bg: "#1F4E79", border: "#1F4E79", text: "#ffffff" }, // ink blue 63
   { bg: "#3B82F6", border: "#3B82F6", text: "#ffffff" }, // blue
   { bg: "#10B981", border: "#10B981", text: "#ffffff" }, // emerald
-  { bg: "#8B5CF6", border: "#8B5CF6", text: "#ffffff" }, // violet
+  { bg: "#0F766E", border: "#0F766E", text: "#ffffff" }, // teal
   { bg: "#F59E0B", border: "#F59E0B", text: "#1a1a1a" }, // amber
   { bg: "#EC4899", border: "#EC4899", text: "#ffffff" }, // pink
   { bg: "#06B6D4", border: "#06B6D4", text: "#053b48" }, // cyan
   { bg: "#EF4444", border: "#EF4444", text: "#ffffff" }, // red
-  { bg: "#14B8A6", border: "#14B8A6", text: "#ffffff" }, // teal
-  { bg: "#6366F1", border: "#6366F1", text: "#ffffff" }, // indigo
+  { bg: "#14B8A6", border: "#14B8A6", text: "#ffffff" }, // teal light
+  { bg: "#334155", border: "#334155", text: "#ffffff" }, // slate
   { bg: "#84CC16", border: "#84CC16", text: "#1a1a1a" }, // lime
   { bg: "#F97316", border: "#F97316", text: "#ffffff" }, // orange
 ];

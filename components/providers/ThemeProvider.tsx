@@ -27,18 +27,7 @@ const STORAGE_KEY = "nexlink-app-settings";
 export type AppTheme = "light" | "dark";
 /** Valeurs persistées : full | mini. mini-hover = état DOM transitoire (hover). */
 export type AppSidebar = "full" | "mini" | "mini-hover";
-export type AppColor =
-  | "gold"
-  | "blue"
-  | "indigo"
-  | "purple"
-  | "pink"
-  | "red"
-  | "orange"
-  | "yellow"
-  | "green"
-  | "teal"
-  | "cyan";
+export type AppColor = "blue" | "teal" | "slate";
 
 export type AppSettings = {
   appTheme: AppTheme;
@@ -49,7 +38,7 @@ export type AppSettings = {
 const defaults: AppSettings = {
   appTheme: "light",
   appSidebar: "full",
-  appColor: "gold",
+  appColor: "blue",
 };
 
 type ThemeContextValue = {
@@ -81,9 +70,10 @@ function readStored(): AppSettings {
       return { ...defaults, appTheme: prefersDark ? "dark" : "light" };
     }
     const parsed = { ...defaults, ...JSON.parse(raw) } as AppSettings;
-    // Rebrand 63 Agency : accent gold (migre l’ancien défaut « blue »)
-    if (!parsed.appColor || parsed.appColor === "blue" || parsed.appColor === "purple") {
-      parsed.appColor = "gold";
+    // Marque 63 Agency : ink blue (migre l’ancien gold / accents template)
+    const allowed: AppColor[] = ["blue", "teal", "slate"];
+    if (!allowed.includes(parsed.appColor)) {
+      parsed.appColor = "blue";
     }
     return parsed;
   } catch {

@@ -78,20 +78,20 @@ const DOC_STATUS_PALETTE: Record<string, DocStatusPalette> = {
   },
   paid: {
     label: "Payé",
-    bg: "#C9A24B",
-    text: "#1a1a1a",
+    bg: "#1F4E79",
+    text: "#ffffff",
     badgeClass: "bg-primary-subtle text-primary",
   },
   payé: {
     label: "Payé",
-    bg: "#C9A24B",
-    text: "#1a1a1a",
+    bg: "#1F4E79",
+    text: "#ffffff",
     badgeClass: "bg-primary-subtle text-primary",
   },
   paye: {
     label: "Payé",
-    bg: "#C9A24B",
-    text: "#1a1a1a",
+    bg: "#1F4E79",
+    text: "#ffffff",
     badgeClass: "bg-primary-subtle text-primary",
   },
   cancelled: {

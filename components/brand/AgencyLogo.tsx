@@ -21,8 +21,8 @@ type Props = {
 
 /**
  * Logo 63 Agency contrasté avec le fond :
- * - dark theme / fond sombre → whit63.png (blanc)
- * - light theme / fond clair → darck63.png (foncé)
+ * - dark theme → IMG_1260.JPEG (63 blanc)
+ * - light theme → 6.jpg (63 noir)
  */
 export function AgencyLogo({
   variant = "auto",

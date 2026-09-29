@@ -15,8 +15,8 @@ const LEAD_STATUS_PALETTE: Record<string, LeadStatusPalette> = {
   new: {
     label: "New",
     badgeClass: "bg-primary-subtle text-primary",
-    bg: "#C9A24B",
-    text: "#1a1a1a",
+    bg: "#1F4E79",
+    text: "#ffffff",
   },
   contacted: {
     label: "Contacted",
@@ -52,8 +52,8 @@ const LEAD_STATUS_PALETTE: Record<string, LeadStatusPalette> = {
   nouveau: {
     label: "Nouveau",
     badgeClass: "bg-primary-subtle text-primary",
-    bg: "#C9A24B",
-    text: "#1a1a1a",
+    bg: "#1F4E79",
+    text: "#ffffff",
   },
   contacté: {
     label: "Contacté",

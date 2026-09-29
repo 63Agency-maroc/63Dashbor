@@ -265,7 +265,7 @@ export function CalendarPageShell({
             : colorBy === "type"
               ? MEETING_TITLES.map((t) => (
                   <span key={t} className="cal-page__status-pill">
-                    <span className="cal-page__status-dot" style={{ background: "#C9A24B" }} />
+                    <span className="cal-page__status-dot" style={{ background: "#1F4E79" }} />
                     {t}
                   </span>
                 ))

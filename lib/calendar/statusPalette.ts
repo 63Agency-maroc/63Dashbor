@@ -5,7 +5,7 @@ import type { MeetingStatus } from "@/lib/api/meetings";
  *
  * | status         | couleur   | usage                          |
  * |----------------|-----------|--------------------------------|
- * | scheduled      | primary   | gold — planifié                |
+ * | scheduled      | primary   | ink blue — planifié            |
  * | confirmed      | success   | vert — confirmé                |
  * | bon_qualified  | info      | cyan — bon qualifié            |
  * | non_qualified  | warning   | orange — non qualifié          |
@@ -27,9 +27,9 @@ export type StatusPaletteEntry = {
 export const STATUS_PALETTE: Record<string, StatusPaletteEntry> = {
   scheduled: {
     label: "Scheduled",
-    bg: "#C9A24B",
-    border: "#C9A24B",
-    text: "#1a1a1a",
+    bg: "#1F4E79",
+    border: "#1F4E79",
+    text: "#ffffff",
     badgeClass: "bg-primary-subtle text-primary",
   },
   confirmed: {
