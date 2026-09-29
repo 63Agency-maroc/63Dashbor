@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { getClients, type Client } from "@/lib/api/clients";
 import {
   computeLocalTotals,
   type Document,
@@ -9,8 +8,10 @@ import {
   type UpsertDocumentDto,
   type UpsertDocumentLigneDto,
 } from "@/lib/api/documents";
+import type { Lead } from "@/lib/api/leads";
 import { COMPANY_63, DEVIS_DEFAULTS } from "@/lib/constants/company";
 import { CasablancaDatePicker } from "@/components/calendar/CasablancaDatePicker";
+import { useLeadSuggestions } from "@/hooks/useLeadSuggestions";
 
 type LigneForm = UpsertDocumentLigneDto;
 
@@ -156,57 +157,19 @@ export function DocumentFormModal({
 }: Props) {
   const labels = LABELS[kind];
   const [form, setForm] = useState<DocumentFormValues>(emptyForm);
-  const [clientQuery, setClientQuery] = useState("");
-  const [clientSuggestions, setClientSuggestions] = useState<Client[]>([]);
-  const [clientSearchBusy, setClientSearchBusy] = useState(false);
+  const [leadSuggestOpen, setLeadSuggestOpen] = useState(false);
   const wasOpenRef = useRef(false);
+  const { items: leadSuggestions, busy: leadSearchBusy, clear: clearLeadSuggestions } =
+    useLeadSuggestions(form.clientNom, open && leadSuggestOpen);
 
   useEffect(() => {
     if (open && !wasOpenRef.current) {
       setForm(mode === "edit" && initial ? fromDocument(initial) : emptyForm());
-      setClientQuery("");
-      setClientSuggestions([]);
+      setLeadSuggestOpen(false);
+      clearLeadSuggestions();
     }
     wasOpenRef.current = open;
-  }, [open, mode, initial]);
-
-  useEffect(() => {
-    if (!open) return;
-    const q = clientQuery.trim();
-    if (q.length < 2) {
-      setClientSuggestions([]);
-      return;
-    }
-    let cancelled = false;
-    const t = window.setTimeout(() => {
-      setClientSearchBusy(true);
-      void getClients()
-        .then((items) => {
-          if (cancelled) return;
-          const lower = q.toLowerCase();
-          setClientSuggestions(
-            items
-              .filter((c) =>
-                [c.clientNom, c.clientEmail, c.clientTelephone, c.clientIce]
-                  .join(" ")
-                  .toLowerCase()
-                  .includes(lower),
-              )
-              .slice(0, 8),
-          );
-        })
-        .catch(() => {
-          if (!cancelled) setClientSuggestions([]);
-        })
-        .finally(() => {
-          if (!cancelled) setClientSearchBusy(false);
-        });
-    }, 300);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(t);
-    };
-  }, [clientQuery, open]);
+  }, [open, mode, initial, clearLeadSuggestions]);
 
   const totals = useMemo(
     () => computeLocalTotals(form.lignes, form.tvaTaux),
@@ -235,33 +198,15 @@ export function DocumentFormModal({
     }));
   }
 
-  function normalizeClient(raw: Client | Record<string, unknown>): {
-    clientNom: string;
-    clientIce: string;
-    clientEmail: string;
-    clientTelephone: string;
-  } {
-    const r = raw as Record<string, unknown>;
-    const str = (v: unknown) => (v == null ? "" : String(v).trim());
-    return {
-      clientNom: str(r.clientNom ?? r.client_nom ?? r.nom),
-      clientIce: str(r.clientIce ?? r.client_ice ?? r.ice),
-      clientEmail: str(r.clientEmail ?? r.client_email ?? r.email),
-      clientTelephone: str(r.clientTelephone ?? r.client_telephone ?? r.telephone),
-    };
-  }
-
-  function pickClient(raw: Client) {
-    const c = normalizeClient(raw);
+  function pickLead(lead: Lead) {
     setForm((prev) => ({
       ...prev,
-      clientNom: c.clientNom,
-      clientIce: c.clientIce,
-      clientEmail: c.clientEmail,
-      clientTelephone: c.clientTelephone,
+      clientNom: (lead.name || "").trim() || prev.clientNom,
+      clientEmail: (lead.email || "").trim() || prev.clientEmail,
+      clientTelephone: (lead.phone || "").trim() || prev.clientTelephone,
     }));
-    setClientQuery("");
-    setClientSuggestions([]);
+    setLeadSuggestOpen(false);
+    clearLeadSuggestions();
   }
 
   function handleSubmit(e: FormEvent) {
@@ -271,337 +216,362 @@ export function DocumentFormModal({
 
   if (!open) return null;
 
+  const title = mode === "create" ? labels.createTitle : labels.editTitle(initial?.numero);
+  const summary =
+    mode === "create"
+      ? kind === "devis"
+        ? "Créer un devis 63 Agency"
+        : "Créer une facture 63 Agency"
+      : form.clientNom
+        ? `Client · ${form.clientNom}`
+        : kind === "devis"
+          ? "Modifier le devis"
+          : "Modifier la facture";
+
   return (
     <>
-      <div className="modal fade show" style={{ display: "block" }} tabIndex={-1} role="dialog" aria-modal="true">
-        <div
-          className="modal-dialog modal-xl modal-dialog-centered"
-          style={{ maxHeight: "90vh", margin: "1.75rem auto" }}
-        >
-          <div
-            className="modal-content"
-            style={{ maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}
-          >
-            <div className="modal-header flex-shrink-0">
-              <h5 className="modal-title">
-                {mode === "create" ? labels.createTitle : labels.editTitle(initial?.numero)}
-              </h5>
-              <button type="button" className="btn-close" aria-label="Close" onClick={onClose} disabled={submitting} />
-            </div>
-            <form
-              onSubmit={handleSubmit}
-              style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, overflow: "hidden" }}
-            >
-              <div
-                className="modal-body"
-                style={{ overflowY: "auto", flex: "1 1 auto", maxHeight: "calc(85vh - 8rem)" }}
+      <div
+        className="modal fade show doc-form-overlay"
+        style={{ display: "block" }}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="modal-dialog modal-dialog-centered modal-xl doc-form-dialog">
+          <div className="modal-content doc-form-modal">
+            <div className="doc-form__header">
+              <div className="min-w-0">
+                <h5 className="doc-form__title mb-1">{title}</h5>
+                <p className="doc-form__summary mb-0">{summary}</p>
+              </div>
+              <button
+                type="button"
+                className="doc-form__close"
+                aria-label="Fermer"
+                onClick={onClose}
+                disabled={submitting}
               >
+                <i className="fi fi-rr-cross-small" aria-hidden />
+              </button>
+            </div>
+
+            <form className="doc-form__form" onSubmit={handleSubmit}>
+              <div className="doc-form__body">
                 {error ? (
-                  <div className="alert alert-danger" role="alert">
-                    {error}
+                  <div className="alert alert-danger d-flex align-items-start gap-2" role="alert">
+                    <i className="fi fi-rr-exclamation mt-1" aria-hidden />
+                    <div>
+                      <div className="fw-semibold mb-0">Impossible d’enregistrer</div>
+                      <div className="mb-0">{error}</div>
+                    </div>
                   </div>
                 ) : null}
 
-                <h6 className="mb-3">Société</h6>
-                <div className="row g-2 mb-4">
-                  {(
-                    [
-                      ["societeNom", "Nom"],
-                      ["societeRc", "RC"],
-                      ["societeCnie", "CNIE"],
-                      ["societeIce", "ICE"],
-                      ["societeTp", "TP"],
-                      ["societeTelephone", "Téléphone"],
-                      ["societeEmail", "Email"],
-                    ] as const
-                  ).map(([key, label]) => (
-                    <div className="col-md-4" key={key}>
-                      <label className="form-label" htmlFor={`${kind}-${key}`}>
-                        {label} <span className="text-danger">*</span>
+                <section className="doc-form__card">
+                  <div className="doc-form__card-label">Société</div>
+                  <div className="row g-3">
+                    {(
+                      [
+                        ["societeNom", "Nom"],
+                        ["societeRc", "RC"],
+                        ["societeCnie", "CNIE"],
+                        ["societeIce", "ICE"],
+                        ["societeTp", "TP"],
+                        ["societeTelephone", "Téléphone"],
+                        ["societeEmail", "Email"],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <div className="col-md-4" key={key}>
+                        <label className="doc-form__label" htmlFor={`${kind}-${key}`}>
+                          {label} <span className="text-danger">*</span>
+                        </label>
+                        <input
+                          id={`${kind}-${key}`}
+                          className="form-control"
+                          value={form[key]}
+                          onChange={(e) => setField(key, e.target.value)}
+                          required
+                          disabled={submitting}
+                        />
+                      </div>
+                    ))}
+                    <div className="col-12">
+                      <label className="doc-form__label" htmlFor={`${kind}-societeAdresse`}>
+                        Adresse <span className="text-danger">*</span>
                       </label>
-                      <input
-                        id={`${kind}-${key}`}
+                      <textarea
+                        id={`${kind}-societeAdresse`}
                         className="form-control"
-                        value={form[key]}
-                        onChange={(e) => setField(key, e.target.value)}
+                        rows={2}
+                        value={form.societeAdresse}
+                        onChange={(e) => setField("societeAdresse", e.target.value)}
                         required
                         disabled={submitting}
                       />
                     </div>
-                  ))}
-                  <div className="col-12">
-                    <label className="form-label" htmlFor={`${kind}-societeAdresse`}>
-                      Adresse <span className="text-danger">*</span>
-                    </label>
-                    <textarea
-                      id={`${kind}-societeAdresse`}
-                      className="form-control"
-                      rows={2}
-                      value={form.societeAdresse}
-                      onChange={(e) => setField("societeAdresse", e.target.value)}
-                      required
-                      disabled={submitting}
-                    />
                   </div>
-                </div>
+                </section>
 
-                <h6 className="mb-3">Client</h6>
-                <div className="mb-2 position-relative">
-                  <label className="form-label" htmlFor={`${kind}-client-search`}>
-                    Rechercher un client existant
-                  </label>
-                  <input
-                    id={`${kind}-client-search`}
-                    type="search"
-                    className="form-control"
-                    placeholder="Nom, email, téléphone…"
-                    value={clientQuery}
-                    onChange={(e) => setClientQuery(e.target.value)}
-                    disabled={submitting}
-                    autoComplete="off"
-                  />
-                  {clientSearchBusy && <div className="form-text">Recherche…</div>}
-                  {clientSuggestions.length > 0 && (
-                    <ul
-                      className="list-group position-absolute w-100 shadow-sm"
-                      style={{ zIndex: 20, maxHeight: 220, overflowY: "auto" }}
+                <section className="doc-form__card">
+                  <div className="doc-form__card-label">Client</div>
+                  <div className="row g-3">
+                    <div className="col-md-6 position-relative">
+                      <label className="doc-form__label" htmlFor={`${kind}-clientNom`}>
+                        Nom client <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        id={`${kind}-clientNom`}
+                        className="form-control"
+                        value={form.clientNom}
+                        onChange={(e) => {
+                          setLeadSuggestOpen(true);
+                          setField("clientNom", e.target.value);
+                        }}
+                        onFocus={() => {
+                          if (form.clientNom.trim().length >= 2) setLeadSuggestOpen(true);
+                        }}
+                        onBlur={() => {
+                          window.setTimeout(() => setLeadSuggestOpen(false), 150);
+                        }}
+                        placeholder="Tapez un nom pour chercher dans les leads…"
+                        required
+                        disabled={submitting}
+                        autoComplete="off"
+                      />
+                      {leadSearchBusy ? <div className="doc-form__hint">Recherche leads…</div> : null}
+                      {leadSuggestOpen && leadSuggestions.length > 0 ? (
+                        <ul className="doc-form__suggest list-group shadow-sm">
+                          {leadSuggestions.map((lead) => (
+                            <li key={lead.id}>
+                              <button
+                                type="button"
+                                className="list-group-item list-group-item-action"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  pickLead(lead);
+                                }}
+                              >
+                                <span className="fw-medium">{lead.name}</span>
+                                <span className="small text-muted d-block">
+                                  {[lead.email, lead.phone, lead.status].filter(Boolean).join(" · ") ||
+                                    "Lead"}
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                    <div className="col-md-6">
+                      <label className="doc-form__label" htmlFor={`${kind}-clientIce`}>
+                        ICE
+                      </label>
+                      <input
+                        id={`${kind}-clientIce`}
+                        className="form-control"
+                        value={form.clientIce ?? ""}
+                        onChange={(e) => setField("clientIce", e.target.value)}
+                        disabled={submitting}
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="doc-form__label" htmlFor={`${kind}-clientEmail`}>
+                        Email
+                      </label>
+                      <input
+                        id={`${kind}-clientEmail`}
+                        type="email"
+                        className="form-control"
+                        value={form.clientEmail ?? ""}
+                        onChange={(e) => setField("clientEmail", e.target.value)}
+                        disabled={submitting}
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="doc-form__label" htmlFor={`${kind}-clientTelephone`}>
+                        Téléphone
+                      </label>
+                      <input
+                        id={`${kind}-clientTelephone`}
+                        className="form-control"
+                        value={form.clientTelephone ?? ""}
+                        onChange={(e) => setField("clientTelephone", e.target.value)}
+                        disabled={submitting}
+                      />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="doc-form__label" htmlFor={`${kind}-dateEmission`}>
+                        Date d&apos;émission <span className="text-danger">*</span>
+                      </label>
+                      <div className="doc-form__field-icon">
+                        <CasablancaDatePicker
+                          id={`${kind}-dateEmission`}
+                          value={form.dateEmission}
+                          onChange={(ymd) => setField("dateEmission", ymd)}
+                          disabled={submitting}
+                        />
+                        <i className="fi fi-rr-calendar doc-form__icon" aria-hidden />
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="doc-form__card">
+                  <div className="d-flex align-items-center justify-content-between gap-2 mb-3">
+                    <div className="doc-form__card-label mb-0">Lignes</div>
+                    <button
+                      type="button"
+                      className="doc-form__add-btn"
+                      onClick={addLigne}
+                      disabled={submitting}
                     >
-                      {clientSuggestions.map((c) => (
-                        <li key={c.id}>
-                          <button
-                            type="button"
-                            className="list-group-item list-group-item-action"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              pickClient(c);
-                            }}
-                          >
-                            <span className="fw-medium">{c.clientNom}</span>
-                            <span className="small text-muted d-block">
-                              {[c.clientEmail, c.clientTelephone].filter(Boolean).join(" · ") || "—"}
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                <div className="row g-2 mb-4">
-                  <div className="col-md-6">
-                    <label className="form-label" htmlFor={`${kind}-clientNom`}>
-                      Nom client <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      id={`${kind}-clientNom`}
-                      className="form-control"
-                      value={form.clientNom}
-                      onChange={(e) => setField("clientNom", e.target.value)}
-                      required
-                      disabled={submitting}
-                    />
+                      <i className="fi fi-rr-plus" aria-hidden /> Ajouter une ligne
+                    </button>
                   </div>
-                  <div className="col-md-6">
-                    <label className="form-label" htmlFor={`${kind}-clientIce`}>
-                      ICE
-                    </label>
-                    <input
-                      id={`${kind}-clientIce`}
-                      className="form-control"
-                      value={form.clientIce ?? ""}
-                      onChange={(e) => setField("clientIce", e.target.value)}
-                      disabled={submitting}
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label" htmlFor={`${kind}-clientEmail`}>
-                      Email
-                    </label>
-                    <input
-                      id={`${kind}-clientEmail`}
-                      type="email"
-                      className="form-control"
-                      value={form.clientEmail ?? ""}
-                      onChange={(e) => setField("clientEmail", e.target.value)}
-                      disabled={submitting}
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label" htmlFor={`${kind}-clientTelephone`}>
-                      Téléphone
-                    </label>
-                    <input
-                      id={`${kind}-clientTelephone`}
-                      className="form-control"
-                      value={form.clientTelephone ?? ""}
-                      onChange={(e) => setField("clientTelephone", e.target.value)}
-                      disabled={submitting}
-                    />
-                  </div>
-                  <div className="col-md-4">
-                    <label className="form-label" htmlFor={`${kind}-dateEmission`}>
-                      Date d&apos;émission <span className="text-danger">*</span>
-                    </label>
-                    <CasablancaDatePicker
-                      id={`${kind}-dateEmission`}
-                      value={form.dateEmission}
-                      onChange={(ymd) => setField("dateEmission", ymd)}
-                      disabled={submitting}
-                    />
-                  </div>
-                </div>
-
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <h6 className="mb-0">Lignes</h6>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-subtle-primary"
-                    onClick={addLigne}
-                    disabled={submitting}
-                  >
-                    <i className="fi fi-rr-plus me-1" /> Ajouter une ligne
-                  </button>
-                </div>
-                <div className="table-responsive mb-3 border rounded">
-                  <table className="table table-sm align-middle mb-0">
-                    <thead>
-                      <tr>
-                        <th>Titre</th>
-                        <th>Description</th>
-                        <th style={{ width: 90 }}>Qté</th>
-                        <th style={{ width: 120 }}>PU HT</th>
-                        <th style={{ width: 110 }}>Total HT</th>
-                        <th style={{ width: 48 }} />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {form.lignes.map((l, idx) => (
-                        <tr key={idx}>
-                          <td>
-                            <input
-                              className="form-control form-control-sm"
-                              value={l.titre}
-                              onChange={(e) => updateLigne(idx, { titre: e.target.value })}
-                              required
-                              disabled={submitting}
-                              placeholder="Titre"
-                            />
-                          </td>
-                          <td>
-                            <input
-                              className="form-control form-control-sm"
-                              value={l.description}
-                              onChange={(e) => updateLigne(idx, { description: e.target.value })}
-                              required
-                              disabled={submitting}
-                              placeholder="Description"
-                            />
-                          </td>
-                          <td>
-                            <input
-                              type="number"
-                              className="form-control form-control-sm"
-                              min={1}
-                              step={1}
-                              value={l.quantite}
-                              onChange={(e) => updateLigne(idx, { quantite: Number(e.target.value) })}
-                              required
-                              disabled={submitting}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              type="number"
-                              className="form-control form-control-sm"
-                              min={0}
-                              step={0.01}
-                              value={l.prixUnitaireHt}
-                              onChange={(e) =>
-                                updateLigne(idx, { prixUnitaireHt: Number(e.target.value) })
-                              }
-                              required
-                              disabled={submitting}
-                            />
-                          </td>
-                          <td className="small text-end font-monospace">
-                            {money(totals.lignesHt[idx] ?? 0)}
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-subtle-danger btn-icon"
-                              title="Supprimer"
-                              onClick={() => removeLigne(idx)}
-                              disabled={submitting || form.lignes.length <= 1}
-                            >
-                              <i className="fi fi-rr-trash" />
-                            </button>
-                          </td>
+                  <div className="doc-form__table-wrap">
+                    <table className="table table-sm align-middle mb-0 doc-form__table">
+                      <thead>
+                        <tr>
+                          <th>Titre</th>
+                          <th>Description</th>
+                          <th style={{ width: 90 }}>Qté</th>
+                          <th style={{ width: 120 }}>PU HT</th>
+                          <th style={{ width: 110 }}>Total HT</th>
+                          <th style={{ width: 48 }} />
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="row g-2 mb-3">
-                  <div className="col-md-3">
-                    <label className="form-label" htmlFor={`${kind}-tvaTaux`}>
-                      TVA % <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      id={`${kind}-tvaTaux`}
-                      type="number"
-                      className="form-control"
-                      min={0}
-                      max={100}
-                      step={0.01}
-                      value={form.tvaTaux}
-                      onChange={(e) => setField("tvaTaux", Number(e.target.value))}
-                      required
-                      disabled={submitting}
-                    />
+                      </thead>
+                      <tbody>
+                        {form.lignes.map((l, idx) => (
+                          <tr key={idx}>
+                            <td>
+                              <input
+                                className="form-control form-control-sm"
+                                value={l.titre}
+                                onChange={(e) => updateLigne(idx, { titre: e.target.value })}
+                                required
+                                disabled={submitting}
+                                placeholder="Titre"
+                              />
+                            </td>
+                            <td>
+                              <input
+                                className="form-control form-control-sm"
+                                value={l.description}
+                                onChange={(e) => updateLigne(idx, { description: e.target.value })}
+                                required
+                                disabled={submitting}
+                                placeholder="Description"
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                className="form-control form-control-sm"
+                                min={1}
+                                step={1}
+                                value={l.quantite}
+                                onChange={(e) => updateLigne(idx, { quantite: Number(e.target.value) })}
+                                required
+                                disabled={submitting}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                className="form-control form-control-sm"
+                                min={0}
+                                step={0.01}
+                                value={l.prixUnitaireHt}
+                                onChange={(e) =>
+                                  updateLigne(idx, { prixUnitaireHt: Number(e.target.value) })
+                                }
+                                required
+                                disabled={submitting}
+                              />
+                            </td>
+                            <td className="small text-end font-monospace">
+                              {money(totals.lignesHt[idx] ?? 0)}
+                            </td>
+                            <td>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-subtle-danger btn-icon"
+                                title="Supprimer"
+                                onClick={() => removeLigne(idx)}
+                                disabled={submitting || form.lignes.length <= 1}
+                              >
+                                <i className="fi fi-rr-trash" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <div className="col-md-9">
-                    <label className="form-label" htmlFor={`${kind}-mentionTva`}>
-                      Mention TVA <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      id={`${kind}-mentionTva`}
-                      className="form-control"
-                      value={form.mentionTva}
-                      onChange={(e) => setField("mentionTva", e.target.value)}
-                      required
-                      disabled={submitting}
-                    />
-                  </div>
-                </div>
 
-                <h6 className="mb-3">Paiement</h6>
-                <div className="row g-2 mb-4">
-                  {(
-                    [
-                      ["paiementMode", "Mode"],
-                      ["paiementBanque", "Banque"],
-                      ["paiementTitulaire", "Titulaire"],
-                      ["paiementRib", "RIB"],
-                    ] as const
-                  ).map(([key, label]) => (
-                    <div className="col-md-6" key={key}>
-                      <label className="form-label" htmlFor={`${kind}-${key}`}>
-                        {label} <span className="text-danger">*</span>
+                  <div className="row g-3 mt-2">
+                    <div className="col-md-3">
+                      <label className="doc-form__label" htmlFor={`${kind}-tvaTaux`}>
+                        TVA % <span className="text-danger">*</span>
                       </label>
                       <input
-                        id={`${kind}-${key}`}
+                        id={`${kind}-tvaTaux`}
+                        type="number"
                         className="form-control"
-                        value={form[key]}
-                        onChange={(e) => setField(key, e.target.value)}
+                        min={0}
+                        max={100}
+                        step={0.01}
+                        value={form.tvaTaux}
+                        onChange={(e) => setField("tvaTaux", Number(e.target.value))}
                         required
                         disabled={submitting}
                       />
                     </div>
-                  ))}
-                </div>
+                    <div className="col-md-9">
+                      <label className="doc-form__label" htmlFor={`${kind}-mentionTva`}>
+                        Mention TVA <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        id={`${kind}-mentionTva`}
+                        className="form-control"
+                        value={form.mentionTva}
+                        onChange={(e) => setField("mentionTva", e.target.value)}
+                        required
+                        disabled={submitting}
+                      />
+                    </div>
+                  </div>
+                </section>
 
-                <div className="border rounded p-3 bg-light">
+                <section className="doc-form__card">
+                  <div className="doc-form__card-label">Paiement</div>
+                  <div className="row g-3">
+                    {(
+                      [
+                        ["paiementMode", "Mode"],
+                        ["paiementBanque", "Banque"],
+                        ["paiementTitulaire", "Titulaire"],
+                        ["paiementRib", "RIB"],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <div className="col-md-6" key={key}>
+                        <label className="doc-form__label" htmlFor={`${kind}-${key}`}>
+                          {label} <span className="text-danger">*</span>
+                        </label>
+                        <input
+                          id={`${kind}-${key}`}
+                          className="form-control"
+                          value={form[key]}
+                          onChange={(e) => setField(key, e.target.value)}
+                          required
+                          disabled={submitting}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="doc-form__totals">
                   <div className="d-flex justify-content-between small mb-1">
                     <span>Total HT</span>
                     <strong className="font-monospace">{money(totals.totalHt)} MAD</strong>
@@ -611,17 +581,29 @@ export function DocumentFormModal({
                     <strong className="font-monospace">{money(totals.montantTva)} MAD</strong>
                   </div>
                   <div className="d-flex justify-content-between">
-                    <span className="fw-medium">Total TTC</span>
+                    <span className="fw-semibold">Total TTC</span>
                     <strong className="font-monospace">{money(totals.totalTtc)} MAD</strong>
                   </div>
-                  <div className="form-text mb-0">Aperçu local — le backend recalcule à l&apos;enregistrement.</div>
-                </div>
+                  <div className="doc-form__hint mb-0 mt-2">
+                    Aperçu local — le backend recalcule à l&apos;enregistrement.
+                  </div>
+                </section>
               </div>
-              <div className="modal-footer flex-shrink-0 border-top bg-body">
-                <button type="button" className="btn btn-light" onClick={onClose} disabled={submitting}>
+
+              <div className="doc-form__footer">
+                <button
+                  type="button"
+                  className="doc-form__btn doc-form__btn--ghost"
+                  onClick={onClose}
+                  disabled={submitting}
+                >
                   Annuler
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                <button
+                  type="submit"
+                  className="doc-form__btn doc-form__btn--primary"
+                  disabled={submitting}
+                >
                   {submitting ? (
                     <>
                       <span className="spinner-border spinner-border-sm me-2" role="status" />

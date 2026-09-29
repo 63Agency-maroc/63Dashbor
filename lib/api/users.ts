@@ -9,10 +9,16 @@ export type UpdateMyProfileDto = {
   ville?: string;
   bio?: string;
   avatarUrl?: string;
+  timezone?: string;
 };
 
 export function updateMyProfile(dto: UpdateMyProfileDto) {
   return api.patch<AuthUser>("/users/me", dto);
+}
+
+/** PATCH /users/me/timezone — fuseau IANA du viewer */
+export function updateMyTimezone(timezone: string) {
+  return api.patch<AuthUser>("/users/me/timezone", { timezone });
 }
 
 /** Rôles gérés côté admin (CRUD employés) */

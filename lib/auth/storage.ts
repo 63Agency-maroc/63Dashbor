@@ -27,6 +27,8 @@ export type AuthUser = {
   bio?: string | null;
   avatarUrl?: string | null;
   createdAt?: string;
+  /** Fuseau IANA (ex. Africa/Casablanca, Asia/Ho_Chi_Minh) */
+  timezone?: string | null;
   /** Fallbacks legacy */
   name?: string;
   firstName?: string;

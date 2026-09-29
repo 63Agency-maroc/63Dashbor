@@ -62,9 +62,9 @@ export default function NewPropositionPage() {
         </nav>
       </div>
 
-      <div className="mb-3">
-        <h4 className="mb-1">Nouvelle proposition</h4>
-        <p className="text-muted mb-0 small">
+      <div className="mb-3 doc-form-page-head">
+        <h4 className="doc-form-page-head__title">Nouvelle proposition</h4>
+        <p className="doc-form-page-head__sub">
           Remplissez les sections ci-dessous. Le numéro (PROP-…) est attribué côté serveur.
         </p>
       </div>

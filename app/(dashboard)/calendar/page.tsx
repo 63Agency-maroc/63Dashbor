@@ -40,14 +40,16 @@ import {
 } from "@/lib/api/availabilities";
 import {
   addMinutesIso,
-  effectiveCasablancaTimeZone,
   getZonedParts,
   parseIso,
   toCasablancaYmd,
   casablancaTodayYmd,
+} from "@/lib/datetime/casablanca";
+import {
   formatDateTime,
   formatTime,
-} from "@/lib/datetime/casablanca";
+  shortTimezoneLabel,
+} from "@/lib/datetime/timezone";
 import { getStatusPalette } from "@/lib/calendar/statusPalette";
 import { getMeetingAssigneeColor } from "@/lib/calendar/assigneePalette";
 import {
@@ -55,6 +57,7 @@ import {
   buildAvailabilityBannerRows,
   buildAvailabilityDisplaySlots,
 } from "@/lib/calendar/availabilityDisplay";
+import { useViewerTimezone } from "@/hooks/useViewerTimezone";
 
 const DEFAULT_DURATION_MIN = 30;
 const DEFAULT_VIEW: CalView = "timeGridWeek";
@@ -70,8 +73,8 @@ function pad2(n: number) {
   return String(n).padStart(2, "0");
 }
 
-function dateClickToWall(date: Date, allDay: boolean): string {
-  const p = getZonedParts(date);
+function dateClickToWall(date: Date, allDay: boolean, timeZone: string): string {
+  const p = getZonedParts(date, timeZone);
   if (!p) return "";
   if (allDay) return `${p.year}-${pad2(p.month)}-${pad2(p.day)} 10:00`;
   return `${p.year}-${pad2(p.month)}-${pad2(p.day)} ${pad2(p.hour)}:${pad2(p.minute)}`;
@@ -127,6 +130,10 @@ function blockedToEvent(b: BlockedDay): EventInput {
 
 export default function CalendarPage() {
   const { user } = useAuth();
+  const viewerTimezone = useViewerTimezone();
+  const viewerTzLabel = shortTimezoneLabel(
+    typeof user?.timezone === "string" ? user.timezone : viewerTimezone,
+  );
   const role = user?.role ?? "";
   const isAdmin = role === "admin";
   const isAdminWhatsapp = role === "admin_whatsapp";
@@ -308,8 +315,8 @@ export default function CalendarPage() {
   const viewerUserId = user?.id != null ? String(user.id) : null;
 
   const availabilityDisplaySlots = useMemo(
-    () => buildAvailabilityDisplaySlots(availabilityDays, viewerUserId),
-    [availabilityDays, viewerUserId],
+    () => buildAvailabilityDisplaySlots(availabilityDays, viewerUserId, viewerTimezone),
+    [availabilityDays, viewerUserId, viewerTimezone],
   );
 
   const adminNameById = useMemo(() => {
@@ -358,9 +365,22 @@ export default function CalendarPage() {
   }, [meetings, search, statusFilter, typeFilter, assigneeFilter]);
 
   const agendaSorted = useMemo(() => {
-    return [...filteredMeetings].sort(
-      (a, b) => new Date(a.meetingDate).getTime() - new Date(b.meetingDate).getTime(),
-    );
+    const now = Date.now();
+    return filteredMeetings
+      .filter((m) => {
+        const start = new Date(m.meetingDate).getTime();
+        if (Number.isNaN(start)) return false;
+        const dur =
+          typeof m.durationMinutes === "number" && m.durationMinutes > 0
+            ? m.durationMinutes
+            : DEFAULT_DURATION_MIN;
+        const end = start + dur * 60_000;
+        // Agenda : masquer les rendez-vous déjà terminés
+        return end >= now;
+      })
+      .sort(
+        (a, b) => new Date(a.meetingDate).getTime() - new Date(b.meetingDate).getTime(),
+      );
   }, [filteredMeetings]);
 
   function upsertMeeting(m: Meeting) {
@@ -558,7 +578,7 @@ export default function CalendarPage() {
   }
 
   function onDateClick(arg: { date: Date; allDay: boolean }) {
-    const wall = dateClickToWall(arg.date, arg.allDay);
+    const wall = dateClickToWall(arg.date, arg.allDay, viewerTimezone);
     const ymd = toCasablancaYmd(arg.date);
     if (ymd && blockedDays.some((b) => b.date === ymd)) {
       setToast({ message: "Ce jour est bloqué.", variant: "info" });
@@ -568,7 +588,7 @@ export default function CalendarPage() {
   }
 
   function onSelect(arg: DateSelectArg) {
-    openCreate(dateClickToWall(arg.start, arg.allDay));
+    openCreate(dateClickToWall(arg.start, arg.allDay, viewerTimezone));
     arg.view.calendar.unselect();
   }
 
@@ -716,7 +736,8 @@ export default function CalendarPage() {
                   slotMaxTime="20:00:00"
                   allDaySlot={false}
                   nowIndicator
-                  timeZone={effectiveCasablancaTimeZone()}
+                  timeZone={viewerTimezone}
+                  key={viewerTimezone}
                   events={events}
                   editable={false}
                   selectable
@@ -759,8 +780,11 @@ export default function CalendarPage() {
                         onClick={() => openDetail(m)}
                       >
                         <span className="cal-page__agenda-time">
-                          <strong>{formatTime(m.meetingDate)}</strong>
-                          <small>{formatDateTime(m.meetingDate)}</small>
+                          <strong>{formatTime(m.meetingDate, viewerTimezone)}</strong>
+                          <small>
+                            {formatDateTime(m.meetingDate, viewerTimezone)}
+                            <span className="text-muted"> · {viewerTzLabel}</span>
+                          </small>
                         </span>
                         <span
                           className="cal-page__agenda-dot"
@@ -811,6 +835,7 @@ export default function CalendarPage() {
         mode={formMode}
         initial={formInitial}
         defaultWallDate={defaultWallDate}
+        timeZone={viewerTimezone}
         assignableUsers={assignableUsers}
         showAssignees={canAssign}
         submitting={formSubmitting}
@@ -825,6 +850,7 @@ export default function CalendarPage() {
         isAdmin={isAdmin}
         busy={detailBusy}
         error={detailError}
+        timeZone={viewerTimezone}
         onClose={() => setDetailOpen(false)}
         onEdit={() => detailMeeting && openEdit(detailMeeting)}
         onDelete={() => void handleDelete()}

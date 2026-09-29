@@ -1,15 +1,20 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { ApiError } from "@/lib/api/client";
 import { changePassword } from "@/lib/api/auth";
+import { updateMyTimezone } from "@/lib/api/users";
 import { AppToast } from "@/components/clients/AppToast";
+import { useAuth } from "@/components/providers/AuthProvider";
 import {
   useThemeSettings,
   type AppColor,
   type AppSidebar,
   type AppTheme,
 } from "@/components/providers/ThemeProvider";
+import { TimezoneSelect } from "@/components/settings/TimezoneSelect";
+import { detectBrowserTimezone, shortTimezoneLabel } from "@/lib/datetime/timezone";
+import { markTimezoneSynced } from "@/lib/auth/timezoneSync";
 
 type SettingsTab =
   | "security"
@@ -54,20 +59,52 @@ function ComingSoonPanel({ title, description }: { title: string; description: s
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("security");
   const { settings, setSettings } = useThemeSettings();
+  const { user, applyUser } = useAuth();
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [pwdBusy, setPwdBusy] = useState(false);
   const [pwdError, setPwdError] = useState<string | null>(null);
+  const [tzBusy, setTzBusy] = useState(false);
 
   const [toast, setToast] = useState<{
     message: string;
     variant: "success" | "danger" | "info";
   } | null>(null);
 
+  const currentTimezone = useMemo(() => {
+    const t = typeof user?.timezone === "string" ? user.timezone.trim() : "";
+    return t || detectBrowserTimezone();
+  }, [user?.timezone]);
+
   const sidebarMode: "full" | "mini" =
     settings.appSidebar === "mini" || settings.appSidebar === "mini-hover" ? "mini" : "full";
+
+  async function handleTimezoneChange(timezone: string) {
+    if (!timezone || timezone === currentTimezone) return;
+    setTzBusy(true);
+    try {
+      const updated = await updateMyTimezone(timezone);
+      applyUser({
+        ...(user ?? {}),
+        ...(updated && typeof updated === "object" ? updated : {}),
+        timezone: (updated as { timezone?: string })?.timezone || timezone,
+      });
+      markTimezoneSynced();
+      setToast({
+        message: `Fuseau mis à jour : ${shortTimezoneLabel(timezone)}`,
+        variant: "success",
+      });
+    } catch (err) {
+      setToast({
+        message: err instanceof ApiError ? err.message : "Impossible de changer le fuseau.",
+        variant: "danger",
+      });
+    } finally {
+      setTzBusy(false);
+    }
+  }
 
   async function handlePasswordSubmit(e: FormEvent) {
     e.preventDefault();
@@ -245,6 +282,19 @@ export default function SettingsPage() {
                   <p className="text-muted small mb-4">
                     Thème, couleur d&apos;accent et sidebar — appliqués immédiatement (localStorage).
                   </p>
+
+                  <div className="mb-4">
+                    <label className="form-label fw-medium">Fuseau horaire</label>
+                    <TimezoneSelect
+                      value={currentTimezone}
+                      onChange={(tz) => void handleTimezoneChange(tz)}
+                      disabled={tzBusy}
+                    />
+                    <div className="form-text mt-2">
+                      Meetings affichés en <strong>heure {shortTimezoneLabel(currentTimezone)}</strong>
+                      {" "}({currentTimezone}). Les dispos d&apos;équipe restent en heure Maroc.
+                    </div>
+                  </div>
 
                   <div className="mb-4">
                     <label className="form-label fw-medium">Mode thème</label>

@@ -52,11 +52,12 @@ export function displayZoneForViewer(
 
 /**
  * Convertit un créneau (date + HH:mm dans sourceTimezone) vers des instants
- * compréhensibles par FullCalendar (timeZone=Africa/Casablanca).
+ * pour FullCalendar (timeZone = fuseau du viewer).
  *
- * - Spectateur = propriétaire → les HH:mm affichés = heure locale source
- *   (on encode ces murals comme si Casablanca pour le rendu FC).
- * - Autre spectateur → conversion réelle → murals Casablanca → ISO.
+ * - Propriétaire → HH:mm = fuseau source (row.timezone), affichage direct
+ * - Équipe → conversion vers Africa/Casablanca (« heure Maroc »)
+ * - Les murals d’affichage sont ré-encodés dans le fuseau FC du viewer
+ *   pour que les chiffres restent corrects sur le calendrier.
  */
 export function slotToDisplay(
   dateYmd: string,
@@ -64,18 +65,20 @@ export function slotToDisplay(
   sourceTimezone: string,
   availabilityUserId: string,
   viewerUserId: string | null | undefined,
+  viewerCalendarTimezone?: string | null,
 ): DisplaySlot | null {
   const zone = luxonZone(sourceTimezone || CASABLANCA_TZ);
   const startLocal = DateTime.fromISO(`${dateYmd}T${slot.start}`, { zone });
   const endLocal = DateTime.fromISO(`${dateYmd}T${slot.end}`, { zone });
   if (!startLocal.isValid || !endLocal.isValid || endLocal <= startLocal) return null;
 
-  const displayZone = luxonZone(displayZoneForViewer(availabilityUserId, viewerUserId, sourceTimezone || CASABLANCA_TZ));
+  const displayZone = luxonZone(
+    displayZoneForViewer(availabilityUserId, viewerUserId, sourceTimezone || CASABLANCA_TZ),
+  );
   const startInDisplay = startLocal.setZone(displayZone);
   const endInDisplay = endLocal.setZone(displayZone);
 
-  // FullCalendar est en Casablanca : encoder les murals d’affichage en murals Casa
-  const fcZone = luxonZone(CASABLANCA_TZ);
+  const fcZone = luxonZone(viewerCalendarTimezone || CASABLANCA_TZ);
   const startForFc = DateTime.fromObject(
     {
       year: startInDisplay.year,
@@ -116,11 +119,19 @@ export function slotToDisplay(
 export function buildAvailabilityDisplaySlots(
   days: AvailabilityDay[],
   viewerUserId: string | null | undefined,
+  viewerCalendarTimezone?: string | null,
 ): DisplaySlot[] {
   const out: DisplaySlot[] = [];
   for (const day of days) {
     for (const slot of day.slots ?? []) {
-      const mapped = slotToDisplay(day.date, slot, day.timezone, day.userId, viewerUserId);
+      const mapped = slotToDisplay(
+        day.date,
+        slot,
+        day.timezone,
+        day.userId,
+        viewerUserId,
+        viewerCalendarTimezone,
+      );
       if (mapped) out.push(mapped);
     }
   }
@@ -222,9 +233,9 @@ export function availabilityDisplayLegend(
     const own = days.find((d) => d.userId === viewerUserId);
     const tz = own?.timezone || CASABLANCA_TZ;
     const country = labelForTimezone(tz).split(" (")[0];
-    return `Dispos affichées en heure locale (${country})`;
+    return `Dispos · heure ${country}`;
   }
-  return "Dispos affichées en heure du Maroc";
+  return "Dispos · heure Maroc";
 }
 
 function formatYmdFr(ymd: string): string {
@@ -262,7 +273,13 @@ export function buildAvailabilityBannerRows(
   for (const s of slots) {
     if (todayYmd && s.sourceDate !== todayYmd) continue;
     const key = `${s.userId}:${s.sourceDate}`;
-    const range = `${formatHmReadable(s.startHm)}–${formatHmReadable(s.endHm)}`;
+    const dayHint =
+      s.displayDate !== s.sourceDate
+        ? s.displayDate > s.sourceDate
+          ? " (+1 j)"
+          : " (−1 j)"
+        : "";
+    const range = `${formatHmReadable(s.startHm)}–${formatHmReadable(s.endHm)}${dayHint}`;
     const cur = byKey.get(key);
     if (!cur) {
       byKey.set(key, {

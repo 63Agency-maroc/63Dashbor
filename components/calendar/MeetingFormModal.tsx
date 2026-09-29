@@ -13,7 +13,7 @@ import {
 } from "@/lib/api/meetings";
 import { searchLeads, type Lead } from "@/lib/api/leads";
 import { getLeadEmail, getLeadName, getLeadPhoneDisplay } from "@/lib/leads/clickup-fields";
-import { casablancaWallToUtcIso, isoToCasablancaFlatpickr } from "@/lib/datetime/casablanca";
+import { wallToUtcIso, isoToWallFlatpickr } from "@/lib/datetime/timezone";
 import { CasablancaDatePicker } from "@/components/calendar/CasablancaDatePicker";
 import { Select } from "@/components/ui/Select";
 
@@ -37,8 +37,10 @@ type Props = {
   open: boolean;
   mode: "create" | "edit";
   initial?: Meeting | null;
-  /** Prefill datetime wall Casablanca "YYYY-MM-DD HH:mm" (create from dateClick) */
+  /** Prefill datetime wall "YYYY-MM-DD HH:mm" (create from dateClick, fuseau viewer) */
   defaultWallDate?: string | null;
+  /** Fuseau IANA du viewer (saisie + conversion UTC) */
+  timeZone?: string;
   assignableUsers: AssignableUser[];
   showAssignees: boolean;
   submitting: boolean;
@@ -155,9 +157,14 @@ function cloneReminders(r?: MeetingReminders | null): MeetingReminders {
   };
 }
 
-function buildInitial(mode: "create" | "edit", initial?: Meeting | null, defaultWallDate?: string | null): FormState {
+function buildInitial(
+  mode: "create" | "edit",
+  initial?: Meeting | null,
+  defaultWallDate?: string | null,
+  timeZone?: string,
+): FormState {
   if (mode === "edit" && initial) {
-    const wall = splitWallDate(isoToCasablancaFlatpickr(initial.meetingDate));
+    const wall = splitWallDate(isoToWallFlatpickr(initial.meetingDate, timeZone));
     return {
       title: initial.title || MEETING_TITLES[0],
       dateYmd: wall.dateYmd,
@@ -204,6 +211,7 @@ export function MeetingFormModal({
   mode,
   initial,
   defaultWallDate,
+  timeZone,
   assignableUsers,
   showAssignees,
   submitting,
@@ -212,7 +220,9 @@ export function MeetingFormModal({
   onSubmit,
 }: Props) {
   const listboxId = useId();
-  const [form, setForm] = useState<FormState>(() => buildInitial(mode, initial, defaultWallDate));
+  const [form, setForm] = useState<FormState>(() =>
+    buildInitial(mode, initial, defaultWallDate, timeZone),
+  );
   const [localError, setLocalError] = useState<string | null>(null);
 
   const [suggestions, setSuggestions] = useState<Lead[]>([]);
@@ -224,12 +234,12 @@ export function MeetingFormModal({
 
   useEffect(() => {
     if (!open) return;
-    setForm(buildInitial(mode, initial, defaultWallDate));
+    setForm(buildInitial(mode, initial, defaultWallDate, timeZone));
     setLocalError(null);
     setSuggestions([]);
     setSuggestOpen(false);
     setHighlight(-1);
-  }, [open, mode, initial, defaultWallDate]);
+  }, [open, mode, initial, defaultWallDate, timeZone]);
 
   useEffect(() => {
     if (!open) return;
@@ -392,9 +402,9 @@ export function MeetingFormModal({
       return;
     }
 
-    const meetingDate = casablancaWallToUtcIso(`${form.dateYmd} ${form.timeHm}`);
+    const meetingDate = wallToUtcIso(`${form.dateYmd} ${form.timeHm}`, timeZone);
     if (!meetingDate) {
-      setLocalError("Date / heure invalides (Casablanca).");
+      setLocalError("Date / heure invalides.");
       return;
     }
 

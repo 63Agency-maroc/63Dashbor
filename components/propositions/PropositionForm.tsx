@@ -1,11 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { getClients, type Client } from "@/lib/api/clients";
 import {
   type UpsertPropositionDto,
 } from "@/lib/api/propositions";
+import type { Lead } from "@/lib/api/leads";
 import { CasablancaDatePicker } from "@/components/calendar/CasablancaDatePicker";
+import { useLeadSuggestions } from "@/hooks/useLeadSuggestions";
 
 type SectionKey =
   | "general"
@@ -98,69 +99,34 @@ export function PropositionForm({
     contact: false,
   });
 
-  const [clientQuery, setClientQuery] = useState("");
-  const [clientSuggestions, setClientSuggestions] = useState<Client[]>([]);
-  const [clientSearchBusy, setClientSearchBusy] = useState(false);
+  const [leadSuggestOpen, setLeadSuggestOpen] = useState(false);
+  const { items: leadSuggestions, busy: leadSearchBusy, clear: clearLeadSuggestions } =
+    useLeadSuggestions(form.clientNom, open.general && leadSuggestOpen);
 
   useEffect(() => {
     setForm(initial);
-  }, [initial]);
-
-  useEffect(() => {
-    const q = clientQuery.trim();
-    if (q.length < 2) {
-      setClientSuggestions([]);
-      return;
-    }
-    let cancelled = false;
-    const t = window.setTimeout(() => {
-      setClientSearchBusy(true);
-      void getClients()
-        .then((items) => {
-          if (cancelled) return;
-          const lower = q.toLowerCase();
-          setClientSuggestions(
-            items
-              .filter((c) =>
-                [c.clientNom, c.clientEmail, c.clientTelephone, c.clientIce]
-                  .join(" ")
-                  .toLowerCase()
-                  .includes(lower),
-              )
-              .slice(0, 8),
-          );
-        })
-        .catch(() => {
-          if (!cancelled) setClientSuggestions([]);
-        })
-        .finally(() => {
-          if (!cancelled) setClientSearchBusy(false);
-        });
-    }, 300);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(t);
-    };
-  }, [clientQuery]);
+    setLeadSuggestOpen(false);
+    clearLeadSuggestions();
+  }, [initial, clearLeadSuggestions]);
 
   function toggle(key: SectionKey) {
     setOpen((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
-  function pickClient(raw: Client) {
-    const r = raw as Client & Record<string, unknown>;
-    const str = (v: unknown) => (v == null ? "" : String(v).trim());
+  function pickLead(lead: Lead) {
+    const name = (lead.name || "").trim();
+    const email = (lead.email || "").trim();
+    const phone = (lead.phone || "").trim();
     setForm((prev) => ({
       ...prev,
-      clientNom: str(r.clientNom) || prev.clientNom,
-      clientIce: str(r.clientIce),
-      clientEmail: str(r.clientEmail),
-      clientTelephone: str(r.clientTelephone),
-      preparePour: prev.preparePour || str(r.clientNom),
-      nomEtablissement: prev.nomEtablissement || str(r.clientNom),
+      clientNom: name || prev.clientNom,
+      clientEmail: email || prev.clientEmail,
+      clientTelephone: phone || prev.clientTelephone,
+      preparePour: prev.preparePour || name,
+      nomEtablissement: prev.nomEtablissement || name,
     }));
-    setClientQuery("");
-    setClientSuggestions([]);
+    setLeadSuggestOpen(false);
+    clearLeadSuggestions();
   }
 
   function handleSubmit(e: FormEvent) {
@@ -174,21 +140,25 @@ export function PropositionForm({
   const s4 = form.strategie.section4Automatisation;
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form className="doc-form doc-form--page" onSubmit={handleSubmit}>
       {error ? (
-        <div className="alert alert-danger" role="alert">
-          {error}
+        <div className="alert alert-danger d-flex align-items-start gap-2" role="alert">
+          <i className="fi fi-rr-exclamation mt-1" aria-hidden />
+          <div>
+            <div className="fw-semibold mb-0">Impossible d’enregistrer</div>
+            <div className="mb-0">{error}</div>
+          </div>
         </div>
       ) : null}
 
       {/* —— Infos générales —— */}
-      <div className="card mb-3">
+      <div className="doc-form__section-card card mb-3">
         <button
           type="button"
-          className="card-header d-flex align-items-center justify-content-between btn btn-link text-decoration-none text-body text-start w-100"
+          className="doc-form__section-toggle card-header d-flex align-items-center justify-content-between btn btn-link text-decoration-none text-body text-start w-100"
           onClick={() => toggle("general")}
         >
-          <h5 className="card-title mb-0">Infos générales</h5>
+          <span className="doc-form__section-title">Infos générales</span>
           <i className={`fi ${open.general ? "fi-rr-angle-small-up" : "fi-rr-angle-small-down"}`} />
         </button>
         {open.general && (
@@ -247,14 +217,53 @@ export function PropositionForm({
                 <label className="form-label" htmlFor="clientNom">
                   Nom client <span className="text-danger">*</span>
                 </label>
-                <input
-                  id="clientNom"
-                  className="form-control"
-                  value={form.clientNom}
-                  onChange={(e) => setForm((p) => ({ ...p, clientNom: e.target.value }))}
-                  required
-                  disabled={submitting}
-                />
+                <div className="position-relative">
+                  <input
+                    id="clientNom"
+                    className="form-control"
+                    value={form.clientNom}
+                    onChange={(e) => {
+                      setLeadSuggestOpen(true);
+                      setForm((p) => ({ ...p, clientNom: e.target.value }));
+                    }}
+                    onFocus={() => {
+                      if (form.clientNom.trim().length >= 2) setLeadSuggestOpen(true);
+                    }}
+                    onBlur={() => {
+                      window.setTimeout(() => setLeadSuggestOpen(false), 150);
+                    }}
+                    placeholder="Tapez un nom pour chercher dans les leads…"
+                    required
+                    disabled={submitting}
+                    autoComplete="off"
+                  />
+                  {leadSearchBusy ? <div className="form-text">Recherche leads…</div> : null}
+                  {leadSuggestOpen && leadSuggestions.length > 0 ? (
+                    <ul
+                      className="list-group position-absolute w-100 shadow-sm"
+                      style={{ zIndex: 20, maxHeight: 220, overflowY: "auto" }}
+                    >
+                      {leadSuggestions.map((lead) => (
+                        <li key={lead.id}>
+                          <button
+                            type="button"
+                            className="list-group-item list-group-item-action"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              pickLead(lead);
+                            }}
+                          >
+                            <span className="fw-medium">{lead.name}</span>
+                            <span className="small text-muted d-block">
+                              {[lead.email, lead.phone, lead.status].filter(Boolean).join(" · ") ||
+                                "Lead"}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
               </div>
               <div className="col-md-6">
                 <label className="form-label" htmlFor="nomEtablissement">
@@ -270,46 +279,6 @@ export function PropositionForm({
               </div>
             </div>
 
-            <div className="mb-2 position-relative">
-              <label className="form-label" htmlFor="prop-client-search">
-                Rechercher un client existant
-              </label>
-              <input
-                id="prop-client-search"
-                type="search"
-                className="form-control"
-                placeholder="Nom, email, téléphone…"
-                value={clientQuery}
-                onChange={(e) => setClientQuery(e.target.value)}
-                disabled={submitting}
-                autoComplete="off"
-              />
-              {clientSearchBusy && <div className="form-text">Recherche…</div>}
-              {clientSuggestions.length > 0 && (
-                <ul
-                  className="list-group position-absolute w-100 shadow-sm"
-                  style={{ zIndex: 20, maxHeight: 220, overflowY: "auto" }}
-                >
-                  {clientSuggestions.map((c) => (
-                    <li key={c.id}>
-                      <button
-                        type="button"
-                        className="list-group-item list-group-item-action"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          pickClient(c);
-                        }}
-                      >
-                        <span className="fw-medium">{c.clientNom}</span>
-                        <span className="small text-muted d-block">
-                          {[c.clientEmail, c.clientTelephone].filter(Boolean).join(" · ") || "—"}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
             <div className="row g-2">
               <div className="col-md-4">
                 <label className="form-label" htmlFor="clientIce">
@@ -354,13 +323,13 @@ export function PropositionForm({
       </div>
 
       {/* —— Émetteur —— */}
-      <div className="card mb-3">
+      <div className="doc-form__section-card card mb-3">
         <button
           type="button"
-          className="card-header d-flex align-items-center justify-content-between btn btn-link text-decoration-none text-body text-start w-100"
+          className="doc-form__section-toggle card-header d-flex align-items-center justify-content-between btn btn-link text-decoration-none text-body text-start w-100"
           onClick={() => toggle("emetteur")}
         >
-          <h5 className="card-title mb-0">Émetteur (63 Agency)</h5>
+          <span className="doc-form__section-title">Émetteur (63 Agency)</span>
           <i className={`fi ${open.emetteur ? "fi-rr-angle-small-up" : "fi-rr-angle-small-down"}`} />
         </button>
         {open.emetteur && (
@@ -419,13 +388,13 @@ export function PropositionForm({
       </div>
 
       {/* —— Introduction —— */}
-      <div className="card mb-3">
+      <div className="doc-form__section-card card mb-3">
         <button
           type="button"
-          className="card-header d-flex align-items-center justify-content-between btn btn-link text-decoration-none text-body text-start w-100"
+          className="doc-form__section-toggle card-header d-flex align-items-center justify-content-between btn btn-link text-decoration-none text-body text-start w-100"
           onClick={() => toggle("introduction")}
         >
-          <h5 className="card-title mb-0">Introduction</h5>
+          <span className="doc-form__section-title">Introduction</span>
           <i className={`fi ${open.introduction ? "fi-rr-angle-small-up" : "fi-rr-angle-small-down"}`} />
         </button>
         {open.introduction && (
@@ -493,13 +462,13 @@ export function PropositionForm({
       </div>
 
       {/* —— Stratégie —— */}
-      <div className="card mb-3">
+      <div className="doc-form__section-card card mb-3">
         <button
           type="button"
-          className="card-header d-flex align-items-center justify-content-between btn btn-link text-decoration-none text-body text-start w-100"
+          className="doc-form__section-toggle card-header d-flex align-items-center justify-content-between btn btn-link text-decoration-none text-body text-start w-100"
           onClick={() => toggle("strategie")}
         >
-          <h5 className="card-title mb-0">Stratégie</h5>
+          <span className="doc-form__section-title">Stratégie</span>
           <i className={`fi ${open.strategie ? "fi-rr-angle-small-up" : "fi-rr-angle-small-down"}`} />
         </button>
         {open.strategie && (
@@ -919,13 +888,13 @@ export function PropositionForm({
       </div>
 
       {/* —— Tarifs —— */}
-      <div className="card mb-3">
+      <div className="doc-form__section-card card mb-3">
         <button
           type="button"
-          className="card-header d-flex align-items-center justify-content-between btn btn-link text-decoration-none text-body text-start w-100"
+          className="doc-form__section-toggle card-header d-flex align-items-center justify-content-between btn btn-link text-decoration-none text-body text-start w-100"
           onClick={() => toggle("tarifs")}
         >
-          <h5 className="card-title mb-0">Tarifs (textes d&apos;affichage)</h5>
+          <span className="doc-form__section-title">Tarifs (textes d&apos;affichage)</span>
           <i className={`fi ${open.tarifs ? "fi-rr-angle-small-up" : "fi-rr-angle-small-down"}`} />
         </button>
         {open.tarifs && (
@@ -1072,13 +1041,13 @@ export function PropositionForm({
       </div>
 
       {/* —— Pourquoi choisir / prochaines étapes —— */}
-      <div className="card mb-3">
+      <div className="doc-form__section-card card mb-3">
         <button
           type="button"
-          className="card-header d-flex align-items-center justify-content-between btn btn-link text-decoration-none text-body text-start w-100"
+          className="doc-form__section-toggle card-header d-flex align-items-center justify-content-between btn btn-link text-decoration-none text-body text-start w-100"
           onClick={() => toggle("pourquoi")}
         >
-          <h5 className="card-title mb-0">Pourquoi nous / Prochaines étapes</h5>
+          <span className="doc-form__section-title">Pourquoi nous / Prochaines étapes</span>
           <i className={`fi ${open.pourquoi ? "fi-rr-angle-small-up" : "fi-rr-angle-small-down"}`} />
         </button>
         {open.pourquoi && (
@@ -1108,13 +1077,13 @@ export function PropositionForm({
       </div>
 
       {/* —— Contact —— */}
-      <div className="card mb-3">
+      <div className="doc-form__section-card card mb-3">
         <button
           type="button"
-          className="card-header d-flex align-items-center justify-content-between btn btn-link text-decoration-none text-body text-start w-100"
+          className="doc-form__section-toggle card-header d-flex align-items-center justify-content-between btn btn-link text-decoration-none text-body text-start w-100"
           onClick={() => toggle("contact")}
         >
-          <h5 className="card-title mb-0">Contact</h5>
+          <span className="doc-form__section-title">Contact</span>
           <i className={`fi ${open.contact ? "fi-rr-angle-small-up" : "fi-rr-angle-small-down"}`} />
         </button>
         {open.contact && (
@@ -1188,11 +1157,11 @@ export function PropositionForm({
         )}
       </div>
 
-      <div className="d-flex gap-2 justify-content-end mb-4">
-        <button type="button" className="btn btn-light" onClick={onCancel} disabled={submitting}>
+      <div className="doc-form__footer doc-form__footer--page">
+        <button type="button" className="doc-form__btn doc-form__btn--ghost" onClick={onCancel} disabled={submitting}>
           Annuler
         </button>
-        <button type="submit" className="btn btn-primary" disabled={submitting}>
+        <button type="submit" className="doc-form__btn doc-form__btn--primary" disabled={submitting}>
           {submitting ? (
             <>
               <span className="spinner-border spinner-border-sm me-2" /> Enregistrement…

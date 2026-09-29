@@ -23,6 +23,10 @@ import {
   type AuthUser,
 } from "@/lib/auth/storage";
 import { disconnectSocket } from "@/lib/realtime/socket";
+import {
+  applyViewerTimezoneDefault,
+  syncViewerTimezoneOnce,
+} from "@/lib/auth/timezoneSync";
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -71,7 +75,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setHasToken(true);
       const cached = getStoredUser();
-      if (cached && !cancelled) setUser(cached);
+      if (cached && !cancelled) {
+        setUser(cached);
+        applyViewerTimezoneDefault(cached);
+      }
 
       try {
         const me = await meRequest();
@@ -84,6 +91,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           user: me.user,
           permissions: me.permissions,
           route: me.route,
+        });
+        applyViewerTimezoneDefault(me.user);
+        void syncViewerTimezoneOnce(me.user, (u) => {
+          if (cancelled) return;
+          setUser(u);
+          updateStoredUser(u);
         });
       } catch {
         if (cancelled) return;
@@ -120,6 +133,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(res.user ?? {});
       setPermissions(res.permissions ?? null);
       setRoute(res.route ?? null);
+      applyViewerTimezoneDefault(res.user ?? {});
+      void syncViewerTimezoneOnce(res.user ?? {}, (u) => {
+        setUser(u);
+        updateStoredUser(u);
+      });
 
       const target =
         redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")
@@ -145,6 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const applyUser = useCallback((next: AuthUser) => {
     setUser(next);
     updateStoredUser(next);
+    applyViewerTimezoneDefault(next);
   }, []);
 
   const refreshUser = useCallback(async () => {
@@ -160,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       permissions: me.permissions,
       route: me.route,
     });
+    applyViewerTimezoneDefault(me.user);
     return me.user;
   }, []);
 

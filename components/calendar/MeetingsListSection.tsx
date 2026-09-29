@@ -14,8 +14,9 @@ import {
   addCalendarDaysYmd,
   casablancaDayRangeUtc,
   casablancaTodayYmd,
-  formatDateTime,
 } from "@/lib/datetime/casablanca";
+import { formatDateTime } from "@/lib/datetime/timezone";
+import { useViewerTimezone, useViewerTimezoneLabel } from "@/hooks/useViewerTimezone";
 import { getStatusPalette } from "@/lib/calendar/statusPalette";
 import { Select } from "@/components/ui/Select";
 
@@ -47,6 +48,8 @@ export function MeetingsListSection({
   onView,
   onEdit,
 }: Props) {
+  const viewerTimezone = useViewerTimezone();
+  const viewerTzLabel = useViewerTimezoneLabel();
   const [period, setPeriod] = useState<ListPeriod>("today");
   const [preciseYmd, setPreciseYmd] = useState("");
   const [status, setStatus] = useState("");
@@ -276,7 +279,10 @@ export function MeetingsListSection({
                       const palette = getStatusPalette(m.status);
                       return (
                         <tr key={m.id} style={{ cursor: "pointer" }} onClick={() => onView(m)}>
-                          <td className="text-nowrap">{formatDateTime(m.meetingDate)}</td>
+                          <td className="text-nowrap">
+                            {formatDateTime(m.meetingDate, viewerTimezone)}
+                            <span className="small text-muted d-block">heure {viewerTzLabel}</span>
+                          </td>
                           <td>{m.title || "—"}</td>
                           <td>
                             <div>{m.contactName || "—"}</div>

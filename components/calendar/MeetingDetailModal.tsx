@@ -2,7 +2,13 @@
 
 import { FormEvent, useEffect, useState, type ReactNode } from "react";
 import type { Meeting } from "@/lib/api/meetings";
-import { formatInCasablanca, formatTime, parseIso, getZonedParts } from "@/lib/datetime/casablanca";
+import { parseIso } from "@/lib/datetime/casablanca";
+import {
+  formatInTimeZone,
+  formatTime,
+  getZonedPartsForTz,
+  shortTimezoneLabel,
+} from "@/lib/datetime/timezone";
 import { getStatusPalette } from "@/lib/calendar/statusPalette";
 import { Select } from "@/components/ui/Select";
 
@@ -12,6 +18,8 @@ type Props = {
   isAdmin: boolean;
   busy: boolean;
   error: string | null;
+  /** Fuseau IANA du viewer */
+  timeZone?: string;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -55,6 +63,7 @@ export function MeetingDetailModal({
   isAdmin,
   busy,
   error,
+  timeZone,
   onClose,
   onEdit,
   onDelete,
@@ -84,8 +93,9 @@ export function MeetingDetailModal({
 
   const palette = getStatusPalette(meeting.status);
   const dateObj = parseIso(meeting.meetingDate);
-  const parts = dateObj ? getZonedParts(dateObj) : null;
-  const dateLabel = formatInCasablanca(meeting.meetingDate, {
+  const parts = dateObj ? getZonedPartsForTz(dateObj, timeZone) : null;
+  const tzLabel = shortTimezoneLabel(timeZone);
+  const dateLabel = formatInTimeZone(meeting.meetingDate, timeZone, {
     weekday: "long",
     day: "2-digit",
     month: "long",
@@ -93,9 +103,9 @@ export function MeetingDetailModal({
   });
   const timeLabel = parts
     ? `${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`
-    : formatTime(meeting.meetingDate);
+    : formatTime(meeting.meetingDate, timeZone);
 
-  const summaryParts = [dateLabel, timeLabel, "Casablanca"].filter(Boolean);
+  const summaryParts = [dateLabel, timeLabel, `heure ${tzLabel}`].filter(Boolean);
 
   const assignees = (meeting.assignees ?? []).map(assigneeLabel);
   const members = (meeting.members ?? []).map(
@@ -159,7 +169,7 @@ export function MeetingDetailModal({
                     <div className="meeting-detail__schedule-date">{dateLabel}</div>
                     <div className="meeting-detail__schedule-meta">
                       <span className="meeting-detail__schedule-time">{timeLabel}</span>
-                      <span className="meeting-detail__schedule-tz">Africa/Casablanca</span>
+                      <span className="meeting-detail__schedule-tz">heure {tzLabel}</span>
                     </div>
                   </div>
                 </div>
