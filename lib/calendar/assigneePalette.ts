@@ -1,6 +1,9 @@
 /**
  * Couleurs stables par closer / membre d’équipe (calendrier).
  * Même userId → toujours la même couleur.
+ *
+ * Palette pro alignée marque 63 (ink / teal / slate) :
+ * tons distincts, saturés modérés, texte blanc pour la lisibilité.
  */
 
 export type AssigneeColor = {
@@ -10,24 +13,24 @@ export type AssigneeColor = {
 };
 
 const TEAM_PALETTE: AssigneeColor[] = [
-  { bg: "#1F4E79", border: "#1F4E79", text: "#ffffff" }, // ink blue 63
-  { bg: "#3B82F6", border: "#3B82F6", text: "#ffffff" }, // blue
-  { bg: "#10B981", border: "#10B981", text: "#ffffff" }, // emerald
-  { bg: "#0F766E", border: "#0F766E", text: "#ffffff" }, // teal
-  { bg: "#F59E0B", border: "#F59E0B", text: "#1a1a1a" }, // amber
-  { bg: "#EC4899", border: "#EC4899", text: "#ffffff" }, // pink
-  { bg: "#06B6D4", border: "#06B6D4", text: "#053b48" }, // cyan
-  { bg: "#EF4444", border: "#EF4444", text: "#ffffff" }, // red
-  { bg: "#14B8A6", border: "#14B8A6", text: "#ffffff" }, // teal light
-  { bg: "#334155", border: "#334155", text: "#ffffff" }, // slate
-  { bg: "#84CC16", border: "#84CC16", text: "#1a1a1a" }, // lime
-  { bg: "#F97316", border: "#F97316", text: "#ffffff" }, // orange
+  { bg: "#1F4E79", border: "#183E61", text: "#ffffff" }, // ink blue (marque)
+  { bg: "#2563EB", border: "#1D4ED8", text: "#ffffff" }, // royal blue
+  { bg: "#0E7490", border: "#0C637A", text: "#ffffff" }, // cyan steel
+  { bg: "#0F766E", border: "#0D635C", text: "#ffffff" }, // teal
+  { bg: "#047857", border: "#036347", text: "#ffffff" }, // emerald
+  { bg: "#0369A1", border: "#025887", text: "#ffffff" }, // sky
+  { bg: "#B45309", border: "#92400A", text: "#ffffff" }, // amber warm
+  { bg: "#C2410C", border: "#9A3412", text: "#ffffff" }, // burnt orange
+  { bg: "#BE123C", border: "#9F1239", text: "#ffffff" }, // rose
+  { bg: "#334155", border: "#1E293B", text: "#ffffff" }, // slate
+  { bg: "#4B5563", border: "#374151", text: "#ffffff" }, // cool gray
+  { bg: "#3F6212", border: "#365314", text: "#ffffff" }, // olive
 ];
 
 const UNASSIGNED: AssigneeColor = {
   bg: "#94A3B8",
-  border: "#94A3B8",
-  text: "#1a1a1a",
+  border: "#64748B",
+  text: "#ffffff",
 };
 
 function hashId(id: string): number {

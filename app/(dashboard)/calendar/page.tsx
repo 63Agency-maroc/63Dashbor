@@ -60,10 +60,10 @@ const DEFAULT_DURATION_MIN = 30;
 const DEFAULT_VIEW: CalView = "timeGridWeek";
 
 const TYPE_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  "Audit Performance Marketing": { bg: "#1F4E79", border: "#1F4E79", text: "#ffffff" },
-  "Audit Performance Marketing présentiel": { bg: "#1a1a1a", border: "#1a1a1a", text: "#ffffff" },
-  "Audit Performance Marketing online": { bg: "#5B9FD4", border: "#5B9FD4", text: "#0a1628" },
-  "Appel téléphonique": { bg: "#6b7280", border: "#6b7280", text: "#ffffff" },
+  "Audit Performance Marketing": { bg: "#1F4E79", border: "#183E61", text: "#ffffff" },
+  "Audit Performance Marketing présentiel": { bg: "#334155", border: "#1E293B", text: "#ffffff" },
+  "Audit Performance Marketing online": { bg: "#0E7490", border: "#0C637A", text: "#ffffff" },
+  "Appel téléphonique": { bg: "#4B5563", border: "#374151", text: "#ffffff" },
 };
 
 function pad2(n: number) {
