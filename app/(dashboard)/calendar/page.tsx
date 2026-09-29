@@ -84,10 +84,14 @@ function closerLabel(m: Meeting): string {
   return name || a.email || "";
 }
 
-function meetingToEvent(m: Meeting, colorBy: "status" | "type" | "assignee"): EventInput {
+function meetingToEvent(
+  m: Meeting,
+  colorBy: "status" | "type" | "assignee",
+  teamIds: string[],
+): EventInput {
   const palette = getStatusPalette(m.status);
   const typeColor = TYPE_COLORS[m.title];
-  const assigneeColor = getMeetingAssigneeColor(m);
+  const assigneeColor = getMeetingAssigneeColor(m, teamIds);
   let colors = { bg: palette.bg, border: palette.border, text: palette.text };
   if (colorBy === "type" && typeColor) colors = typeColor;
   else if (colorBy === "assignee") colors = assigneeColor;
@@ -353,11 +357,6 @@ export default function CalendarPage() {
     });
   }, [meetings, search, statusFilter, typeFilter, assigneeFilter]);
 
-  const events = useMemo<EventInput[]>(
-    () => [...filteredMeetings.map((m) => meetingToEvent(m, colorBy)), ...blockedDays.map(blockedToEvent)],
-    [filteredMeetings, blockedDays, colorBy],
-  );
-
   const agendaSorted = useMemo(() => {
     return [...filteredMeetings].sort(
       (a, b) => new Date(a.meetingDate).getTime() - new Date(b.meetingDate).getTime(),
@@ -601,6 +600,16 @@ export default function CalendarPage() {
     label: [u.prenom, u.nom].filter(Boolean).join(" ") || u.email || "Utilisateur",
   }));
 
+  const teamIds = useMemo(() => assignableUsers.map((u) => u.id), [assignableUsers]);
+
+  const events = useMemo<EventInput[]>(
+    () => [
+      ...filteredMeetings.map((m) => meetingToEvent(m, colorBy, teamIds)),
+      ...blockedDays.map(blockedToEvent),
+    ],
+    [filteredMeetings, blockedDays, colorBy, teamIds],
+  );
+
   const showGrid = activeView !== "agenda";
 
   return (
@@ -739,7 +748,7 @@ export default function CalendarPage() {
                 ) : (
                   agendaSorted.map((m) => {
                     const palette = getStatusPalette(m.status);
-                    const teamColor = getMeetingAssigneeColor(m);
+                    const teamColor = getMeetingAssigneeColor(m, teamIds);
                     const closer = closerLabel(m);
                     const dotColor = colorBy === "assignee" ? teamColor.bg : palette.bg;
                     return (

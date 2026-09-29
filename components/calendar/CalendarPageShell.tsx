@@ -254,7 +254,10 @@ export function CalendarPageShell({
           </span>
           {colorBy === "assignee"
             ? assigneeOptions.map((a) => {
-                const c = getAssigneeColor(a.value);
+                const c = getAssigneeColor(
+                  a.value,
+                  assigneeOptions.map((o) => o.value),
+                );
                 return (
                   <span key={a.value} className="cal-page__status-pill">
                     <span className="cal-page__status-dot" style={{ background: c.bg }} />
@@ -263,12 +266,22 @@ export function CalendarPageShell({
                 );
               })
             : colorBy === "type"
-              ? MEETING_TITLES.map((t) => (
+              ? MEETING_TITLES.map((t) => {
+                  const typeDot =
+                    t.includes("présentiel")
+                      ? "#334155"
+                      : t.includes("online")
+                        ? "#0E7490"
+                        : t.includes("Appel")
+                          ? "#4B5563"
+                          : "#1F4E79";
+                  return (
                   <span key={t} className="cal-page__status-pill">
-                    <span className="cal-page__status-dot" style={{ background: "#1F4E79" }} />
+                    <span className="cal-page__status-dot" style={{ background: typeDot }} />
                     {t}
                   </span>
-                ))
+                  );
+                })
               : LEGEND_STATUSES.map((key) => {
                   const p = STATUS_PALETTE[key];
                   return (
