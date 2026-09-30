@@ -1,4 +1,9 @@
-export default function DashboardHomePage() {
+"use client";
+
+import { useAuth } from "@/components/providers/AuthProvider";
+import { AdminWhatsappDashboard } from "@/components/dashboard/AdminWhatsappDashboard";
+
+function DefaultHomePlaceholder() {
   return (
     <div className="container-fluid">
       <div className="app-page-head d-flex align-items-center justify-content-between">
@@ -30,4 +35,24 @@ export default function DashboardHomePage() {
       </div>
     </div>
   );
+}
+
+export default function DashboardHomePage() {
+  const { user, isLoading } = useAuth();
+  const role = typeof user?.role === "string" ? user.role : "";
+
+  if (isLoading) {
+    return (
+      <div className="container-fluid py-5 text-center text-muted">
+        <div className="spinner-border spinner-border-sm me-2" role="status" aria-hidden />
+        Chargement…
+      </div>
+    );
+  }
+
+  if (role === "admin_whatsapp") {
+    return <AdminWhatsappDashboard />;
+  }
+
+  return <DefaultHomePlaceholder />;
 }

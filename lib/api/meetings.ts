@@ -96,11 +96,37 @@ export type BlockedDay = {
   createdBy: string | null;
 };
 
+export type MeetingStatusCounts = {
+  scheduled: number;
+  confirmed: number;
+  bon_qualified: number;
+  non_qualified: number;
+  done: number;
+  no_answer: number;
+  cancelled: number;
+  reported: number;
+  no_show: number;
+};
+
 export type MeetingsStats = {
   today: number;
   thisWeek: number;
   pending: number;
   noShow: number;
+  upcomingCount: number;
+  byStatus: MeetingStatusCounts;
+};
+
+export type MeetingsByDayItem = {
+  day: string;
+  count: number;
+  byStatus: MeetingStatusCounts;
+};
+
+export type MeetingsByDayResponse = {
+  from: string;
+  to: string;
+  items: MeetingsByDayItem[];
 };
 
 export type CreateMeetingDto = {
@@ -184,6 +210,13 @@ export function getMeetingsUpcoming() {
 
 export function getMeetingsStats() {
   return api.get<MeetingsStats>("/meetings/stats");
+}
+
+/** Agrégat journalier (heure Maroc) — max 180 jours */
+export function getMeetingsStatsByDay(params: { from: string; to: string }) {
+  return api.get<MeetingsByDayResponse>(
+    `/meetings/stats/by-day${buildQuery({ from: params.from, to: params.to })}`,
+  );
 }
 
 export function getAssignableUsers() {

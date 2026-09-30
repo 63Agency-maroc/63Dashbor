@@ -155,8 +155,10 @@ export function createBroadcast(dto: CreateBroadcastDto) {
   return api.post<BroadcastCreateResponse>("/whatsapp/broadcast", dto);
 }
 
-export function listBroadcasts() {
-  return api.get<{ items: BroadcastJobSummary[] }>("/whatsapp/broadcast");
+export function listBroadcasts(params: { limit?: number } = {}) {
+  return api.get<{ items: BroadcastJobSummary[] }>(
+    `/whatsapp/broadcast${buildQuery({ limit: params.limit })}`,
+  );
 }
 
 export function getBroadcast(jobId: string) {

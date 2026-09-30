@@ -139,12 +139,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateStoredUser(u);
       });
 
+      const role = typeof res.user?.role === "string" ? res.user.role : "";
+      // admin_whatsapp → dashboard d’accueil (/) ; autres rôles → route backend ou /
       const target =
         redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")
           ? redirectTo
-          : res.route && typeof res.route === "string" && res.route.startsWith("/")
-            ? res.route
-            : "/";
+          : role === "admin_whatsapp"
+            ? "/"
+            : res.route && typeof res.route === "string" && res.route.startsWith("/")
+              ? res.route
+              : "/";
       router.replace(target);
     },
     [router],

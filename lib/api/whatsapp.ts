@@ -242,6 +242,16 @@ export async function markRead(conversationId: string) {
   return normalizeWhatsappConversation(raw);
 }
 
+export type WhatsappUnreadCount = {
+  totalUnread: number;
+  conversationsWithUnread: number;
+};
+
+/** Agrégat non-lus WhatsApp (inbox) */
+export function getWhatsappUnreadCount() {
+  return api.get<WhatsappUnreadCount>("/whatsapp/unread-count");
+}
+
 export function getTemplates() {
   return api.get<{ templates: WhatsappTemplate[] }>("/whatsapp/templates");
 }

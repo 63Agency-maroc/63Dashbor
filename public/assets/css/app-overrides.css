@@ -792,6 +792,30 @@ textarea.form-control {
 }
 
 /* =============================================================================
+ * Listes dans les cards — pas de fond « boîte » (body-bg ≠ card surface)
+ * ============================================================================= */
+
+.card .list-group,
+.card .list-group-flush {
+  --bs-list-group-bg: transparent;
+  --bs-list-group-border-color: var(--bs-border-color);
+  background: transparent;
+}
+
+.card .list-group-item {
+  background-color: transparent;
+  border-color: var(--bs-border-color);
+}
+
+.card .list-group-flush > .list-group-item {
+  border-width: 0 0 var(--bs-border-width);
+}
+
+.card .list-group-flush > .list-group-item:last-child {
+  border-bottom-width: 0;
+}
+
+/* =============================================================================
  * StatCard â€” bandeau stats (demo NexLink)
  * ============================================================================= */
 
