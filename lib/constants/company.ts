@@ -14,9 +14,8 @@ export const COMPANY_63 = {
 export const DEVIS_DEFAULTS = {
   tvaTaux: 20,
   mentionTva: "TVA 20 %",
-  /** Paiement — à compléter si besoin (vides par défaut) */
-  paiementMode: "",
-  paiementBanque: "",
+  paiementMode: "Virement bancaire",
+  paiementBanque: "CIH BANK",
   paiementTitulaire: "",
   paiementRib: "",
 } as const;
