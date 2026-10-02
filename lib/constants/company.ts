@@ -20,3 +20,28 @@ export const DEVIS_DEFAULTS = {
   paiementTitulaire: "",
   paiementRib: "",
 } as const;
+
+/** Lignes préremplies à la création d’un devis (qté / PU HT à compléter). */
+export const DEVIS_DEFAULT_LIGNES = [
+  {
+    titre: "CRÉATION DE CONTENUS VIDÉOS",
+    description:
+      "Production de contenus vidéos adaptés à votre activité, conçus pour capter l'attention, renforcer votre image de marque et générer de l'intérêt auprès de votre audience cible.",
+    quantite: 0,
+    prixUnitaireHt: 0,
+  },
+  {
+    titre: "CONCEPTION & MISE EN PLACE LE TUNNEL DE VENTE",
+    description:
+      "Création d'un tunnel de conversion permettant de qualifier les prospects, structurer leur parcours et maximiser les demandes réellement intéressées.",
+    quantite: 0,
+    prixUnitaireHt: 0,
+  },
+  {
+    titre: "GESTION & OPTIMISATION LES CAMPAGNES PUBLICITAIRES SUR FACEBOOK ET INSTAGRAM",
+    description:
+      "Paramétrage, pilotage et optimisation continue des campagnes publicitaires sur les plateformes digitales afin d'atteindre des prospects qualifiés et améliorer la performance globale.",
+    quantite: 0,
+    prixUnitaireHt: 0,
+  },
+] as const;

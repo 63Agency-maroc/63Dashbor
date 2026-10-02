@@ -9,7 +9,7 @@ import {
   type UpsertDocumentLigneDto,
 } from "@/lib/api/documents";
 import type { Lead } from "@/lib/api/leads";
-import { COMPANY_63, DEVIS_DEFAULTS } from "@/lib/constants/company";
+import { COMPANY_63, DEVIS_DEFAULT_LIGNES, DEVIS_DEFAULTS } from "@/lib/constants/company";
 import { CasablancaDatePicker } from "@/components/calendar/CasablancaDatePicker";
 import { useLeadSuggestions } from "@/hooks/useLeadSuggestions";
 
@@ -45,7 +45,16 @@ function emptyLigne(): LigneForm {
   return { titre: "", description: "", quantite: 1, prixUnitaireHt: 0 };
 }
 
-function emptyForm(): DocumentFormValues {
+function defaultDevisLignes(): LigneForm[] {
+  return DEVIS_DEFAULT_LIGNES.map((l) => ({
+    titre: l.titre,
+    description: l.description,
+    quantite: l.quantite,
+    prixUnitaireHt: l.prixUnitaireHt,
+  }));
+}
+
+function emptyForm(kind: DocumentKind = "facture"): DocumentFormValues {
   return {
     ...COMPANY_63,
     clientNom: "",
@@ -53,7 +62,7 @@ function emptyForm(): DocumentFormValues {
     clientEmail: "",
     clientTelephone: "",
     dateEmission: todayYmd(),
-    lignes: [emptyLigne()],
+    lignes: kind === "devis" ? defaultDevisLignes() : [emptyLigne()],
     tvaTaux: DEVIS_DEFAULTS.tvaTaux,
     mentionTva: DEVIS_DEFAULTS.mentionTva,
     paiementMode: DEVIS_DEFAULTS.paiementMode,
@@ -83,7 +92,7 @@ function fromDocument(d: Document): DocumentFormValues {
         ? d.lignes.map((l) => ({
             titre: l.titre ?? "",
             description: l.description ?? "",
-            quantite: Number(l.quantite) || 1,
+            quantite: Number.isFinite(Number(l.quantite)) ? Number(l.quantite) : 0,
             prixUnitaireHt: Number(l.prixUnitaireHt) || 0,
           }))
         : [emptyLigne()],
@@ -111,7 +120,7 @@ export function toUpsertDto(values: DocumentFormValues): UpsertDocumentDto {
     lignes: values.lignes.map((l) => ({
       titre: l.titre.trim(),
       description: l.description.trim(),
-      quantite: Math.max(1, Number(l.quantite) || 1),
+      quantite: Math.max(0, Number(l.quantite) || 0),
       prixUnitaireHt: Math.max(0, Number(l.prixUnitaireHt) || 0),
     })),
     tvaTaux: Number(values.tvaTaux) || 0,
@@ -156,7 +165,7 @@ export function DocumentFormModal({
   onSubmit,
 }: Props) {
   const labels = LABELS[kind];
-  const [form, setForm] = useState<DocumentFormValues>(emptyForm);
+  const [form, setForm] = useState<DocumentFormValues>(() => emptyForm(kind));
   const [leadSuggestOpen, setLeadSuggestOpen] = useState(false);
   const wasOpenRef = useRef(false);
   const { items: leadSuggestions, busy: leadSearchBusy, clear: clearLeadSuggestions } =
@@ -164,12 +173,12 @@ export function DocumentFormModal({
 
   useEffect(() => {
     if (open && !wasOpenRef.current) {
-      setForm(mode === "edit" && initial ? fromDocument(initial) : emptyForm());
+      setForm(mode === "edit" && initial ? fromDocument(initial) : emptyForm(kind));
       setLeadSuggestOpen(false);
       clearLeadSuggestions();
     }
     wasOpenRef.current = open;
-  }, [open, mode, initial, clearLeadSuggestions]);
+  }, [open, mode, initial, kind, clearLeadSuggestions]);
 
   const totals = useMemo(
     () => computeLocalTotals(form.lignes, form.tvaTaux),
@@ -467,7 +476,7 @@ export function DocumentFormModal({
                               <input
                                 type="number"
                                 className="form-control form-control-sm"
-                                min={1}
+                                min={0}
                                 step={1}
                                 value={l.quantite}
                                 onChange={(e) => updateLigne(idx, { quantite: Number(e.target.value) })}
