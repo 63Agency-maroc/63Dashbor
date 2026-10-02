@@ -17,7 +17,7 @@ export const DEVIS_DEFAULTS = {
   paiementMode: "Virement bancaire",
   paiementBanque: "CIH BANK",
   paiementTitulaire: "",
-  paiementRib: "",
+  paiementRib: "230 780 4480573211002800 23",
 } as const;
 
 /** Lignes préremplies à la création d’un devis (qté / PU HT à compléter). */
