@@ -45,6 +45,22 @@ function emptyLigne(): LigneForm {
   return { titre: "", description: "", quantite: 1, prixUnitaireHt: 0 };
 }
 
+function formatMentionTva(taux: number): string {
+  const n = Number.isFinite(taux) ? taux : DEVIS_DEFAULTS.tvaTaux;
+  const label = Number.isInteger(n) ? String(n) : String(n);
+  return `TVA ${label} %`;
+}
+
+/** Mentions auto du type "TVA 20 %" — à resynchroniser avec le taux. */
+function isAutoMentionTva(mention: string): boolean {
+  return /^TVA\s*[\d.,]+\s*%\s*$/i.test(mention.trim());
+}
+
+function parseTvaTaux(raw: unknown, fallback = DEVIS_DEFAULTS.tvaTaux): number {
+  const n = typeof raw === "number" ? raw : Number(raw);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 function defaultDevisLignes(): LigneForm[] {
   return DEVIS_DEFAULT_LIGNES.map((l) => ({
     titre: l.titre,
@@ -73,6 +89,13 @@ function emptyForm(kind: DocumentKind = "facture"): DocumentFormValues {
 }
 
 function fromDocument(d: Document): DocumentFormValues {
+  const raw = d as Document & { tva_taux?: number | string };
+  const tvaTaux = parseTvaTaux(raw.tvaTaux ?? raw.tva_taux);
+  const mentionRaw = (d.mentionTva ?? "").trim();
+  // Si mention absente ou auto ("TVA X %"), l’aligner sur le taux réel (évite "TVA 20 %" figé).
+  const mentionTva =
+    !mentionRaw || isAutoMentionTva(mentionRaw) ? formatMentionTva(tvaTaux) : mentionRaw;
+
   return {
     societeNom: d.societeNom ?? COMPANY_63.societeNom,
     societeRc: d.societeRc ?? COMPANY_63.societeRc,
@@ -96,8 +119,8 @@ function fromDocument(d: Document): DocumentFormValues {
             prixUnitaireHt: Number(l.prixUnitaireHt) || 0,
           }))
         : [emptyLigne()],
-    tvaTaux: Number(d.tvaTaux) || DEVIS_DEFAULTS.tvaTaux,
-    mentionTva: d.mentionTva || DEVIS_DEFAULTS.mentionTva,
+    tvaTaux,
+    mentionTva,
     paiementMode: d.paiementMode ?? "",
     paiementBanque: d.paiementBanque ?? "",
     paiementTitulaire: d.paiementTitulaire ?? "",
@@ -123,8 +146,8 @@ export function toUpsertDto(values: DocumentFormValues): UpsertDocumentDto {
       quantite: Math.max(0, Number(l.quantite) || 0),
       prixUnitaireHt: Math.max(0, Number(l.prixUnitaireHt) || 0),
     })),
-    tvaTaux: Number(values.tvaTaux) || 0,
-    mentionTva: values.mentionTva.trim(),
+    tvaTaux: parseTvaTaux(values.tvaTaux, 0),
+    mentionTva: values.mentionTva.trim() || formatMentionTva(parseTvaTaux(values.tvaTaux, 0)),
     paiementMode: values.paiementMode.trim(),
     paiementBanque: values.paiementBanque.trim(),
     paiementTitulaire: values.paiementTitulaire.trim(),
@@ -187,6 +210,19 @@ export function DocumentFormModal({
 
   function setField<K extends keyof DocumentFormValues>(key: K, value: DocumentFormValues[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function setTvaTaux(raw: number) {
+    const tvaTaux = Number.isFinite(raw) ? raw : 0;
+    setForm((prev) => ({
+      ...prev,
+      tvaTaux,
+      // Resync la mention auto pour ne pas laisser "TVA 20 %" après un changement de taux
+      mentionTva:
+        !prev.mentionTva.trim() || isAutoMentionTva(prev.mentionTva)
+          ? formatMentionTva(tvaTaux)
+          : prev.mentionTva,
+    }));
   }
 
   function updateLigne(idx: number, patch: Partial<LigneForm>) {
@@ -531,7 +567,7 @@ export function DocumentFormModal({
                         max={100}
                         step={0.01}
                         value={form.tvaTaux}
-                        onChange={(e) => setField("tvaTaux", Number(e.target.value))}
+                        onChange={(e) => setTvaTaux(Number(e.target.value))}
                         required
                         disabled={submitting}
                       />
