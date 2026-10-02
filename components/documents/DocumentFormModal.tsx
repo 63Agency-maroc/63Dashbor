@@ -147,7 +147,7 @@ export function toUpsertDto(values: DocumentFormValues): UpsertDocumentDto {
       prixUnitaireHt: Math.max(0, Number(l.prixUnitaireHt) || 0),
     })),
     tvaTaux: parseTvaTaux(values.tvaTaux, 0),
-    mentionTva: values.mentionTva.trim() || formatMentionTva(parseTvaTaux(values.tvaTaux, 0)),
+    mentionTva: values.mentionTva.trim(),
     paiementMode: values.paiementMode.trim(),
     paiementBanque: values.paiementBanque.trim(),
     paiementTitulaire: values.paiementTitulaire.trim(),
@@ -574,14 +574,13 @@ export function DocumentFormModal({
                     </div>
                     <div className="col-md-9">
                       <label className="doc-form__label" htmlFor={`${kind}-mentionTva`}>
-                        Mention TVA <span className="text-danger">*</span>
+                        Mention annuel
                       </label>
                       <input
                         id={`${kind}-mentionTva`}
                         className="form-control"
                         value={form.mentionTva}
                         onChange={(e) => setField("mentionTva", e.target.value)}
-                        required
                         disabled={submitting}
                       />
                     </div>
