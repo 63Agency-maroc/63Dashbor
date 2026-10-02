@@ -56,7 +56,7 @@ function isAutoMentionTva(mention: string): boolean {
   return /^TVA\s*[\d.,]+\s*%\s*$/i.test(mention.trim());
 }
 
-function parseTvaTaux(raw: unknown, fallback = DEVIS_DEFAULTS.tvaTaux): number {
+function parseTvaTaux(raw: unknown, fallback: number = DEVIS_DEFAULTS.tvaTaux): number {
   const n = typeof raw === "number" ? raw : Number(raw);
   return Number.isFinite(n) ? n : fallback;
 }
