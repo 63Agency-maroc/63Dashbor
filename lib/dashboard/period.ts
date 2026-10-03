@@ -9,11 +9,12 @@ export const DASHBOARD_PERIOD_OPTIONS: { value: DashboardPeriodKey; label: strin
   { value: "custom", label: "Personnalisé" },
 ];
 
-/** Résout from/to (YYYY-MM-DD, heure Maroc) — clamp max 180j. */
+/** Résout from/to (YYYY-MM-DD, heure Maroc). maxDays défaut 180 (by-day) ; by-member accepte 366. */
 export function resolveDashboardPeriod(
   key: DashboardPeriodKey,
   customFrom?: string,
   customTo?: string,
+  opts?: { maxDays?: number },
 ): { from: string; to: string } {
   const today = casablancaTodayYmd();
   let from = today;
@@ -39,8 +40,8 @@ export function resolveDashboardPeriod(
     to = tmp;
   }
 
-  // API max 180 jours
-  const minFrom = addCalendarDaysYmd(to, -179);
+  const maxDays = Math.max(1, opts?.maxDays ?? 180);
+  const minFrom = addCalendarDaysYmd(to, -(maxDays - 1));
   if (minFrom && from < minFrom) from = minFrom;
 
   return { from, to };

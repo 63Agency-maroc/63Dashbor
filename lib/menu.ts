@@ -25,7 +25,8 @@ export const menuSections: MenuSection[] = [
     label: "Dashboard",
     icon: "fi fi-rr-house-blank",
     items: [
-      { label: "Vue d'ensemble", href: "/", icon: "fi fi-rr-dashboard" },
+      { label: "Dashboard Data", href: "/", icon: "fi fi-rr-dashboard" },
+      { label: "Team Manager", href: "/team-manager", icon: "fi fi-rr-leaderboard", adminOnly: true },
       { label: "Employees", href: "/employees", icon: "fi fi-rr-employee-man", adminOnly: true },
     ],
   },

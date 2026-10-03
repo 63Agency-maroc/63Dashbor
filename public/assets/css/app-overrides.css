@@ -792,6 +792,91 @@ textarea.form-control {
 }
 
 /* =============================================================================
+ * Team Manager — classement / podium
+ * ============================================================================= */
+
+.team-mgr__rank {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 2.5rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: var(--bs-secondary-bg);
+  color: var(--bs-secondary-color);
+}
+
+.team-mgr__rank--gold {
+  background: rgba(var(--agency-gold-rgb), 0.16);
+  color: var(--agency-gold);
+}
+
+.team-mgr__rank--silver {
+  background: rgba(148, 163, 184, 0.22);
+  color: #64748b;
+}
+
+.team-mgr__rank--bronze {
+  background: rgba(180, 120, 60, 0.18);
+  color: #b4783c;
+}
+
+[data-bs-theme="dark"] .team-mgr__rank--silver {
+  color: #cbd5e1;
+}
+
+.team-mgr__table tbody tr.team-mgr__row--top {
+  background: rgba(var(--agency-gold-rgb), 0.04);
+}
+
+.team-mgr__table thead th {
+  white-space: nowrap;
+  border-bottom-width: 1px;
+}
+
+.team-mgr__sort {
+  color: inherit !important;
+  font-weight: 600;
+}
+
+.team-mgr__sort.is-active {
+  color: var(--bs-primary) !important;
+}
+
+.team-mgr__progress {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(var(--bs-body-color-rgb, 33, 37, 41), 0.08);
+  overflow: hidden;
+}
+
+.team-mgr__progress .progress-bar {
+  border-radius: 999px;
+}
+
+.team-mgr__empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary);
+  font-size: 1.6rem;
+}
+
+.team-mgr__podium-card {
+  border: 1px solid var(--bs-border-color);
+}
+
+.team-mgr__board {
+  overflow: hidden;
+}
+
+/* =============================================================================
  * Feed activité dashboard — lignes fixes, ellipsis
  * ============================================================================= */
 
