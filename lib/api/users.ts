@@ -22,9 +22,9 @@ export function updateMyTimezone(timezone: string) {
 }
 
 /** Rôles gérés côté admin (CRUD employés) */
-export type UserRole = "admin" | "admin_whatsapp" | "fixed_meeting";
+export type UserRole = "admin" | "admin_whatsapp" | "fixed_meeting" | "setter";
 
-export const USER_ROLES: UserRole[] = ["admin", "admin_whatsapp", "fixed_meeting"];
+export const USER_ROLES: UserRole[] = ["admin", "admin_whatsapp", "fixed_meeting", "setter"];
 
 export type Employee = {
   id: string;

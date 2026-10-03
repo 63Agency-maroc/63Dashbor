@@ -54,6 +54,15 @@ export type MeetingAssignee = {
   [key: string]: unknown;
 };
 
+/** Réf. user commission (setter / closer / createdBy) — backend expose userId */
+export type MeetingUserRef = {
+  userId: string;
+  prenom?: string | null;
+  nom?: string | null;
+  email?: string | null;
+  role?: string | null;
+};
+
 export type Meeting = {
   id: string;
   leadId: string | null;
@@ -67,7 +76,13 @@ export type Meeting = {
   members: MeetingMember[];
   assignedUserIds: string[];
   assignees: MeetingAssignee[];
+  /** Tracking commissions — distinct des assignés calendrier */
+  setterId?: string | null;
+  setter?: MeetingUserRef | null;
+  closerId?: string | null;
+  closer?: MeetingUserRef | null;
   createdBy: string | null;
+  createdByUser?: MeetingUserRef | null;
   status: MeetingStatus | string;
   reminders: MeetingReminders | null;
   remindersStatus: unknown;
@@ -77,6 +92,22 @@ export type Meeting = {
   createdAt: string;
   updatedAt: string;
 };
+
+/** Affiche "prenom nom" (fallback email / id) */
+export function meetingUserDisplayName(
+  u: Pick<MeetingUserRef, "prenom" | "nom" | "email" | "userId"> | MeetingAssignee | null | undefined,
+): string {
+  if (!u) return "—";
+  const prenom = "prenom" in u ? u.prenom : undefined;
+  const nom = "nom" in u ? u.nom : undefined;
+  const email = "email" in u ? u.email : undefined;
+  const name = [prenom, nom].filter(Boolean).join(" ").trim();
+  if (name) return name;
+  if (email) return String(email);
+  if ("userId" in u && u.userId) return String(u.userId);
+  if ("id" in u && u.id) return String(u.id);
+  return "—";
+}
 
 export type AssignableUser = {
   id: string;
@@ -141,10 +172,14 @@ export type CreateMeetingDto = {
   notes?: string;
   members?: MeetingMember[];
   assignedUserIds?: string[];
+  /** Tracking commissions (uuid user) — optionnel ; ne pas confondre avec assignedUserIds */
+  setterId?: string | null;
+  closerId?: string | null;
   reminders?: MeetingReminders;
   notifyOnCreate?: boolean;
 };
 
+/** PATCH : null = efface setter/closer ; absent = inchangé */
 export type UpdateMeetingDto = CreateMeetingDto;
 
 export type SendReminderDto = {

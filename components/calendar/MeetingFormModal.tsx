@@ -11,11 +11,13 @@ import {
   type MeetingReminders,
   type MeetingStatus,
 } from "@/lib/api/meetings";
+import { getUsers } from "@/lib/api/users";
 import { searchLeads, type Lead } from "@/lib/api/leads";
 import { getLeadEmail, getLeadName, getLeadPhoneDisplay } from "@/lib/leads/clickup-fields";
 import { wallToUtcIso, isoToWallFlatpickr } from "@/lib/datetime/timezone";
 import { CasablancaDatePicker } from "@/components/calendar/CasablancaDatePicker";
 import { Select } from "@/components/ui/Select";
+import { UserSelect, employeesToUserSelectOptions, type UserSelectOption } from "@/components/ui/UserSelect";
 
 export type MeetingFormPayload = {
   title: string;
@@ -29,6 +31,9 @@ export type MeetingFormPayload = {
   notes?: string;
   members: MeetingMember[];
   assignedUserIds: string[];
+  /** Tracking commissions — uuid ou null (vider en PATCH) */
+  setterId: string | null;
+  closerId: string | null;
   reminders: MeetingReminders;
   notifyOnCreate?: boolean;
 };
@@ -62,9 +67,20 @@ type FormState = {
   notes: string;
   members: MeetingMember[];
   assignedUserIds: string[];
+  setterId: string;
+  closerId: string;
   reminders: MeetingReminders;
   notifyOnCreate: boolean;
 };
+
+function resolveCommissionUserId(
+  id: string | null | undefined,
+  ref: { userId?: string | null } | null | undefined,
+): string {
+  if (typeof id === "string" && id.trim()) return id.trim();
+  if (ref?.userId && String(ref.userId).trim()) return String(ref.userId).trim();
+  return "";
+}
 
 const DURATION_OPTIONS = [15, 30, 45, 60, 90, 120] as const;
 const DEFAULT_DURATION = 30;
@@ -183,6 +199,8 @@ function buildInitial(
         email: m.email ?? "",
       })),
       assignedUserIds: [...(initial.assignedUserIds ?? [])],
+      setterId: resolveCommissionUserId(initial.setterId, initial.setter),
+      closerId: resolveCommissionUserId(initial.closerId, initial.closer),
       reminders: cloneReminders(initial.reminders),
       notifyOnCreate: false,
     };
@@ -201,6 +219,8 @@ function buildInitial(
     notes: "",
     members: [],
     assignedUserIds: [],
+    setterId: "",
+    closerId: "",
     reminders: cloneReminders(DEFAULT_REMINDERS),
     notifyOnCreate: false,
   };
@@ -231,6 +251,7 @@ export function MeetingFormModal({
   const [highlight, setHighlight] = useState(-1);
   const suggestWrapRef = useRef<HTMLDivElement | null>(null);
   const searchSeq = useRef(0);
+  const [commissionUsers, setCommissionUsers] = useState<UserSelectOption[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -240,6 +261,32 @@ export function MeetingFormModal({
     setSuggestOpen(false);
     setHighlight(-1);
   }, [open, mode, initial, defaultWallDate, timeZone]);
+
+  useEffect(() => {
+    if (!open || !showAssignees) return;
+    let cancelled = false;
+    void getUsers()
+      .then((list) => {
+        if (!cancelled) setCommissionUsers(employeesToUserSelectOptions(list));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          // Fallback : assignables calendrier si GET /users indisponible
+          setCommissionUsers(
+            assignableUsers.map((u) => ({
+              id: u.id,
+              prenom: u.prenom,
+              nom: u.nom,
+              email: u.email,
+              role: u.role,
+            })),
+          );
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, showAssignees, assignableUsers]);
 
   useEffect(() => {
     if (!open) return;
@@ -437,6 +484,8 @@ export function MeetingFormModal({
       notes: notes || undefined,
       members,
       assignedUserIds: showAssignees ? [...form.assignedUserIds] : [],
+      setterId: form.setterId.trim() || null,
+      closerId: form.closerId.trim() || null,
       reminders: cloneReminders(form.reminders),
     };
     if (mode === "create") {
@@ -528,7 +577,7 @@ export function MeetingFormModal({
                     </div>
                     {showAssignees ? (
                       <div className="col-md-6">
-                        <label className="meeting-form__label">Closer / équipe</label>
+                        <label className="meeting-form__label">Assignés (calendrier)</label>
                         <div className="meeting-form__assignees">
                           {assignableUsers.length === 0 ? (
                             <span className="text-muted small">Aucun utilisateur assignable</span>
@@ -547,10 +596,47 @@ export function MeetingFormModal({
                             ))
                           )}
                         </div>
+                        <div className="form-text">Visibilité calendrier uniquement — distinct du closer.</div>
                       </div>
                     ) : null}
                   </div>
                 </section>
+
+                {showAssignees ? (
+                  <section className="meeting-form__card">
+                    <div className="meeting-form__card-label">Suivi / commission</div>
+                    <div className="row g-3">
+                      <div className="col-md-6">
+                        <label className="meeting-form__label">Setter</label>
+                        <UserSelect
+                          value={form.setterId}
+                          onChange={(id) => setForm((p) => ({ ...p, setterId: id }))}
+                          users={commissionUsers}
+                          placeholder="Choisir un setter…"
+                          emptyLabel="Aucun"
+                          clearable
+                          disabled={submitting}
+                          aria-label="Setter"
+                        />
+                        <div className="form-text">Celui qui a pris le RDV (1er call).</div>
+                      </div>
+                      <div className="col-md-6">
+                        <label className="meeting-form__label">Closer</label>
+                        <UserSelect
+                          value={form.closerId}
+                          onChange={(id) => setForm((p) => ({ ...p, closerId: id }))}
+                          users={commissionUsers}
+                          placeholder="Choisir un closer…"
+                          emptyLabel="Aucun"
+                          clearable
+                          disabled={submitting}
+                          aria-label="Closer"
+                        />
+                        <div className="form-text">Celui qui conclut le RDV.</div>
+                      </div>
+                    </div>
+                  </section>
+                ) : null}
 
                 {/* Date / heure — template 2-col; durée conservée */}
                 <div className="row g-3">

@@ -5,6 +5,7 @@ import Flatpickr from "react-flatpickr";
 import {
   getMeetings,
   getMeetingsToday,
+  meetingUserDisplayName,
   MEETING_STATUSES,
   type AssignableUser,
   type Meeting,
@@ -269,6 +270,9 @@ export function MeetingsListSection({
                       <th>Titre</th>
                       <th>Contact</th>
                       <th>Statut</th>
+                      <th>Créé par</th>
+                      <th>Setter</th>
+                      <th>Closer</th>
                       <th>Assignés</th>
                       <th>Meet</th>
                       <th>Actions</th>
@@ -299,6 +303,28 @@ export function MeetingsListSection({
                               }}
                             >
                               {palette.label || m.status}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="small">
+                              {meetingUserDisplayName(
+                                m.createdByUser ??
+                                  (m.createdBy ? { userId: m.createdBy } : null),
+                              )}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="small">
+                              {meetingUserDisplayName(
+                                m.setter ?? (m.setterId ? { userId: m.setterId } : null),
+                              )}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="small">
+                              {meetingUserDisplayName(
+                                m.closer ?? (m.closerId ? { userId: m.closerId } : null),
+                              )}
                             </span>
                           </td>
                           <td>

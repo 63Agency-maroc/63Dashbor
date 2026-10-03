@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState, type ReactNode } from "react";
-import type { Meeting } from "@/lib/api/meetings";
+import { meetingUserDisplayName, type Meeting } from "@/lib/api/meetings";
 import { parseIso } from "@/lib/datetime/casablanca";
 import {
   formatInTimeZone,
@@ -196,7 +196,7 @@ export function MeetingDetailModal({
                   )}
                 </MetaTile>
 
-                <MetaTile icon="fi fi-rr-users" label="Closers">
+                <MetaTile icon="fi fi-rr-users" label="Assignés">
                   {assignees.length > 0 ? (
                     <div className="meeting-detail__chips">
                       {assignees.map((name) => (
@@ -210,7 +210,40 @@ export function MeetingDetailModal({
                   )}
                 </MetaTile>
 
-                <MetaTile icon="fi fi-rr-user-add" label="Participants">
+                <MetaTile icon="fi fi-rr-user-add" label="Créé par">
+                  {meeting.createdByUser || meeting.createdBy ? (
+                    meetingUserDisplayName(
+                      meeting.createdByUser ??
+                        (meeting.createdBy ? { userId: meeting.createdBy } : null),
+                    )
+                  ) : (
+                    <span className="meeting-detail__empty">—</span>
+                  )}
+                </MetaTile>
+
+                <MetaTile icon="fi fi-rr-phone-call" label="Setter">
+                  {meeting.setter || meeting.setterId ? (
+                    meetingUserDisplayName(
+                      meeting.setter ??
+                        (meeting.setterId ? { userId: meeting.setterId } : null),
+                    )
+                  ) : (
+                    <span className="meeting-detail__empty">—</span>
+                  )}
+                </MetaTile>
+
+                <MetaTile icon="fi fi-rr-handshake" label="Closer">
+                  {meeting.closer || meeting.closerId ? (
+                    meetingUserDisplayName(
+                      meeting.closer ??
+                        (meeting.closerId ? { userId: meeting.closerId } : null),
+                    )
+                  ) : (
+                    <span className="meeting-detail__empty">—</span>
+                  )}
+                </MetaTile>
+
+                <MetaTile icon="fi fi-rr-users-alt" label="Participants">
                   {members.length > 0 ? (
                     <div className="meeting-detail__chips">
                       {members.map((name) => (

@@ -81,6 +81,12 @@ function dateClickToWall(date: Date, allDay: boolean, timeZone: string): string 
 }
 
 function closerLabel(m: Meeting): string {
+  if (m.closer) {
+    const name = [m.closer.prenom, m.closer.nom].filter(Boolean).join(" ").trim();
+    if (name) return name;
+    if (m.closer.email) return m.closer.email;
+  }
+  // Fallback legacy : premier assigné si closer API absent
   const a = m.assignees?.[0];
   if (!a) return "";
   const name = [a.prenom, a.nom].filter(Boolean).join(" ").trim();
@@ -483,6 +489,12 @@ export default function CalendarPage() {
           notes: payload.notes,
           members: payload.members,
           assignedUserIds: canAssign ? payload.assignedUserIds : undefined,
+          ...(canAssign
+            ? {
+                ...(payload.setterId ? { setterId: payload.setterId } : {}),
+                ...(payload.closerId ? { closerId: payload.closerId } : {}),
+              }
+            : {}),
           reminders: payload.reminders,
           notifyOnCreate: payload.notifyOnCreate,
         });
@@ -503,6 +515,12 @@ export default function CalendarPage() {
           notes: payload.notes,
           members: payload.members,
           assignedUserIds: canAssign ? payload.assignedUserIds : formInitial.assignedUserIds,
+          ...(canAssign
+            ? {
+                setterId: payload.setterId,
+                closerId: payload.closerId,
+              }
+            : {}),
           reminders: payload.reminders,
         });
         upsertMeeting(updated);

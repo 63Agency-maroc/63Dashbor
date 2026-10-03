@@ -125,6 +125,7 @@ export function roleLabel(role: string | undefined | null): string {
   if (r === "admin") return "Administrateur";
   if (r === "admin_whatsapp") return "Admin WhatsApp";
   if (r === "fixed_meeting") return "Réunions fixes";
+  if (r === "setter") return "Setter";
   return role || "Utilisateur";
 }
 
