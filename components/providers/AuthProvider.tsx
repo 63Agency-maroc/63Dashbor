@@ -140,11 +140,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       const role = typeof res.user?.role === "string" ? res.user.role : "";
-      // admin_whatsapp → dashboard d’accueil (/) ; autres rôles → route backend ou /
+      // admin / admin_whatsapp → dashboard d’accueil (/) ; autres rôles → route backend ou /
       const target =
         redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")
           ? redirectTo
-          : role === "admin_whatsapp"
+          : role === "admin" || role === "admin_whatsapp"
             ? "/"
             : res.route && typeof res.route === "string" && res.route.startsWith("/")
               ? res.route

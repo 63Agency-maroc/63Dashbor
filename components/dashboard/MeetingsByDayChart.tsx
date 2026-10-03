@@ -4,13 +4,13 @@ import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import type { ApexOptions } from "apexcharts";
 import { useThemeSettings } from "@/components/providers/ThemeProvider";
-import type { MeetingsByDayItem } from "@/lib/api/meetings";
-
 const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 type Props = {
-  items: MeetingsByDayItem[];
+  items: { day: string; count: number }[];
   loading?: boolean;
+  seriesName?: string;
+  emptyLabel?: string;
 };
 
 function formatDayLabel(ymd: string): string {
@@ -19,12 +19,27 @@ function formatDayLabel(ymd: string): string {
   return `${m[3]}/${m[2]}`;
 }
 
-export function MeetingsByDayChart({ items, loading }: Props) {
+export function MeetingsByDayChart({
+  items,
+  loading,
+  seriesName = "Meetings",
+  emptyLabel = "Aucune donnée sur cette période.",
+}: Props) {
   const { settings } = useThemeSettings();
   const isDark = settings.appTheme === "dark";
 
-  const categories = useMemo(() => items.map((i) => formatDayLabel(i.day)), [items]);
-  const seriesData = useMemo(() => items.map((i) => i.count), [items]);
+  const normalized = useMemo(
+    () =>
+      items
+        .map((i) => ({
+          day: String(i.day ?? "").trim().slice(0, 10),
+          count: Number(i.count) || 0,
+        }))
+        .filter((i) => /^\d{4}-\d{2}-\d{2}$/.test(i.day)),
+    [items],
+  );
+  const categories = useMemo(() => normalized.map((i) => formatDayLabel(i.day)), [normalized]);
+  const seriesData = useMemo(() => normalized.map((i) => i.count), [normalized]);
   const primary = isDark ? "#5b9fd4" : "#1F4E79";
   const muted = isDark ? "rgba(232,232,232,0.55)" : "#6c757d";
   const grid = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
@@ -92,11 +107,11 @@ export function MeetingsByDayChart({ items, loading }: Props) {
     );
   }
 
-  if (!items.length) {
+  if (!normalized.length) {
     return (
       <div className="text-center text-muted py-5">
         <i className="fi fi-rr-chart-histogram d-block mb-2 fs-3 opacity-50" />
-        Aucune donnée sur cette période.
+        {emptyLabel}
       </div>
     );
   }
@@ -105,7 +120,7 @@ export function MeetingsByDayChart({ items, loading }: Props) {
     <ReactApexChart
       type="area"
       height={280}
-      series={[{ name: "Meetings", data: seriesData }]}
+      series={[{ name: seriesName, data: seriesData }]}
       options={options}
     />
   );

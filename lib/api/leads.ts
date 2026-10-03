@@ -55,6 +55,30 @@ export type LeadsStatsResponse = {
   byStatus: Record<string, number>;
 };
 
+export type LeadsOverviewStatusRow = {
+  status: string;
+  count: number;
+};
+
+export type LeadsOverviewListRow = {
+  listId: string;
+  listName: string;
+  count: number;
+};
+
+export type LeadsOverviewDayRow = {
+  day: string;
+  count: number;
+};
+
+export type LeadsOverviewResponse = {
+  total: number;
+  byStatus: LeadsOverviewStatusRow[];
+  byList: LeadsOverviewListRow[];
+  createdInPeriod: number;
+  byDay: LeadsOverviewDayRow[];
+};
+
 export type SyncLeadsResponse = {
   ok: true;
   synced: number;
@@ -91,6 +115,21 @@ export function getLeadsMeta() {
 
 export function getLeadsStats() {
   return api.get<LeadsStatsResponse>("/leads/stats");
+}
+
+function buildDateRangeQuery(params: { from?: string; to?: string }): string {
+  const sp = new URLSearchParams();
+  if (params.from) sp.set("from", params.from);
+  if (params.to) sp.set("to", params.to);
+  const q = sp.toString();
+  return q ? `?${q}` : "";
+}
+
+/** Overview leads pour dashboard admin — période from/to (heure Maroc) */
+export function getLeadsStatsOverview(params: { from: string; to: string }) {
+  return api.get<LeadsOverviewResponse>(
+    `/leads/stats/overview${buildDateRangeQuery(params)}`,
+  );
 }
 
 /** Sync ClickUp — opération longue (timeout 120s) */

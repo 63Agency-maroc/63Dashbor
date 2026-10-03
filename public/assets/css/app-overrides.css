@@ -792,6 +792,30 @@ textarea.form-control {
 }
 
 /* =============================================================================
+ * Feed activité dashboard — lignes fixes, ellipsis
+ * ============================================================================= */
+
+.app-activity-feed__item {
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.app-activity-feed__item:last-child {
+  border-bottom: 0;
+}
+
+.app-activity-feed__row {
+  height: 56px;
+  min-height: 56px;
+  max-height: 56px;
+  overflow: hidden;
+  padding: 0.35rem 0;
+}
+
+.app-activity-feed__row .text-truncate {
+  max-width: 100%;
+}
+
+/* =============================================================================
  * Listes dans les cards — pas de fond « boîte » (body-bg ≠ card surface)
  * ============================================================================= */
 

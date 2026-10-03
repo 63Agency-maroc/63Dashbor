@@ -604,7 +604,7 @@ export function MeetingFormModal({
 
                 {showAssignees ? (
                   <section className="meeting-form__card">
-                    <div className="meeting-form__card-label">Suivi / commission</div>
+                    <div className="meeting-form__card-label">Suivi équipe</div>
                     <div className="row g-3">
                       <div className="col-md-6">
                         <label className="meeting-form__label">Setter</label>

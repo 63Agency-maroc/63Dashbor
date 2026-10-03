@@ -247,10 +247,93 @@ export function getMeetingsStats() {
   return api.get<MeetingsStats>("/meetings/stats");
 }
 
+const EMPTY_STATUS_COUNTS: MeetingStatusCounts = {
+  scheduled: 0,
+  confirmed: 0,
+  bon_qualified: 0,
+  non_qualified: 0,
+  done: 0,
+  no_answer: 0,
+  cancelled: 0,
+  reported: 0,
+  no_show: 0,
+};
+
+/** Normalise la réponse by-day (day/date, count string|number, items|data). */
+export function normalizeMeetingsByDayResponse(raw: unknown): MeetingsByDayResponse {
+  const root = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const list = Array.isArray(root.items)
+    ? root.items
+    : Array.isArray(root.data)
+      ? root.data
+      : Array.isArray(raw)
+        ? raw
+        : [];
+
+  const items: MeetingsByDayItem[] = [];
+  for (const entry of list) {
+    if (!entry || typeof entry !== "object") continue;
+    const row = entry as Record<string, unknown>;
+    const dayRaw = row.day ?? row.date ?? row.ymd;
+    const day = typeof dayRaw === "string" ? dayRaw.trim().slice(0, 10) : "";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) continue;
+    const count = Number(row.count ?? row.total ?? 0);
+    const byStatus =
+      row.byStatus && typeof row.byStatus === "object"
+        ? ({ ...EMPTY_STATUS_COUNTS, ...(row.byStatus as object) } as MeetingStatusCounts)
+        : EMPTY_STATUS_COUNTS;
+    items.push({
+      day,
+      count: Number.isFinite(count) ? count : 0,
+      byStatus,
+    });
+  }
+
+  return {
+    from: typeof root.from === "string" ? root.from : "",
+    to: typeof root.to === "string" ? root.to : "",
+    items,
+  };
+}
+
 /** Agrégat journalier (heure Maroc) — max 180 jours */
-export function getMeetingsStatsByDay(params: { from: string; to: string }) {
-  return api.get<MeetingsByDayResponse>(
-    `/meetings/stats/by-day${buildQuery({ from: params.from, to: params.to })}`,
+export async function getMeetingsStatsByDay(params: { from: string; to: string }) {
+  const q = buildQuery({ from: params.from, to: params.to });
+  const raw = await api.get<unknown>(`/meetings/stats/by-day${q}`);
+  return normalizeMeetingsByDayResponse(raw);
+}
+
+export type MeetingsByMemberUser = {
+  userId: string;
+  prenom?: string | null;
+  nom?: string | null;
+  email?: string | null;
+  role?: string | null;
+};
+
+export type MeetingsByMemberCounts = {
+  total: number;
+  done: number;
+};
+
+export type MeetingsByMemberItem = {
+  user: MeetingsByMemberUser;
+  asSetter: MeetingsByMemberCounts;
+  asCloser: MeetingsByMemberCounts;
+  closerSuccessRate: number;
+};
+
+export type MeetingsByMemberResponse = {
+  from: string;
+  to: string;
+  totals: { totalMeetings: number; totalDone: number };
+  items: MeetingsByMemberItem[];
+};
+
+/** Perf équipe (setter/closer) — FULL ADMIN only */
+export function getMeetingsStatsByMember(params: { from: string; to: string }) {
+  return api.get<MeetingsByMemberResponse>(
+    `/meetings/stats/by-member${buildQuery({ from: params.from, to: params.to })}`,
   );
 }
 

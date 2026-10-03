@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AdminWhatsappDashboard } from "@/components/dashboard/AdminWhatsappDashboard";
+import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 
 function DefaultHomePlaceholder() {
   return (
@@ -48,6 +49,10 @@ export default function DashboardHomePage() {
         Chargement…
       </div>
     );
+  }
+
+  if (role === "admin") {
+    return <AdminDashboard />;
   }
 
   if (role === "admin_whatsapp") {
