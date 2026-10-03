@@ -22,13 +22,16 @@ import {
   type BroadcastJobStatus,
 } from "@/lib/api/broadcast";
 import { ApiError } from "@/lib/api/client";
-import { addCalendarDaysYmd, casablancaTodayYmd } from "@/lib/datetime/casablanca";
+import { CasablancaDatePicker } from "@/components/calendar/CasablancaDatePicker";
+import {
+  DASHBOARD_PERIOD_OPTIONS,
+  resolveDashboardPeriod,
+  type DashboardPeriodKey,
+} from "@/lib/dashboard/period";
 import { formatDateTime } from "@/lib/datetime/timezone";
 import { useViewerTimezone } from "@/hooks/useViewerTimezone";
 import { getStatusPalette } from "@/lib/calendar/statusPalette";
 import { getSocket } from "@/lib/realtime/socket";
-
-type ChartDays = "14" | "30";
 
 function assigneeNames(m: Meeting): string {
   const fromAssignees = (m.assignees ?? [])
@@ -57,15 +60,16 @@ function mergeMeetings(today: Meeting[], upcoming: Meeting[], limit = 12): Meeti
     .slice(0, limit);
 }
 
-function rangeForDays(days: number): { from: string; to: string } {
-  const to = casablancaTodayYmd();
-  const from = addCalendarDaysYmd(to, -(days - 1)) || to;
-  return { from, to };
-}
-
 export function AdminWhatsappDashboard() {
   const viewerTimezone = useViewerTimezone();
-  const [chartDays, setChartDays] = useState<ChartDays>("14");
+  const [periodKey, setPeriodKey] = useState<DashboardPeriodKey>("30d");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+
+  const range = useMemo(
+    () => resolveDashboardPeriod(periodKey, customFrom, customTo),
+    [periodKey, customFrom, customTo],
+  );
 
   const [stats, setStats] = useState<MeetingsStats | null>(null);
   const [byDay, setByDay] = useState<MeetingsByDayItem[]>([]);
@@ -93,10 +97,9 @@ export function AdminWhatsappDashboard() {
     }
   }, []);
 
-  const loadChart = useCallback(async (days: ChartDays) => {
+  const loadChart = useCallback(async (from: string, to: string) => {
     setLoadingChart(true);
     try {
-      const { from, to } = rangeForDays(Number(days));
       const res = await getMeetingsStatsByDay({ from, to });
       setByDay(res.items ?? []);
     } catch {
@@ -162,8 +165,8 @@ export function AdminWhatsappDashboard() {
   }, [loadStats, loadMeetings, loadWhatsapp]);
 
   useEffect(() => {
-    void loadChart(chartDays);
-  }, [chartDays, loadChart]);
+    void loadChart(range.from, range.to);
+  }, [range.from, range.to, loadChart]);
 
   useEffect(() => {
     let socket: ReturnType<typeof getSocket> | null = null;
@@ -207,44 +210,63 @@ export function AdminWhatsappDashboard() {
     }
   }, [loadUnreadOnly, loadBroadcastsOnly]);
 
-  const chartPeriodOptions = useMemo(
-    () => [
-      { value: "14", label: "14 derniers jours" },
-      { value: "30", label: "30 derniers jours" },
-    ],
-    [],
-  );
-
   return (
     <div className="container-fluid">
-      <div className="app-page-head d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
-        <nav aria-label="breadcrumb">
-          <ol className="breadcrumb mb-0">
-            <li className="breadcrumb-item">
-              <Link href="/">
-                <i className="fi fi-rr-home" /> Accueil
-              </Link>
-            </li>
-            <li className="breadcrumb-item active" aria-current="page">
-              Dashboard
-            </li>
-          </ol>
-        </nav>
-        <span
-          className="d-inline-flex align-items-center gap-1 small text-muted"
-          title={liveConnected ? "Temps réel connecté" : "Temps réel hors ligne"}
-        >
-          <span
-            className="rounded-circle d-inline-block"
-            style={{
-              width: 8,
-              height: 8,
-              backgroundColor: liveConnected ? "#22c55e" : "#9ca3af",
-            }}
-            aria-hidden
+      <div className="app-page-head d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+        <div>
+          <nav aria-label="breadcrumb">
+            <ol className="breadcrumb mb-1">
+              <li className="breadcrumb-item">
+                <Link href="/">
+                  <i className="fi fi-rr-home" /> Accueil
+                </Link>
+              </li>
+              <li className="breadcrumb-item active" aria-current="page">
+                Dashboard
+              </li>
+            </ol>
+          </nav>
+          <p className="text-muted small mb-0">
+            Période {range.from} → {range.to}
+            <span className="ms-2">
+              <span
+                className="rounded-circle d-inline-block align-middle me-1"
+                style={{
+                  width: 8,
+                  height: 8,
+                  backgroundColor: liveConnected ? "#22c55e" : "#9ca3af",
+                }}
+                aria-hidden
+              />
+              {liveConnected ? "live" : "hors ligne"}
+            </span>
+          </p>
+        </div>
+
+        <div className="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2">
+          <Select
+            size="sm"
+            style={{ width: 200 }}
+            value={periodKey}
+            onChange={(v) => setPeriodKey(v as DashboardPeriodKey)}
+            options={DASHBOARD_PERIOD_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+            aria-label="Période du dashboard"
           />
-          {liveConnected ? "live" : "hors ligne"}
-        </span>
+          {periodKey === "custom" ? (
+            <>
+              <CasablancaDatePicker
+                value={customFrom || range.from}
+                onChange={setCustomFrom}
+                placeholder="Du"
+              />
+              <CasablancaDatePicker
+                value={customTo || range.to}
+                onChange={setCustomTo}
+                placeholder="Au"
+              />
+            </>
+          ) : null}
+        </div>
       </div>
 
       {error ? (
@@ -306,16 +328,11 @@ export function AdminWhatsappDashboard() {
       <div className="row g-3 mb-3">
         <div className="col-12 col-xl-7">
           <div className="card h-100">
-            <div className="card-header border-0 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 pb-0">
+            <div className="card-header border-0 pb-0">
               <h6 className="card-title mb-0">Meetings par jour</h6>
-              <Select
-                size="sm"
-                style={{ width: 180 }}
-                value={chartDays}
-                onChange={(v) => setChartDays(v as ChartDays)}
-                options={chartPeriodOptions}
-                aria-label="Période du graphique"
-              />
+              <span className="small text-muted">
+                {range.from} → {range.to}
+              </span>
             </div>
             <div className="card-body pt-2">
               <MeetingsByDayChart items={byDay} loading={loadingChart} />
