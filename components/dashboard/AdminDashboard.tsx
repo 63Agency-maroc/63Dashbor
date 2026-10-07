@@ -35,7 +35,13 @@ import {
   normalizePresenceUpdate,
   type Employee,
 } from "@/lib/api/users";
-import { formatActivityTitle, getAdminActivity, type AdminActivityItem } from "@/lib/api/admin";
+import {
+  formatActivityTitle,
+  getAdminActivity,
+  getDashboardKpis,
+  type AdminActivityItem,
+  type DashboardKpis,
+} from "@/lib/api/admin";
 import { ApiError } from "@/lib/api/client";
 import {
   DASHBOARD_PERIOD_OPTIONS,
@@ -46,6 +52,11 @@ import { formatDateTime } from "@/lib/datetime/timezone";
 import { useViewerTimezone } from "@/hooks/useViewerTimezone";
 import { getSocket } from "@/lib/realtime/socket";
 import { roleLabel } from "@/lib/auth/storage";
+
+function formatCount(n: number | null | undefined): string {
+  if (n == null || !Number.isFinite(n)) return "—";
+  return Math.round(n).toLocaleString("fr-FR");
+}
 
 function broadcastBadgeClass(status: BroadcastJobStatus | string): string {
   const s = String(status).toLowerCase();
@@ -123,6 +134,7 @@ export function AdminDashboard() {
   const [byDay, setByDay] = useState<MeetingsByDayItem[]>([]);
   const [byMember, setByMember] = useState<MeetingsByMemberResponse | null>(null);
   const [leadsOverview, setLeadsOverview] = useState<LeadsOverviewResponse | null>(null);
+  const [businessKpis, setBusinessKpis] = useState<DashboardKpis | null>(null);
   const [unread, setUnread] = useState<WhatsappUnreadCount | null>(null);
   const [broadcasts, setBroadcasts] = useState<BroadcastJobSummary[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -130,6 +142,7 @@ export function AdminDashboard() {
 
   const [loadingKpis, setLoadingKpis] = useState(true);
   const [loadingPeriod, setLoadingPeriod] = useState(true);
+  const [loadingBusinessKpis, setLoadingBusinessKpis] = useState(true);
   const [loadingWa, setLoadingWa] = useState(true);
   const [loadingPresence, setLoadingPresence] = useState(true);
   const [loadingActivity, setLoadingActivity] = useState(true);
@@ -151,11 +164,13 @@ export function AdminDashboard() {
 
   const loadPeriodData = useCallback(async (from: string, to: string) => {
     setLoadingPeriod(true);
-    // Appels indépendants : un échec (ex. leads/by-member) ne doit pas vider le chart by-day
-    const [daySettled, memberSettled, leadsSettled] = await Promise.allSettled([
+    setLoadingBusinessKpis(true);
+    // Appels indépendants : un échec ne doit pas vider les autres widgets
+    const [daySettled, memberSettled, leadsSettled, kpisSettled] = await Promise.allSettled([
       getMeetingsStatsByDay({ from, to }),
       getMeetingsStatsByMember({ from, to }),
       getLeadsStatsOverview({ from, to }),
+      getDashboardKpis({ from, to }),
     ]);
 
     if (daySettled.status === "fulfilled") {
@@ -199,7 +214,21 @@ export function AdminDashboard() {
       setLeadsOverview(null);
     }
 
+    if (kpisSettled.status === "fulfilled") {
+      setBusinessKpis(kpisSettled.value);
+    } else {
+      setBusinessKpis(null);
+      if (process.env.NODE_ENV !== "production") {
+        const err = kpisSettled.reason;
+        console.warn(
+          `[dashboard] GET /dashboard/kpis?from=${from}&to=${to} échoué`,
+          err instanceof ApiError ? `${err.status} ${err.message}` : err,
+        );
+      }
+    }
+
     setLoadingPeriod(false);
+    setLoadingBusinessKpis(false);
   }, []);
 
   const loadWhatsapp = useCallback(async () => {
@@ -437,6 +466,70 @@ export function AdminDashboard() {
             subtext="Absences"
             iconColor="danger"
             icon={<i className="fi fi-rr-user-slash" />}
+          />
+        </div>
+      </div>
+
+      {/* Vue business — KPIs période (/dashboard/kpis) */}
+      <div className="d-flex align-items-center justify-content-between mb-2 mt-1">
+        <h6 className="mb-0">Vue business</h6>
+        <span className="small text-muted">
+          {range.from} → {range.to}
+        </span>
+      </div>
+      <div className="row g-3 mb-3">
+        <div className="col-12 col-sm-6 col-lg-4">
+          <StatCard
+            label="Nouveaux leads"
+            value={loadingBusinessKpis ? "—" : formatCount(businessKpis?.newLeads)}
+            subtext="Créés sur la période"
+            iconColor="primary"
+            icon={<i className="fi fi-rr-user-add" />}
+          />
+        </div>
+        <div className="col-12 col-sm-6 col-lg-4">
+          <StatCard
+            label="Meetings fixés"
+            value={loadingBusinessKpis ? "—" : formatCount(businessKpis?.meetingsFixed)}
+            subtext="RDV dans la période"
+            iconColor="info"
+            icon={<i className="fi fi-rr-calendar" />}
+          />
+        </div>
+        <div className="col-12 col-sm-6 col-lg-4">
+          <StatCard
+            label="Meetings réalisés"
+            value={loadingBusinessKpis ? "—" : formatCount(businessKpis?.meetingsDone)}
+            subtext="Statut done"
+            iconColor="success"
+            icon={<i className="fi fi-rr-calendar-check" />}
+          />
+        </div>
+        <div className="col-12 col-sm-6 col-lg-4">
+          <StatCard
+            label="Clients en double"
+            value={loadingBusinessKpis ? "—" : formatCount(businessKpis?.meetingsDoublons)}
+            subtext="Clients avec ≥ 2 RDV"
+            iconColor="warning"
+            icon={<i className="fi fi-rr-copy" />}
+          />
+        </div>
+        <div className="col-12 col-sm-6 col-lg-4">
+          <StatCard
+            label="Leads gagnés"
+            value={loadingBusinessKpis ? "—" : formatCount(businessKpis?.leadsClosedWon)}
+            subtext="Closed-won sur la période"
+            iconColor="success"
+            icon={<i className="fi fi-rr-trophy" />}
+          />
+        </div>
+        <div className="col-12 col-sm-6 col-lg-4">
+          <StatCard
+            label="Leads perdus"
+            value={loadingBusinessKpis ? "—" : formatCount(businessKpis?.leadsLost)}
+            subtext="Closed-lost sur la période"
+            iconColor="danger"
+            icon={<i className="fi fi-rr-cross-circle" />}
           />
         </div>
       </div>

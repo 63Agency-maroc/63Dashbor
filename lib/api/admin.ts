@@ -1,5 +1,25 @@
 import { api } from "@/lib/api/client";
 
+export type DashboardKpis = {
+  from: string | null;
+  to: string | null;
+  newLeads: number;
+  meetingsFixed: number;
+  meetingsDone: number;
+  meetingsDoublons: number;
+  leadsClosedWon: number;
+  leadsLost: number;
+};
+
+/** KPIs business Dashboard Data — FULL ADMIN ; from/to optionnels (max 366j Casa) */
+export function getDashboardKpis(params?: { from?: string; to?: string }) {
+  const sp = new URLSearchParams();
+  if (params?.from) sp.set("from", params.from);
+  if (params?.to) sp.set("to", params.to);
+  const q = sp.toString();
+  return api.get<DashboardKpis>(`/dashboard/kpis${q ? `?${q}` : ""}`);
+}
+
 export type AdminActivityType = "meeting_created" | "lead_upserted" | "broadcast_job" | string;
 
 export type AdminActivityItem = {
