@@ -3,17 +3,11 @@ import type { MeetingStatus } from "@/lib/api/meetings";
 /**
  * Palette couleurs FullCalendar / badges par statut meeting.
  *
- * | status         | couleur   | usage                          |
- * |----------------|-----------|--------------------------------|
- * | scheduled      | primary   | ink blue — planifié            |
- * | confirmed      | success   | vert — confirmé                |
- * | bon_qualified  | info      | cyan — bon qualifié            |
- * | non_qualified  | warning   | orange — non qualifié          |
- * | done           | secondary | gris — terminé                 |
- * | no_answer      | orange    | #fd7e14 — sans réponse         |
- * | cancelled      | muted     | gris barré                     |
- * | reported       | dark      | sombre — reporté               |
- * | no_show        | danger    | rouge — no-show                |
+ * Sémantique + dégradés (pas la même teinte pour tout un groupe) :
+ * - Positif (verts)     → confirmed (clair) → bon_qualified → done (foncé)
+ * - Attention (oranges) → non_qualified (ambre) → no_answer (orange vif)
+ * - Négatif (rouges)    → cancelled (bordeaux) → no_show (rouge vif)
+ * - Neutre / pipeline   → scheduled (bleu), reported (gris)
  */
 export type StatusPaletteEntry = {
   label: string;
@@ -32,20 +26,31 @@ export const STATUS_PALETTE: Record<string, StatusPaletteEntry> = {
     text: "#ffffff",
     badgeClass: "bg-primary-subtle text-primary",
   },
+  /** Vert clair — confirmé, pas encore conclu */
   confirmed: {
     label: "Confirmed",
+    bg: "#75b798",
+    border: "#75b798",
+    text: "#ffffff",
+    badgeClass: "bg-success-subtle text-success",
+  },
+  /** Vert moyen — bon qualifié */
+  bon_qualified: {
+    label: "Bon qualified",
     bg: "#198754",
     border: "#198754",
     text: "#ffffff",
     badgeClass: "bg-success-subtle text-success",
   },
-  bon_qualified: {
-    label: "Bon qualified",
-    bg: "#0dcaf0",
-    border: "#0dcaf0",
-    text: "#053b48",
-    badgeClass: "bg-info-subtle text-info",
+  /** Vert foncé — terminé / gagné */
+  done: {
+    label: "Done",
+    bg: "#0a3622",
+    border: "#0a3622",
+    text: "#ffffff",
+    badgeClass: "bg-success-subtle text-success",
   },
+  /** Ambre — non qualifié */
   non_qualified: {
     label: "Non qualified",
     bg: "#ffc107",
@@ -53,13 +58,7 @@ export const STATUS_PALETTE: Record<string, StatusPaletteEntry> = {
     text: "#664d03",
     badgeClass: "bg-warning-subtle text-warning",
   },
-  done: {
-    label: "Done",
-    bg: "#6c757d",
-    border: "#6c757d",
-    text: "#ffffff",
-    badgeClass: "bg-secondary-subtle text-secondary",
-  },
+  /** Orange vif — sans réponse */
   no_answer: {
     label: "No answer",
     bg: "#fd7e14",
@@ -67,27 +66,29 @@ export const STATUS_PALETTE: Record<string, StatusPaletteEntry> = {
     text: "#ffffff",
     badgeClass: "bg-warning text-dark",
   },
+  /** Bordeaux — annulé */
   cancelled: {
     label: "Cancelled",
-    bg: "#adb5bd",
-    border: "#adb5bd",
-    text: "#212529",
-    badgeClass: "bg-secondary-subtle text-secondary text-decoration-line-through",
+    bg: "#a71d2a",
+    border: "#a71d2a",
+    text: "#ffffff",
+    badgeClass: "bg-danger-subtle text-danger text-decoration-line-through",
     classNames: ["fc-event-cancelled"],
   },
-  reported: {
-    label: "Reported",
-    bg: "#343a40",
-    border: "#343a40",
-    text: "#ffffff",
-    badgeClass: "bg-dark-subtle text-dark",
-  },
+  /** Rouge vif — no-show */
   no_show: {
     label: "No show",
     bg: "#dc3545",
     border: "#dc3545",
     text: "#ffffff",
     badgeClass: "bg-danger-subtle text-danger",
+  },
+  reported: {
+    label: "Reported",
+    bg: "#6c757d",
+    border: "#6c757d",
+    text: "#ffffff",
+    badgeClass: "bg-secondary-subtle text-secondary",
   },
 };
 
