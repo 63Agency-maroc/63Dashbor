@@ -84,7 +84,7 @@ export function Sidebar() {
     >
       {/* Logo — rail 80px */}
       <div className="app-navbar-brand d-flex align-items-center justify-content-center">
-        <AgencyLogo href="/" height={34} />
+        <AgencyLogo href="/" height={34} className="app-sidebar-logo" />
       </div>
 
       {/* RAIL ICÔNES = onglets sections */}
@@ -179,7 +179,7 @@ export function Sidebar() {
                       {section.items.map((item) => {
                         const active = isMenuItemActive(pathname, item.href, hrefs);
                         return (
-                          <li className="menu-item" key={item.href}>
+                          <li className="menu-item" key={`${item.href}:${item.label}`}>
                             <Link
                               className={`menu-link${active ? " active" : ""}`}
                               href={item.href}

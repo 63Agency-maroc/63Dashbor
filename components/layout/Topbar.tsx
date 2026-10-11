@@ -1,57 +1,103 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useThemeSettings } from "@/components/providers/ThemeProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { avatarUrl, displayName, roleLabel } from "@/lib/auth/storage";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
-
-const staticNotifications = [
-  {
-    name: "Emma Smith",
-    text: "Need to update the details.",
-    time: "7 hr ago",
-    avatar: "/assets/images/avatar/avatar2.webp",
-  },
-  {
-    name: "Design Team",
-    text: "Check your shared folder.",
-    time: "6 hr ago",
-    initial: "D",
-    bg: "bg-success",
-  },
-  {
-    name: "Security Update",
-    text: "Password successfully set.",
-    time: "5 hr ago",
-    icon: "fi fi-rr-lock",
-    bg: "bg-dark",
-  },
-  {
-    name: "Invoice #1432",
-    text: "has been paid Amount: $899.00",
-    time: "5 hr ago",
-    icon: "fi fi-rr-shopping-cart",
-    bg: "bg-info",
-  },
-];
+import { getLeadsStatsOverview } from "@/lib/api/leads";
+import { getDashboardKpis } from "@/lib/api/admin";
+import { ApiError } from "@/lib/api/client";
+import { casablancaTodayYmd, formatTime } from "@/lib/datetime/casablanca";
+import { getSocket } from "@/lib/realtime/socket";
+import { useWhatsappNotifications } from "@/components/providers/WhatsappNotificationsProvider";
+import { unlockNotifySound } from "@/lib/notifications/notifySound";
 
 export function Topbar() {
   const { settings, toggleTheme, toggleSidebar } = useThemeSettings();
-  const { user, logout, displayName: authDisplayName } = useAuth();
+  const { user, logout, displayName: authDisplayName, isAuthenticated } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [todayLeads, setTodayLeads] = useState<number | null>(null);
+  const [todayLeadsVisible, setTodayLeadsVisible] = useState(true);
+  const {
+    items: waNotifs,
+    unreadTotal,
+    available: waAvailable,
+    soundEnabled,
+    setSoundEnabled,
+  } = useWhatsappNotifications();
+  const notifBadge = unreadTotal > 99 ? "99+" : unreadTotal > 0 ? String(unreadTotal) : null;
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const loadTodayLeads = useCallback(async () => {
+    if (!isAuthenticated) return;
+    const today = casablancaTodayYmd();
+    if (!today) return;
+
+    try {
+      const overview = await getLeadsStatsOverview({ from: today, to: today });
+      setTodayLeads(Number(overview.createdInPeriod) || 0);
+      setTodayLeadsVisible(true);
+      return;
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 403 || err.status === 401)) {
+        /* try dashboard kpis for full admin, else hide */
+      }
+    }
+
+    try {
+      const kpis = await getDashboardKpis({ from: today, to: today });
+      setTodayLeads(Number(kpis.newLeads) || 0);
+      setTodayLeadsVisible(true);
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 403 || err.status === 401 || err.status === 404)) {
+        setTodayLeadsVisible(false);
+        return;
+      }
+      setTodayLeads(null);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    void loadTodayLeads();
+  }, [loadTodayLeads]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !todayLeadsVisible) return;
+    let socket: ReturnType<typeof getSocket> | null = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => void loadTodayLeads(), 600);
+    };
+    try {
+      socket = getSocket();
+      socket.on("lead:created", schedule);
+      socket.on("lead:updated", schedule);
+      socket.on("lead:deleted", schedule);
+      return () => {
+        if (timer) clearTimeout(timer);
+        socket?.off("lead:created", schedule);
+        socket?.off("lead:updated", schedule);
+        socket?.off("lead:deleted", schedule);
+      };
+    } catch {
+      return undefined;
+    }
+  }, [isAuthenticated, todayLeadsVisible, loadTodayLeads]);
 
   const themeActive = mounted && settings.appTheme === "dark";
   const userName = authDisplayName || displayName(user);
   const userEmail = user?.email || "";
   const userRole = roleLabel(typeof user?.role === "string" ? user.role : undefined);
   const userAvatar = avatarUrl(user);
+  const todayLeadsLabel =
+    todayLeads == null ? "…" : todayLeads.toLocaleString("fr-FR");
 
   return (
     <>
@@ -98,10 +144,16 @@ export function Topbar() {
                 readOnly
               />
             </form>
-            <div className="badge-standard d-none d-lg-inline-block">
-              Today New Leads
-              <span className="badge bg-primary-subtle text-primary">27</span>
-            </div>
+            {todayLeadsVisible ? (
+              <Link
+                href="/leads"
+                className="badge-standard d-none d-lg-inline-flex align-items-center gap-2 text-decoration-none"
+                title="Nouveaux leads aujourd'hui"
+              >
+                Nouveaux leads
+                <span className="badge bg-primary-subtle text-primary">{todayLeadsLabel}</span>
+              </Link>
+            ) : null}
           </div>
 
           <div className="app-header-end">
@@ -192,10 +244,12 @@ export function Topbar() {
               <div className="dropdown text-end">
                 <button
                   type="button"
-                  className="btn btn-icon btn-action-gray rounded-circle waves-effect waves-light"
+                  className="btn btn-icon btn-action-gray rounded-circle waves-effect waves-light position-relative"
                   data-bs-toggle="dropdown"
                   data-bs-auto-close="outside"
                   aria-expanded="false"
+                  aria-label="Notifications WhatsApp"
+                  onClick={() => unlockNotifySound()}
                 >
                   <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
@@ -218,40 +272,80 @@ export function Topbar() {
                       strokeLinecap="round"
                     />
                   </svg>
+                  {notifBadge ? (
+                    <span className="topbar-notif-count" aria-hidden>
+                      {notifBadge}
+                    </span>
+                  ) : null}
+                  <span className="visually-hidden">
+                    {notifBadge ? `${notifBadge} messages non lus` : "Notifications"}
+                  </span>
                 </button>
                 <div className="dropdown-menu dropdown-menu-lg-end p-0 w-300px mt-2">
-                  <div className="px-3 py-3 border-bottom d-flex justify-content-between align-items-center">
+                  <div className="px-3 py-3 border-bottom d-flex justify-content-between align-items-center gap-2">
                     <h6 className="mb-0">
-                      Notifications <span className="badge badge-sm rounded-pill bg-primary ms-2">9</span>
+                      WhatsApp
+                      {notifBadge ? (
+                        <span className="badge badge-sm rounded-pill bg-primary ms-2">{notifBadge}</span>
+                      ) : null}
                     </h6>
-                    <i className="bi bi-x-lg cursor-pointer" />
+                    {waAvailable ? (
+                      <button
+                        type="button"
+                        className={`btn btn-sm btn-icon rounded-circle ${
+                          soundEnabled ? "btn-soft-primary" : "btn-soft-secondary"
+                        }`}
+                        title={soundEnabled ? "Son activé" : "Son désactivé"}
+                        aria-label={soundEnabled ? "Désactiver le son" : "Activer le son"}
+                        onClick={() => {
+                          unlockNotifySound();
+                          setSoundEnabled(!soundEnabled);
+                        }}
+                      >
+                        <i className={soundEnabled ? "fi fi-rr-volume" : "fi fi-rr-volume-mute"} />
+                      </button>
+                    ) : null}
                   </div>
-                  <div className="p-2" style={{ height: 300 }} data-simplebar>
-                    <ul className="list-group list-group-hover list-group-smooth list-group-unlined">
-                      {staticNotifications.map((n) => (
-                        <li className="list-group-item d-flex justify-content-between align-items-center" key={n.name + n.time}>
-                          {n.avatar ? (
-                            <div className="avatar avatar-xs avatar-status-success rounded-circle me-1">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={n.avatar} alt="" />
-                            </div>
-                          ) : (
-                            <div className={`avatar avatar-xs ${n.bg ?? "bg-dark"} rounded-circle text-white`}>
-                              {n.icon ? <i className={n.icon} /> : n.initial}
-                            </div>
-                          )}
-                          <div className="ms-2 me-auto">
-                            <h6 className="mb-0">{n.name}</h6>
-                            <small className="text-body d-block">{n.text}</small>
-                            <small className="text-muted position-absolute end-0 top-0 mt-2 me-3">{n.time}</small>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="p-2">
-                    <Link href="/notifications" className="btn w-100 btn-primary waves-effect waves-light">
-                      View all notifications
+                  {!waAvailable ? (
+                    <div className="p-4 text-center text-muted" style={{ minHeight: 140 }}>
+                      <i className="fab fa-whatsapp d-block mb-2 fs-3 opacity-50" />
+                      <p className="mb-0 small">Notifications WhatsApp non disponibles pour ce rôle.</p>
+                    </div>
+                  ) : waNotifs.length === 0 ? (
+                    <div className="p-4 text-center text-muted" style={{ minHeight: 140 }}>
+                      <i className="fi fi-rr-bell d-block mb-2 fs-3 opacity-50" />
+                      <p className="mb-0 small">Aucun message WhatsApp non lu.</p>
+                    </div>
+                  ) : (
+                    <div className="p-2" style={{ maxHeight: 300, overflowY: "auto" }}>
+                      <ul className="list-group list-group-hover list-group-smooth list-group-unlined mb-0">
+                        {waNotifs.slice(0, 8).map((n) => (
+                          <li className="list-group-item px-2 py-2" key={n.id}>
+                            <Link
+                              href={`/whatsapp?conversation=${encodeURIComponent(n.conversationId)}`}
+                              className="d-flex align-items-start gap-2 text-decoration-none text-body"
+                            >
+                              <div className="avatar avatar-xs rounded-circle bg-success-subtle text-success flex-shrink-0">
+                                <i className="fab fa-whatsapp" />
+                              </div>
+                              <div className="flex-grow-1 min-w-0">
+                                <div className="d-flex justify-content-between gap-2">
+                                  <h6 className="mb-0 text-truncate">{n.title}</h6>
+                                  <small className="text-muted flex-shrink-0">
+                                    {n.createdAt ? formatTime(n.createdAt) : ""}
+                                  </small>
+                                </div>
+                                <small className="text-body d-block text-truncate">{n.body}</small>
+                              </div>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <div className="p-2 border-top">
+                    <Link href="/whatsapp" className="btn w-100 btn-primary waves-effect waves-light">
+                      Voir les notifications
                     </Link>
                   </div>
                 </div>

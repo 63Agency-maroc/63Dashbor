@@ -45,31 +45,31 @@
   --agency-gold-active: #4a8fc4;
   --agency-on-gold: #0a1628;
 
-  /* Fond noir élégant (pas #000) + surfaces un cran plus claires */
-  --bs-body-bg: #121212;
-  --bs-body-bg-rgb: 18, 18, 18;
+  /* Dark plus profond — fond quasi noir, surfaces un cran au-dessus */
+  --bs-body-bg: #070707;
+  --bs-body-bg-rgb: 7, 7, 7;
   --bs-body-color: #e8e8e8;
   --bs-body-color-rgb: 232, 232, 232;
-  --bs-secondary-bg: #1c1c1c;
-  --bs-secondary-bg-rgb: 28, 28, 28;
-  --bs-tertiary-bg: #252525;
-  --bs-tertiary-bg-rgb: 37, 37, 37;
+  --bs-secondary-bg: #111111;
+  --bs-secondary-bg-rgb: 17, 17, 17;
+  --bs-tertiary-bg: #1a1a1a;
+  --bs-tertiary-bg-rgb: 26, 26, 26;
   --bs-emphasis-color: #ffffff;
   --bs-heading-color: #f2f2f2;
   --bs-secondary-color: rgba(232, 232, 232, 0.65);
-  --bs-border-color: rgba(255, 255, 255, 0.09);
-  --bs-border-color-translucent: rgba(255, 255, 255, 0.14);
+  --bs-border-color: rgba(255, 255, 255, 0.08);
+  --bs-border-color-translucent: rgba(255, 255, 255, 0.12);
 
-  --bs-light: #2a2a2a;
-  --bs-light-rgb: 42, 42, 42;
-  --bs-dark: #0a0a0a;
-  --bs-dark-rgb: 10, 10, 10;
+  --bs-light: #1e1e1e;
+  --bs-light-rgb: 30, 30, 30;
+  --bs-dark: #050505;
+  --bs-dark-rgb: 5, 5, 5;
 
   --bs-primary: #5b9fd4;
   --bs-primary-rgb: 91, 159, 212;
   --bs-primary-text-emphasis: #8fbfdf;
-  --bs-primary-bg-subtle: #152536;
-  --bs-primary-border-subtle: #2a4a66;
+  --bs-primary-bg-subtle: #0f1c28;
+  --bs-primary-border-subtle: #243a4d;
 
   --bs-link-color: #5b9fd4;
   --bs-link-color-rgb: 91, 159, 212;
@@ -82,9 +82,9 @@
   --bs-btn-primary-border-hover: #7ab3de;
   --bs-btn-primary-active: #4a8fc4;
 
-  --custom-body-bg: #121212;
-  --app-sidebar-bg: #161616;
-  --app-header-bg: #1c1c1c;
+  --custom-body-bg: #070707;
+  --app-sidebar-bg: #0a0a0a;
+  --app-header-bg: #111111;
 }
 
 /* --- Accents optionnels (Réglages → Apparence) --- */
@@ -193,13 +193,13 @@ html[data-color-theme="slate"][data-bs-theme="dark"] {
 /* Surfaces dark (hors accent — l’accent vient de [data-bs-theme] / data-color-theme) */
 html[data-bs-theme="dark"],
 body[data-bs-theme="dark"] {
-  --bs-tertiary-bg: #252525;
-  --bs-tertiary-bg-rgb: 37, 37, 37;
-  --bs-light: #2a2a2a;
-  --bs-light-rgb: 42, 42, 42;
-  --custom-body-bg: #121212;
-  --app-sidebar-bg: #161616;
-  --app-header-bg: #1c1c1c;
+  --bs-tertiary-bg: #1a1a1a;
+  --bs-tertiary-bg-rgb: 26, 26, 26;
+  --bs-light: #1e1e1e;
+  --bs-light-rgb: 30, 30, 30;
+  --custom-body-bg: #070707;
+  --app-sidebar-bg: #0a0a0a;
+  --app-header-bg: #111111;
 }
 
 /* Boutons primaire : texte clair sur ink blue (contraste) */
@@ -363,6 +363,37 @@ body[data-bs-theme="dark"] {
 .btn.btn-icon {
   --bs-btn-border-radius: 50%;
   border-radius: 50% !important;
+}
+
+/* Badge compteur sur l’icône cloche (topbar) */
+.app-header .btn-icon:has(> .topbar-notif-count) {
+  overflow: visible;
+}
+
+.app-header .topbar-notif-count {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  z-index: 2;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background-color: var(--bs-danger);
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  border: 2px solid var(--bs-body-bg);
+  pointer-events: none;
+}
+
+[data-bs-theme="dark"] .app-header .topbar-notif-count {
+  border-color: var(--bs-body-bg);
 }
 
 /* Groupes : garder les bords joints sans tout casser */
@@ -1001,6 +1032,15 @@ textarea.form-control {
   font-size: 0.8rem;
   color: var(--bs-secondary-color);
   line-height: 1.35;
+}
+
+/* =============================================================================
+ * Sidebar — logo légèrement arrondi
+ * ============================================================================= */
+
+.app-navbar-brand .app-sidebar-logo {
+  border-radius: 0.55rem;
+  overflow: hidden;
 }
 
 /* =============================================================================

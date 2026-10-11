@@ -8,8 +8,10 @@ import {
   useRef,
   useState,
 } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useRealtime } from "@/components/providers/RealtimeProvider";
+import { useWhatsappNotifications } from "@/components/providers/WhatsappNotificationsProvider";
 import { ApiError } from "@/lib/api/client";
 import { mediaTypeForUpload, uploadFile, uploadKindForFile } from "@/lib/api/upload";
 import {
@@ -114,6 +116,9 @@ function mergeStatus(list: WhatsappMessage[], ev: MessageStatusEvent): WhatsappM
 export default function WhatsappPage() {
   const { user } = useAuth();
   const { connected: liveConnected } = useRealtime();
+  const { setActiveConversationId, refresh: refreshWaNotifs } = useWhatsappNotifications();
+  const searchParams = useSearchParams();
+  const deepConversationId = searchParams.get("conversation")?.trim() || null;
   const role = user?.role ?? "";
   const allowed = role === "admin" || role === "admin_whatsapp";
 
@@ -159,6 +164,11 @@ export default function WhatsappPage() {
 
   activeIdRef.current = activeId;
   olderCursorRef.current = olderCursor;
+
+  useEffect(() => {
+    setActiveConversationId(activeId);
+    return () => setActiveConversationId(null);
+  }, [activeId, setActiveConversationId]);
 
   const activeConv = useMemo(
     () => conversations.find((c) => c.id === activeId) ?? null,
@@ -303,10 +313,12 @@ export default function WhatsappPage() {
               }),
             ),
           );
+          void refreshWaNotifs();
         } catch {
           setConversations((prev) =>
             prev.map((c) => (c.id === id ? { ...c, unreadCount: 0 } : c)),
           );
+          void refreshWaNotifs();
         }
       } catch (err) {
         if (seq !== openSeqRef.current) return;
@@ -319,8 +331,22 @@ export default function WhatsappPage() {
         if (seq === openSeqRef.current) setMsgLoading(false);
       }
     },
-    [scrollToBottom, normalizeCursor],
+    [scrollToBottom, normalizeCursor, refreshWaNotifs],
   );
+
+  useEffect(() => {
+    if (!deepConversationId || forbidden || !allowed) return;
+    if (activeId === deepConversationId) return;
+    if (!conversations.some((c) => c.id === deepConversationId)) return;
+    void openConversation(deepConversationId);
+  }, [
+    deepConversationId,
+    conversations,
+    forbidden,
+    allowed,
+    activeId,
+    openConversation,
+  ]);
 
   const loadOlder = useCallback(async () => {
     const convId = activeIdRef.current;

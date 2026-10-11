@@ -49,7 +49,6 @@ export const menuSections: MenuSection[] = [
       { label: "WhatsApp", href: "/whatsapp", icon: "fab fa-whatsapp" },
       { label: "Broadcast", href: "/whatsapp/broadcast", icon: "fi fi-rr-paper-plane" },
       { label: "Email", href: "/email", icon: "fi fi-rr-envelope" },
-      { label: "Notifications", href: "/notifications", icon: "fi fi-rr-bell" },
     ],
   },
   {

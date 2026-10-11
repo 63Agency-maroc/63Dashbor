@@ -1,10 +1,6 @@
-import { ComingSoonPage } from "@/components/layout/ComingSoonPage";
+import { redirect } from "next/navigation";
 
+/** Plus de page Notifications dédiée — renvoie vers l’inbox WhatsApp. */
 export default function NotificationsPage() {
-  return (
-    <ComingSoonPage
-      title="Notifications"
-      description="Centre de notifications — à brancher ensuite."
-    />
-  );
+  redirect("/whatsapp");
 }
