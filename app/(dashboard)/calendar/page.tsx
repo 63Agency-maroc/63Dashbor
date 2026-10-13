@@ -23,6 +23,7 @@ import {
   type MeetingsStats,
 } from "@/lib/api/meetings";
 import { ApiError } from "@/lib/api/client";
+import { displayName } from "@/lib/auth/storage";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AppToast } from "@/components/clients/AppToast";
 import { MeetingDetailModal } from "@/components/calendar/MeetingDetailModal";
@@ -675,6 +676,8 @@ export default function CalendarPage() {
             canManageBlocked={canManageBlocked}
             canManageAvailabilities={canManageAvailabilities}
             canAssign={canAssign}
+            currentUserId={viewerUserId}
+            currentUserLabel={displayName(user)}
             search={search}
             assigneeFilter={assigneeFilter}
             statusFilter={statusFilter}

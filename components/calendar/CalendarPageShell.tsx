@@ -22,6 +22,9 @@ type Props = {
   canManageBlocked: boolean;
   canManageAvailabilities: boolean;
   canAssign: boolean;
+  /** Pour la légende « équipe » : non-admins ne voient que leur propre nom */
+  currentUserId?: string | null;
+  currentUserLabel?: string | null;
   search: string;
   assigneeFilter: string;
   statusFilter: string;
@@ -67,6 +70,8 @@ export function CalendarPageShell({
   canManageBlocked,
   canManageAvailabilities,
   canAssign,
+  currentUserId,
+  currentUserLabel,
   search,
   assigneeFilter,
   statusFilter,
@@ -87,6 +92,15 @@ export function CalendarPageShell({
   onAvailabilities,
   children,
 }: Props & { children: ReactNode }) {
+  const teamIds = assigneeOptions.map((o) => o.value);
+  const legendAssigneeOptions = (() => {
+    if (canAssign || !currentUserId) return assigneeOptions;
+    const self = assigneeOptions.filter((a) => a.value === currentUserId);
+    if (self.length > 0) return self;
+    if (currentUserLabel) return [{ value: currentUserId, label: currentUserLabel }];
+    return [];
+  })();
+
   return (
     <div className="cal-page">
       {/* Row 1 — navigation + views + actions */}
@@ -247,17 +261,16 @@ export function CalendarPageShell({
         <div className="cal-page__legend-statuses">
           <span className="cal-page__legend-label">
             {colorBy === "assignee"
-              ? "Légende équipe (closers)"
+              ? canAssign
+                ? "Légende équipe (closers)"
+                : "Légende (closer)"
               : colorBy === "type"
                 ? "Légende des types"
                 : "Légende des statuts"}
           </span>
           {colorBy === "assignee"
-            ? assigneeOptions.map((a) => {
-                const c = getAssigneeColor(
-                  a.value,
-                  assigneeOptions.map((o) => o.value),
-                );
+            ? legendAssigneeOptions.map((a) => {
+                const c = getAssigneeColor(a.value, teamIds);
                 return (
                   <span key={a.value} className="cal-page__status-pill">
                     <span className="cal-page__status-dot" style={{ background: c.bg }} />
