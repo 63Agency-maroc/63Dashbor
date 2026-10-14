@@ -1,4 +1,10 @@
 import { api } from "@/lib/api/client";
+import {
+  normalizeWhatsappConversation,
+  normalizeWhatsappMessage,
+  type WhatsappConversation,
+  type WhatsappMessage,
+} from "@/lib/api/whatsapp";
 
 export type ClickUpCustomField = {
   id?: string;
@@ -139,4 +145,21 @@ export function syncLeads() {
 
 export function getLead(id: string) {
   return api.get<LeadDetailResponse>(`/leads/${id}`);
+}
+
+export type LeadWhatsappThreadResponse = {
+  conversation: WhatsappConversation | null;
+  messages: WhatsappMessage[];
+};
+
+/** Thread WhatsApp lié au lead (conversation + messages) */
+export async function getLeadWhatsappThread(id: string): Promise<LeadWhatsappThreadResponse> {
+  const raw = await api.get<unknown>(`/leads/${id}/whatsapp-thread`);
+  const data = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const conversationRaw = data.conversation ?? null;
+  const messagesRaw = data.messages;
+  return {
+    conversation: conversationRaw != null ? normalizeWhatsappConversation(conversationRaw) : null,
+    messages: Array.isArray(messagesRaw) ? messagesRaw.map(normalizeWhatsappMessage) : [],
+  };
 }

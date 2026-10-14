@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-  getLead,
   getLeads,
   getLeadsMeta,
   getLeadsStats,
@@ -13,7 +13,6 @@ import {
 import { getLeadEmail, getLeadName, getLeadPhoneDisplay } from "@/lib/leads/clickup-fields";
 import { ApiError } from "@/lib/api/client";
 import { AppToast } from "@/components/clients/AppToast";
-import { LeadDetailModal } from "@/components/leads/LeadDetailModal";
 import { useRealtime } from "@/components/providers/RealtimeProvider";
 import { getSocket } from "@/lib/realtime/socket";
 import { Select } from "@/components/ui/Select";
@@ -76,6 +75,7 @@ function hasRestrictiveFilters(status: string, listId: string, search: string) {
 }
 
 export default function LeadsPage() {
+  const router = useRouter();
   const { connected: liveConnected } = useRealtime();
 
   const [items, setItems] = useState<Lead[]>([]);
@@ -95,11 +95,6 @@ export default function LeadsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [toast, setToast] = useState<{ message: string; variant: "success" | "danger" | "info" } | null>(null);
-
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailLead, setDetailLead] = useState<Lead | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState<string | null>(null);
 
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
@@ -395,19 +390,8 @@ export default function LeadsPage() {
     setPendingNewLeads(false);
   }
 
-  async function openDetail(lead: Lead) {
-    setDetailOpen(true);
-    setDetailLead(lead);
-    setDetailError(null);
-    setDetailLoading(true);
-    try {
-      const res = await getLead(lead.id);
-      setDetailLead(res.item);
-    } catch (err) {
-      setDetailError(err instanceof ApiError ? err.message : "Impossible de charger le détail.");
-    } finally {
-      setDetailLoading(false);
-    }
+  function openDetail(lead: Lead) {
+    router.push(`/leads/${lead.id}`);
   }
 
   return (
@@ -608,7 +592,7 @@ export default function LeadsPage() {
                                     : undefined,
                               }}
                               onClick={() => {
-                                if (!isRemoving) void openDetail(lead);
+                                if (!isRemoving) openDetail(lead);
                               }}
                             >
                               <td>
@@ -639,7 +623,7 @@ export default function LeadsPage() {
                                   type="button"
                                   className="btn btn-subtle-secondary btn-sm btn-shadow btn-icon waves-effect"
                                   title="Voir"
-                                  onClick={() => void openDetail(lead)}
+                                  onClick={() => openDetail(lead)}
                                 >
                                   <i className="fi fi-rr-eye" />
                                 </button>
@@ -692,14 +676,6 @@ export default function LeadsPage() {
           </div>
         </div>
       )}
-
-      <LeadDetailModal
-        open={detailOpen}
-        lead={detailLead}
-        loading={detailLoading}
-        error={detailError}
-        onClose={() => setDetailOpen(false)}
-      />
     </div>
   );
 }
