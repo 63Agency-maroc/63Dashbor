@@ -163,3 +163,19 @@ export async function getLeadWhatsappThread(id: string): Promise<LeadWhatsappThr
     messages: Array.isArray(messagesRaw) ? messagesRaw.map(normalizeWhatsappMessage) : [],
   };
 }
+
+export type SendLeadTemplateDto = {
+  templateName: string;
+  language?: string;
+  /** Clés = indices placeholder ("1", "2", …) */
+  variables?: Record<string, string>;
+};
+
+/** Envoi d’un template WhatsApp lié au lead (crée / utilise la conversation) */
+export async function sendLeadTemplate(id: string, dto: SendLeadTemplateDto) {
+  const raw = await api.post<unknown>(`/leads/${id}/whatsapp/template`, dto);
+  if (raw && typeof raw === "object" && "id" in (raw as object)) {
+    return normalizeWhatsappMessage(raw);
+  }
+  return raw;
+}

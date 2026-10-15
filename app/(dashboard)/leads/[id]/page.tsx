@@ -331,6 +331,7 @@ export default function LeadDetailPage() {
                 {tab === "whatsapp" ? (
                   <LeadWhatsappPanel
                     leadId={id}
+                    leadName={displayName}
                     onToast={(message, variant) => setToast({ message, variant })}
                   />
                 ) : (

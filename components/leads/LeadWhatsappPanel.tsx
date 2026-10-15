@@ -17,11 +17,13 @@ import {
   type WhatsappMessage,
 } from "@/lib/api/whatsapp";
 import { WhatsappMessageBubble } from "@/components/whatsapp/WhatsappMessageBubble";
+import { LeadSendTemplateModal } from "@/components/leads/LeadSendTemplateModal";
 
 const REFRESH_MS = 15_000;
 
 type Props = {
   leadId: string;
+  leadName?: string | null;
   onToast?: (message: string, variant: "success" | "danger" | "info") => void;
 };
 
@@ -33,7 +35,7 @@ function upsertById(list: WhatsappMessage[], msg: WhatsappMessage): WhatsappMess
   return next;
 }
 
-export function LeadWhatsappPanel({ leadId, onToast }: Props) {
+export function LeadWhatsappPanel({ leadId, leadName, onToast }: Props) {
   const [conversation, setConversation] = useState<WhatsappConversation | null>(null);
   const [messages, setMessages] = useState<WhatsappMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +43,7 @@ export function LeadWhatsappPanel({ leadId, onToast }: Props) {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [replyTo, setReplyTo] = useState<WhatsappMessage | null>(null);
+  const [templateOpen, setTemplateOpen] = useState(false);
 
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const stickToBottomRef = useRef(true);
@@ -118,7 +121,7 @@ export function LeadWhatsappPanel({ leadId, onToast }: Props) {
     } catch (err) {
       if (isWhatsapp24hError(err)) {
         onToast?.(
-          "Fenêtre 24h fermée — le lead doit écrire, ou utilisez un template depuis l’inbox WhatsApp.",
+          "Fenêtre 24h fermée — utilisez « Envoyer un template ».",
           "info",
         );
       } else {
@@ -175,6 +178,17 @@ export function LeadWhatsappPanel({ leadId, onToast }: Props) {
       )}
 
       <div className="lead-wa-panel__composer border-top p-3 flex-shrink-0">
+        <div className="d-flex justify-content-between align-items-center gap-2 mb-2">
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-primary"
+            disabled={loading}
+            onClick={() => setTemplateOpen(true)}
+          >
+            📄 Envoyer un template
+          </button>
+        </div>
+
         {replyTo ? (
           <div className="d-flex align-items-start justify-content-between gap-2 mb-2 small bg-light rounded px-2 py-1">
             <div className="text-truncate">
@@ -225,6 +239,18 @@ export function LeadWhatsappPanel({ leadId, onToast }: Props) {
           </small>
         ) : null}
       </div>
+
+      <LeadSendTemplateModal
+        open={templateOpen}
+        leadId={leadId}
+        leadName={leadName}
+        onClose={() => setTemplateOpen(false)}
+        onSent={() => {
+          stickToBottomRef.current = true;
+          void loadThread({ silent: true });
+        }}
+        onToast={onToast}
+      />
     </div>
   );
 }
