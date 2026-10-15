@@ -270,7 +270,6 @@ export default function LeadsPage() {
       }
 
       setItems((prev) => prev.map((x) => (x.id === lead.id ? { ...x, ...lead } : x)));
-      setDetailLead((cur) => (cur?.id === lead.id ? { ...cur, ...lead } : cur));
       flashRow(lead.id);
     };
 
@@ -288,14 +287,6 @@ export default function LeadsPage() {
       if (!match) return;
 
       const removeId = match.id;
-
-      setDetailLead((cur) => {
-        if (cur?.id === removeId) {
-          setDetailOpen(false);
-          return null;
-        }
-        return cur;
-      });
 
       setToast({ message: "Lead supprimé", variant: "info" });
 
