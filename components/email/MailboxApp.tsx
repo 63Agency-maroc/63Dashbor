@@ -84,10 +84,6 @@ function textToHtml(text: string): string {
     .replace(/\n/g, "<br>");
 }
 
-function escapeHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
 function parseAddress(raw: string): { name: string; email: string } {
   const value = raw.trim();
   const angled = value.match(/^(.*)<([^>]+)>\s*$/);
@@ -139,7 +135,6 @@ export function MailboxApp() {
   const [foldersLoading, setFoldersLoading] = useState(true);
   const [foldersError, setFoldersError] = useState<string | null>(null);
   const [folderId, setFolderId] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -255,14 +250,11 @@ export function MailboxApp() {
 
   function openCompose() {
     setComposing(true);
-    setSelectedUid(null);
-    setMessage(null);
     setReplying(false);
     setComposeTo("");
     setComposeSubject("");
     setComposeBody("");
     setComposeError(null);
-    setSidebarOpen(false);
   }
 
   function selectFolder(id: string) {
@@ -272,7 +264,6 @@ export function MailboxApp() {
     setMessage(null);
     setComposing(false);
     setReplying(false);
-    setSidebarOpen(false);
   }
 
   async function openMessage(item: MailListItem) {
@@ -283,7 +274,6 @@ export function MailboxApp() {
     setMessage(null);
     setMessageLoading(true);
     setMessageError(null);
-    setSidebarOpen(false);
     try {
       const full = await getMessage(item.uid, folderId);
       setMessage(full);
@@ -386,26 +376,130 @@ export function MailboxApp() {
       : "";
 
   return (
-    <div className="container-fluid mailbox-page">
+    <div className={`container-fluid mailbox-page${selectedUid ? " is-reading" : ""}${composing ? " is-composing" : ""}`}>
       <style>{`
-        .mailbox-page .mail-split {
+        .mailbox-page { max-width: 100%; overflow-x: hidden; }
+        .mailbox-page .mb-shell {
           display: flex;
-          min-height: 0;
-          height: calc(100% - 65px);
+          height: calc(100vh - 168px);
+          min-height: 420px;
+          max-width: 100%;
+          overflow: hidden;
         }
-        .mailbox-page .mail-split-list,
-        .mailbox-page .mail-split-read {
+        .mailbox-page .mb-folders {
+          flex: 0 0 220px;
+          width: 220px;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          border-right: 1px solid var(--bs-border-color);
+          background: var(--bs-light);
+          overflow: hidden;
+        }
+        .mailbox-page .mb-folders-nav {
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow-y: auto;
+        }
+        .mailbox-page .mail-nav-item {
+          font-size: 15px;
+          color: var(--bs-heading-color);
+          padding: 8px 12px;
+          border-radius: var(--bs-border-radius);
+          display: flex;
+          align-items: center;
+          min-width: 0;
+          cursor: pointer;
+        }
+        .mailbox-page .mail-nav-item span { min-width: 0; }
+        .mailbox-page .mail-nav-item i { font-size: 18px; color: var(--bs-body-color); }
+        .mailbox-page .mail-nav-item:hover,
+        .mailbox-page .mail-nav-item.active {
+          background: var(--bs-body-bg);
+          box-shadow: 0 2px 2px rgba(0, 0, 0, 0.05);
+        }
+        .mailbox-page .mail-nav-item:hover i,
+        .mailbox-page .mail-nav-item.active i { color: var(--bs-primary); }
+        .mailbox-page .mb-main {
+          flex: 1 1 auto;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .mailbox-page .mb-toolbar {
+          flex: 0 0 auto;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 12px;
+          border-bottom: 1px solid var(--bs-border-color);
+          min-width: 0;
+        }
+        .mailbox-page .mb-search {
+          flex: 1 1 180px;
+          min-width: 0;
+          max-width: 320px;
+        }
+        .mailbox-page .mb-folder-select { display: none; width: 160px; max-width: 42vw; }
+        .mailbox-page .mb-compose-toolbar { display: none; }
+        .mailbox-page .mb-panes {
+          position: relative;
+          flex: 1 1 auto;
           min-width: 0;
           min-height: 0;
-          overflow: auto;
+          display: flex;
+          overflow: hidden;
         }
-        .mailbox-page .mail-split-list { flex: 1 1 54%; }
-        .mailbox-page .mail-split-read {
-          flex: 1 1 46%;
+        .mailbox-page .mb-list,
+        .mailbox-page .mb-read {
+          min-width: 0;
+          min-height: 0;
+        }
+        .mailbox-page .mb-list {
+          flex: 1 1 42%;
+          overflow-y: auto;
+        }
+        .mailbox-page .mb-read {
+          flex: 1 1 58%;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
           border-left: 1px solid var(--bs-border-color);
           background: var(--bs-body-bg);
         }
-        .mailbox-page .mail-list { height: auto; }
+        .mailbox-page .mb-read-scroll {
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow-y: auto;
+          overflow-x: hidden;
+        }
+        .mailbox-page .mb-read-actions {
+          flex: 0 0 auto;
+          border-top: 1px solid var(--bs-border-color);
+          padding: 12px 16px;
+          background: var(--bs-body-bg);
+        }
+        .mailbox-page .mail-list { height: auto !important; max-height: none; }
+        .mailbox-page .mail-list-item { min-width: 0; max-width: 100%; }
+        .mailbox-page .mail-list-item .mail-item-content {
+          width: auto;
+          flex: 1 1 auto;
+          min-width: 0;
+        }
+        .mailbox-page .mail-list-item .mail-item-username {
+          width: auto;
+          min-width: 0;
+          max-width: 34%;
+        }
+        .mailbox-page .mail-list-item .mail-item-subject,
+        .mailbox-page .mail-list-item .mail-item-text {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .mailbox-page .mail-list-item .mail-item-meta { flex: 0 0 auto; }
         .mailbox-page .mail-list-item.is-active {
           background: rgba(var(--bs-primary-rgb), 0.08);
         }
@@ -413,13 +507,91 @@ export function MailboxApp() {
         .mailbox-page .mail-list-item.mail-unread .mail-item-subject {
           font-weight: 700;
         }
+        .mailbox-page .mail-html { overflow-wrap: anywhere; word-break: break-word; }
         .mailbox-page .mail-html img { max-width: 100%; height: auto; }
         .mailbox-page .mail-html a { color: var(--bs-primary); }
-        @media (max-width: 991.98px) {
-          .mailbox-page .mail-split { height: auto; display: block; }
-          .mailbox-page .mail-split.is-reading .mail-split-list { display: none; }
-          .mailbox-page .mail-split:not(.is-reading) .mail-split-read { display: none; }
-          .mailbox-page .mail-split-read { border-left: 0; }
+        .mailbox-page .mb-compose-layer { display: none; }
+        .mailbox-page.is-composing .mb-compose-layer { display: flex; }
+        .mailbox-page .mb-compose-card {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          min-height: 0;
+          background: var(--bs-body-bg);
+        }
+        .mailbox-page .mb-compose-card .mail-textarea {
+          flex: 1 1 auto;
+          min-height: 160px;
+          height: auto;
+        }
+        .mailbox-page .mb-fab { display: none; }
+        @media (min-width: 1280px) {
+          .mailbox-page .mb-compose-layer {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 58%;
+            z-index: 3;
+            border-left: 1px solid var(--bs-border-color);
+            background: var(--bs-body-bg);
+          }
+          .mailbox-page .mb-compose-card { flex: 1; width: 100%; }
+        }
+        @media (max-width: 1279.98px) {
+          .mailbox-page .mb-folders { display: none; }
+          .mailbox-page .mb-folder-select { display: block; }
+          .mailbox-page .mb-compose-toolbar { display: inline-flex; }
+          .mailbox-page .mb-compose-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 1060;
+            background: rgba(15, 23, 42, 0.45);
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+          }
+          .mailbox-page .mb-compose-card {
+            width: min(640px, 100%);
+            max-height: min(100%, 720px);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+          }
+        }
+        @media (max-width: 1023.98px) {
+          .mailbox-page .mb-shell { height: calc(100vh - 140px); }
+          .mailbox-page .mb-compose-toolbar { display: none; }
+          .mailbox-page .mb-read {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1040;
+            border-left: 0;
+            width: 100%;
+          }
+          .mailbox-page.is-reading .mb-read { display: flex; }
+          .mailbox-page .mb-list { flex: 1 1 auto; }
+          .mailbox-page .mb-compose-layer { padding: 0; align-items: stretch; }
+          .mailbox-page .mb-compose-card {
+            width: 100%;
+            max-height: none;
+            height: 100%;
+            border-radius: 0;
+          }
+          .mailbox-page .mb-fab {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            z-index: 1045;
+            border-radius: 999px;
+            padding: 12px 18px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+          }
+          .mailbox-page .mail-list-item .mail-item-username { max-width: 42%; }
         }
       `}</style>
 
@@ -455,68 +627,295 @@ export function MailboxApp() {
           </div>
         </div>
       ) : (
-        <div className="row">
-          <div className="col-12">
-            <div className="card card-body overflow-hidden mail-wrapper p-0">
-              <div
-                className={`sidebar-mobile-overlay${sidebarOpen ? " show" : ""}`}
-                onClick={() => setSidebarOpen(false)}
-              />
-              <div className={`mail-sidebar bg-light${sidebarOpen ? " open" : ""}`}>
-                <div className="px-3 pt-3 mb-2">
+        <>
+          <div className="card overflow-hidden mb-shell p-0">
+            <aside className="mb-folders">
+              <div className="px-3 pt-3 mb-2">
+                <button
+                  type="button"
+                  className="btn btn-primary waves-effect waves-light w-100"
+                  onClick={openCompose}
+                >
+                  Nouveau message ✉️
+                </button>
+              </div>
+              <div className="d-grid gap-1 p-2 mb-folders-nav" role="tablist">
+                {foldersLoading ? (
+                  <div className="text-center py-4">
+                    <div className="spinner-border spinner-border-sm text-primary" role="status" />
+                  </div>
+                ) : foldersError ? (
+                  <p className="small text-danger px-2 mb-0">{foldersError}</p>
+                ) : orderedFolders.length === 0 ? (
+                  <p className="small text-muted px-2 mb-0">Aucun dossier.</p>
+                ) : (
+                  orderedFolders.map((folder) => {
+                    const view = folderView(folder);
+                    const active = folder.id === folderId;
+                    return (
+                      <button
+                        key={folder.id}
+                        type="button"
+                        className={`mail-nav-item border-0 bg-transparent text-start w-100${active ? " active" : ""}`}
+                        onClick={() => selectFolder(folder.id)}
+                      >
+                        <i className={`${view.icon} me-2`} />
+                        <span className="text-truncate">{view.label}</span>
+                        {folder.unseen > 0 ? (
+                          <span className="badge badge-sm bg-primary-subtle text-primary ms-auto">
+                            {folder.unseen}
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </aside>
+
+            <div className="mb-main">
+              <div className="mb-toolbar">
+                <select
+                  className="form-select form-select-sm mb-folder-select"
+                  aria-label="Dossier"
+                  value={folderId}
+                  onChange={(e) => selectFolder(e.target.value)}
+                >
+                  {orderedFolders.map((folder) => {
+                    const view = folderView(folder);
+                    const count = folder.unseen > 0 ? ` (${folder.unseen})` : "";
+                    return (
+                      <option key={folder.id} value={folder.id}>
+                        {view.label}
+                        {count}
+                      </option>
+                    );
+                  })}
+                </select>
+                <button type="button" className="btn btn-primary btn-sm mb-compose-toolbar" onClick={openCompose}>
+                  Nouveau message ✉️
+                </button>
+                <form
+                  className="d-flex align-items-center position-relative mb-search"
+                  onSubmit={(e) => e.preventDefault()}
+                >
+                  <i className="fi fi-rr-search position-absolute start-0 ms-3" aria-hidden />
+                  <input
+                    type="search"
+                    className="form-control ps-5"
+                    placeholder="Search"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                  />
+                </form>
+                <div className="d-flex align-items-center gap-2 ms-auto">
                   <button
                     type="button"
-                    className="btn btn-primary waves-effect waves-light w-100"
-                    onClick={openCompose}
+                    className="btn btn-white btn-shadow btn-icon waves-effect"
+                    onClick={() => void loadList()}
+                    aria-label="Actualiser"
+                    disabled={listLoading}
                   >
-                    Nouveau message
+                    <i className="fi fi-rr-rotate-right" />
                   </button>
-                </div>
-                <div className="d-grid gap-2 p-2 mail-nav" role="tablist">
-                  {foldersLoading ? (
-                    <div className="text-center py-4">
-                      <div className="spinner-border spinner-border-sm text-primary" role="status" />
-                    </div>
-                  ) : foldersError ? (
-                    <p className="small text-danger px-2 mb-0">{foldersError}</p>
-                  ) : orderedFolders.length === 0 ? (
-                    <p className="small text-muted px-2 mb-0">Aucun dossier.</p>
-                  ) : (
-                    orderedFolders.map((folder) => {
-                      const view = folderView(folder);
-                      const active = folder.id === folderId && !composing;
-                      return (
-                        <button
-                          key={folder.id}
-                          type="button"
-                          className={`mail-nav-item border-0 bg-transparent text-start${active ? " active" : ""}`}
-                          onClick={() => selectFolder(folder.id)}
-                        >
-                          <i className={`${view.icon} me-2`} /> {view.label}
-                          {folder.unseen > 0 ? (
-                            <span className="badge badge-sm bg-primary-subtle text-primary ms-auto">
-                              {folder.unseen}
-                            </span>
-                          ) : null}
-                        </button>
-                      );
-                    })
-                  )}
+                  <span className="small text-nowrap">{rangeLabel}</span>
+                  <div className="d-flex gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-white btn-shadow btn-icon waves-effect"
+                      disabled={page <= 1 || listLoading}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      aria-label="Page précédente"
+                    >
+                      <i className="fi fi-rr-angle-left text-2xs" />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-white btn-shadow btn-icon waves-effect"
+                      disabled={page >= pageCount || listLoading}
+                      onClick={() => setPage((p) => p + 1)}
+                      aria-label="Page suivante"
+                    >
+                      <i className="fi fi-rr-angle-right text-2xs" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div className="mail-body">
-                {composing ? (
-                  <form onSubmit={(e) => void handleSend(e)}>
-                    <div className="mail-header">
-                      <button
-                        type="button"
-                        className="btn btn-white btn-shadow btn-icon waves-effect mail-sidebar-toggler d-lg-none"
-                        onClick={() => setSidebarOpen(true)}
-                        aria-label="Dossiers"
-                      >
-                        <i className="fi fi-rs-list" />
+              <div className="mb-panes">
+                <div className="mb-list">
+                  {listLoading ? (
+                    <div className="text-center py-5">
+                      <div className="spinner-border text-primary" role="status" />
+                    </div>
+                  ) : listError ? (
+                    <div className="text-center py-5">
+                      <p className="text-danger">{listError}</p>
+                      <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => void loadList()}>
+                        Réessayer
                       </button>
+                    </div>
+                  ) : items.length === 0 ? (
+                    <p className="text-center text-muted py-5 mb-0">Aucun message.</p>
+                  ) : (
+                    <ul className="list-unstyled mail-list m-0">
+                      {items.map((item) => (
+                        <li
+                          key={item.uid}
+                          className={`mail-list-item${item.seen ? "" : " mail-unread"}${
+                            item.uid === selectedUid ? " is-active" : ""
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            className="mail-item-content ms-0 me-2 border-0 bg-transparent text-start p-0"
+                            onClick={() => void openMessage(item)}
+                          >
+                            <span className="mail-item-username me-2">{parseAddress(item.from).name}</span>
+                            <span className="mail-item-subject">{item.subject}</span>
+                            {item.snippet ? (
+                              <span className="mail-item-text text-body"> {item.snippet}</span>
+                            ) : null}
+                          </button>
+                          <div className="mail-item-meta">
+                            <small className="mail-item-time d-inline-flex align-items-center gap-1">
+                              {item.hasAttachments ? <i className="fi fi-rr-clip" title="Pièce jointe" /> : null}
+                              {formatListDate(item.date)}
+                            </small>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                <div className="mb-read">
+                  {!selectedUid ? (
+                    <div className="mb-read-placeholder d-flex flex-grow-1 align-items-center justify-content-center text-muted p-4">
+                      Sélectionnez un message
+                    </div>
+                  ) : (
+                    <>
+                      <div className="d-flex align-items-center gap-2 border-bottom px-3 py-2 flex-shrink-0">
+                        <button
+                          type="button"
+                          className="btn btn-white btn-shadow btn-icon waves-effect"
+                          onClick={() => {
+                            setSelectedUid(null);
+                            setMessage(null);
+                            setReplying(false);
+                          }}
+                          aria-label="Retour à la liste"
+                        >
+                          <i className="fi fi-rr-arrow-left" />
+                        </button>
+                        <span className="small text-muted text-truncate">Message</span>
+                      </div>
+                      {messageLoading ? (
+                        <div className="text-center py-5">
+                          <div className="spinner-border text-primary" role="status" />
+                        </div>
+                      ) : messageError ? (
+                        <p className="text-danger text-center py-4">{messageError}</p>
+                      ) : message ? (
+                        <>
+                          <div className="mb-read-scroll">
+                            <div className="border-bottom p-sm-4 p-3">
+                              <div className="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+                                <h4 className="mb-0 text-break">{message.subject}</h4>
+                                <small className="text-nowrap">{formatDateTime(message.date, CASABLANCA_TZ)}</small>
+                              </div>
+                              <div className="d-flex align-items-center gap-2 min-w-0">
+                                <div className="avatar avatar-sm bg-primary text-white bg-opacity-10 rounded-circle fw-bold flex-shrink-0">
+                                  {(parseAddress(message.from).name || "?").charAt(0).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="d-flex flex-wrap align-items-center">
+                                    <h6 className="mb-0 me-2">{parseAddress(message.from).name}</h6>
+                                    <span className="small text-muted text-break">{parseAddress(message.from).email}</span>
+                                  </div>
+                                  <div className="small text-muted text-break">
+                                    <span className="me-1">To:</span>
+                                    <span>{message.to || "—"}</span>
+                                    {message.cc ? <span className="ms-2">CC: {message.cc}</span> : null}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div
+                              className="mail-html text-dark p-sm-4 p-3"
+                              dangerouslySetInnerHTML={{ __html: safeBody || "<p>—</p>" }}
+                            />
+                            {message.attachments.length > 0 ? (
+                              <div className="px-sm-4 px-3 pb-3">
+                                <h5 className="mb-2 fw-semibold">Attachment</h5>
+                                <div className="p-3 bg-light rounded-2">
+                                  <ul className="list-unstyled mb-0">
+                                    {message.attachments.map((file) => (
+                                      <li key={`${file.filename}-${file.size ?? 0}`} className="d-flex align-items-center gap-2 py-1 min-w-0">
+                                        <i className="fi fi-rr-clip flex-shrink-0" />
+                                        <span className="text-truncate">{file.filename}</span>
+                                        {file.size != null ? (
+                                          <small className="text-muted flex-shrink-0">{Math.ceil(file.size / 1024)} Ko</small>
+                                        ) : null}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </div>
+                            ) : null}
+                            {replying ? (
+                              <form className="px-sm-4 px-3 pb-4" onSubmit={(e) => void handleReply(e)}>
+                                {replyError ? (
+                                  <div className="alert alert-danger py-2" role="alert">
+                                    {replyError}
+                                  </div>
+                                ) : null}
+                                <ul className="list-group list-group-flush border-bottom mb-2">
+                                  <li className="list-group-item d-flex align-items-center px-0 py-0">
+                                    <span className="text-body minw-100px">To</span>
+                                    <input className="form-control border-0 shadow-none px-2" value={replyTo} readOnly />
+                                  </li>
+                                  <li className="list-group-item d-flex align-items-center px-0 py-2">
+                                    <span className="text-body minw-100px">Subject</span>
+                                    <input className="form-control border-0 shadow-none text-dark" value={replySubjectValue} readOnly />
+                                  </li>
+                                </ul>
+                                <textarea
+                                  className="form-control mb-2"
+                                  rows={6}
+                                  value={replyBody}
+                                  onChange={(e) => setReplyBody(e.target.value)}
+                                  disabled={sending}
+                                />
+                                <div className="d-flex gap-2">
+                                  <button type="submit" className="btn btn-primary" disabled={sending}>
+                                    {sending ? "Envoi…" : "Envoyer"}
+                                  </button>
+                                  <button type="button" className="btn btn-light" disabled={sending} onClick={() => setReplying(false)}>
+                                    Annuler
+                                  </button>
+                                </div>
+                              </form>
+                            ) : null}
+                          </div>
+                          {!replying ? (
+                            <div className="mb-read-actions">
+                              <button type="button" className="btn btn-primary" onClick={startReply}>
+                                <i className="fi fi-rr-reply-all me-2" aria-hidden />
+                                Répondre
+                              </button>
+                            </div>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </>
+                  )}
+                </div>
+
+                <div className="mb-compose-layer" role="dialog" aria-modal="true" aria-label="Nouveau message">
+                  <form className="mb-compose-card" onSubmit={(e) => void handleSend(e)}>
+                    <div className="d-flex align-items-center gap-2 border-bottom px-3 py-2">
                       <h6 className="mb-0 me-auto">Nouveau message</h6>
                       <button
                         type="button"
@@ -527,7 +926,7 @@ export function MailboxApp() {
                         <i className="fi fi-rr-cross-small" />
                       </button>
                     </div>
-                    <div className="px-4 py-3">
+                    <div className="px-3 pt-3">
                       {composeError ? (
                         <div className="alert alert-danger py-2" role="alert">
                           {composeError}
@@ -565,7 +964,7 @@ export function MailboxApp() {
                       disabled={sending}
                       placeholder="Écrire un message…"
                     />
-                    <div className="d-flex px-4 py-2">
+                    <div className="d-flex px-3 py-2">
                       <button type="submit" className="btn btn-primary waves-effect waves-light" disabled={sending}>
                         {sending ? (
                           <>
@@ -573,252 +972,20 @@ export function MailboxApp() {
                             Envoi…
                           </>
                         ) : (
-                          "Send Message"
+                          "Envoyer"
                         )}
                       </button>
                     </div>
                   </form>
-                ) : (
-                  <>
-                    <div className="mail-header">
-                      <button
-                        type="button"
-                        className="btn btn-white btn-shadow btn-icon waves-effect mail-sidebar-toggler d-lg-none"
-                        onClick={() => setSidebarOpen(true)}
-                        aria-label="Dossiers"
-                      >
-                        <i className="fi fi-rs-list" />
-                      </button>
-                      <form
-                        className="d-flex align-items-center h-100 w-200px w-md-250px position-relative me-auto"
-                        onSubmit={(e) => e.preventDefault()}
-                      >
-                        <button type="button" className="btn btn-sm border-0 position-absolute start-0 ms-3 p-0">
-                          <i className="fi fi-rr-search" />
-                        </button>
-                        <input
-                          type="search"
-                          className="form-control ps-5"
-                          placeholder="Search"
-                          value={searchInput}
-                          onChange={(e) => setSearchInput(e.target.value)}
-                        />
-                      </form>
-                      <div className="d-flex align-items-center gap-2">
-                        <button
-                          type="button"
-                          className="btn btn-white btn-shadow btn-icon waves-effect"
-                          onClick={() => void loadList()}
-                          aria-label="Actualiser"
-                          disabled={listLoading}
-                        >
-                          <i className="fi fi-rr-rotate-right" />
-                        </button>
-                        <span className="small text-nowrap">{rangeLabel}</span>
-                        <div className="d-flex gap-2">
-                          <button
-                            type="button"
-                            className="btn btn-white btn-shadow btn-icon waves-effect"
-                            disabled={page <= 1 || listLoading}
-                            onClick={() => setPage((p) => Math.max(1, p - 1))}
-                            aria-label="Page précédente"
-                          >
-                            <i className="fi fi-rr-angle-left text-2xs" />
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-white btn-shadow btn-icon waves-effect"
-                            disabled={page >= pageCount || listLoading}
-                            onClick={() => setPage((p) => p + 1)}
-                            aria-label="Page suivante"
-                          >
-                            <i className="fi fi-rr-angle-right text-2xs" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className={`mail-split${selectedUid ? " is-reading" : ""}`}>
-                      <div className="mail-split-list">
-                        {listLoading ? (
-                          <div className="text-center py-5">
-                            <div className="spinner-border text-primary" role="status" />
-                          </div>
-                        ) : listError ? (
-                          <div className="text-center py-5">
-                            <p className="text-danger">{listError}</p>
-                            <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => void loadList()}>
-                              Réessayer
-                            </button>
-                          </div>
-                        ) : items.length === 0 ? (
-                          <p className="text-center text-muted py-5 mb-0">Aucun message.</p>
-                        ) : (
-                          <ul className="list-unstyled mail-list m-0">
-                            {items.map((item) => (
-                              <li
-                                key={item.uid}
-                                className={`mail-list-item${item.seen ? "" : " mail-unread"}${
-                                  item.uid === selectedUid ? " is-active" : ""
-                                }`}
-                              >
-                                <button
-                                  type="button"
-                                  className="mail-item-content ms-2 ms-sm-0 me-2 border-0 bg-transparent text-start p-0"
-                                  onClick={() => void openMessage(item)}
-                                >
-                                  <span className="mail-item-username me-2">{parseAddress(item.from).name}</span>
-                                  <span className="mail-item-subject">{item.subject}</span>
-                                  {item.snippet ? (
-                                    <span className="mail-item-text text-body"> {item.snippet}</span>
-                                  ) : null}
-                                </button>
-                                <div className="mail-item-meta ms-auto">
-                                  <small className="mail-item-time d-inline-flex align-items-center gap-1">
-                                    {item.hasAttachments ? (
-                                      <i className="fi fi-rr-clip" title="Pièce jointe" />
-                                    ) : null}
-                                    {formatListDate(item.date)}
-                                  </small>
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-
-                      {selectedUid ? (
-                        <div className="mail-split-read">
-                          <div className="d-flex align-items-center gap-2 border-bottom px-3 py-2">
-                            <button
-                              type="button"
-                              className="btn btn-white btn-shadow btn-icon waves-effect"
-                              onClick={() => {
-                                setSelectedUid(null);
-                                setMessage(null);
-                                setReplying(false);
-                              }}
-                              aria-label="Retour à la liste"
-                            >
-                              <i className="fi fi-rr-arrow-left" />
-                            </button>
-                            <span className="small text-muted">Message</span>
-                          </div>
-                          {messageLoading ? (
-                            <div className="text-center py-5">
-                              <div className="spinner-border text-primary" role="status" />
-                            </div>
-                          ) : messageError ? (
-                            <p className="text-danger text-center py-4">{messageError}</p>
-                          ) : message ? (
-                            <>
-                              <div className="border-bottom p-sm-4 p-3">
-                                <div className="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
-                                  <h4 className="mb-0">{message.subject}</h4>
-                                  <small>{formatDateTime(message.date, CASABLANCA_TZ)}</small>
-                                </div>
-                                <div className="d-flex align-items-center gap-2">
-                                  <div className="avatar avatar-sm bg-primary text-white bg-opacity-10 rounded-circle fw-bold">
-                                    {(parseAddress(message.from).name || "?").charAt(0).toUpperCase()}
-                                  </div>
-                                  <div className="clearfix">
-                                    <div className="d-flex flex-wrap align-items-center">
-                                      <h6 className="mb-0 me-2">{parseAddress(message.from).name}</h6>
-                                      <span className="small text-muted">{parseAddress(message.from).email}</span>
-                                    </div>
-                                    <div className="small text-muted">
-                                      <span className="me-1">To:</span>
-                                      <span>{message.to || "—"}</span>
-                                      {message.cc ? <span className="ms-2">CC: {message.cc}</span> : null}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="mail-read-wrapper">
-                                <div
-                                  className="mail-html text-dark p-sm-4 p-3"
-                                  dangerouslySetInnerHTML={{ __html: safeBody || "<p>—</p>" }}
-                                />
-                                {message.attachments.length > 0 ? (
-                                  <div className="p-sm-4 p-3 pt-0">
-                                    <h5 className="mb-2 fw-semibold">Attachment</h5>
-                                    <div className="p-3 bg-light rounded-2">
-                                      <ul className="list-unstyled mb-0">
-                                        {message.attachments.map((file) => (
-                                          <li key={file.filename} className="d-flex align-items-center gap-2 py-1">
-                                            <i className="fi fi-rr-clip" />
-                                            <span>{file.filename}</span>
-                                            {file.size != null ? (
-                                              <small className="text-muted">{Math.ceil(file.size / 1024)} Ko</small>
-                                            ) : null}
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  </div>
-                                ) : null}
-
-                                <div className="px-sm-4 px-3 pb-4">
-                                  {replying ? (
-                                    <form onSubmit={(e) => void handleReply(e)}>
-                                      {replyError ? (
-                                        <div className="alert alert-danger py-2" role="alert">
-                                          {replyError}
-                                        </div>
-                                      ) : null}
-                                      <ul className="list-group list-group-flush border-bottom mb-2">
-                                        <li className="list-group-item d-flex align-items-center px-0 py-0">
-                                          <span className="text-body minw-100px">To</span>
-                                          <input className="form-control border-0 shadow-none px-2" value={replyTo} readOnly />
-                                        </li>
-                                        <li className="list-group-item d-flex align-items-center px-0 py-2">
-                                          <span className="text-body minw-100px">Subject</span>
-                                          <input
-                                            className="form-control border-0 shadow-none text-dark"
-                                            value={replySubjectValue}
-                                            readOnly
-                                          />
-                                        </li>
-                                      </ul>
-                                      <textarea
-                                        className="form-control mb-2"
-                                        rows={6}
-                                        value={replyBody}
-                                        onChange={(e) => setReplyBody(e.target.value)}
-                                        disabled={sending}
-                                      />
-                                      <div className="d-flex gap-2">
-                                        <button type="submit" className="btn btn-primary" disabled={sending}>
-                                          {sending ? "Envoi…" : "Send Message"}
-                                        </button>
-                                        <button
-                                          type="button"
-                                          className="btn btn-light"
-                                          disabled={sending}
-                                          onClick={() => setReplying(false)}
-                                        >
-                                          Annuler
-                                        </button>
-                                      </div>
-                                    </form>
-                                  ) : (
-                                    <button type="button" className="btn btn-primary" onClick={startReply}>
-                                      Répondre
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            </>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </div>
-                  </>
-                )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+
+          <button type="button" className="btn btn-primary mb-fab" onClick={openCompose}>
+            Nouveau message ✉️
+          </button>
+        </>
       )}
     </div>
   );
