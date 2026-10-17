@@ -1,5 +1,7 @@
-import { ComingSoonPage } from "@/components/layout/ComingSoonPage";
+"use client";
+
+import { MailboxApp } from "@/components/email/MailboxApp";
 
 export default function EmailPage() {
-  return <ComingSoonPage title="Email" description="Boîte mail et templates — à brancher ensuite." />;
+  return <MailboxApp />;
 }
