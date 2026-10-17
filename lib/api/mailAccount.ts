@@ -1,51 +1,113 @@
 import { api, ApiError } from "@/lib/api/client";
 
+/** Compte mail renvoyé par l’API — jamais le mot de passe. */
 export type MailAccount = {
-  id?: string;
   email: string;
-  provider?: string | null;
-  connected: boolean;
+  from_name: string;
+  smtp_host: string;
+  smtp_port: number;
+  smtp_secure: boolean;
+  imap_host: string;
+  imap_port: number;
+  imap_secure: boolean;
+  username: string;
 };
 
-function asTrimmed(value: unknown): string | null {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length ? s : null;
+export type MailAccountStatus = {
+  configured: boolean;
+  account?: MailAccount;
+};
+
+export type SaveMailAccountBody = MailAccount & {
+  /** Omise si vide : le serveur conserve le mot de passe existant. */
+  password?: string;
+};
+
+export type MailProbeResult = {
+  ok: boolean;
+  error?: string;
+};
+
+export type MailAccountTestResult = {
+  smtp: MailProbeResult;
+  imap: MailProbeResult;
+};
+
+function asString(value: unknown): string {
+  if (value == null) return "";
+  return String(value).trim();
 }
 
-function normalizeMailAccount(raw: unknown): MailAccount | null {
-  if (!raw || typeof raw !== "object") return null;
+function asPort(value: unknown, fallback: number): number {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+function asBool(value: unknown, fallback: boolean): boolean {
+  if (value === true || value === "true" || value === 1) return true;
+  if (value === false || value === "false" || value === 0) return false;
+  return fallback;
+}
+
+function normalizeAccount(raw: unknown): MailAccount | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
   const o = raw as Record<string, unknown>;
-  const nested = o.account ?? o.item ?? o.mailAccount ?? o.mail_account;
-  const src =
-    nested && typeof nested === "object" ? (nested as Record<string, unknown>) : o;
-
-  const email = asTrimmed(src.email ?? src.address ?? src.from);
-  const connectedRaw = src.connected ?? src.configured ?? src.isConnected ?? src.is_connected;
-  const connected =
-    connectedRaw === true ||
-    connectedRaw === "true" ||
-    connectedRaw === 1 ||
-    (connectedRaw == null && Boolean(email));
-
-  if (!connected && !email) return null;
-  if (connectedRaw === false || connectedRaw === "false") return null;
-
+  const email = asString(o.email);
+  if (!email) return undefined;
   return {
-    id: asTrimmed(src.id) ?? undefined,
-    email: email ?? "",
-    provider: asTrimmed(src.provider),
-    connected: true,
+    email,
+    from_name: asString(o.from_name ?? o.fromName),
+    smtp_host: asString(o.smtp_host ?? o.smtpHost) || "smtp.titan.email",
+    smtp_port: asPort(o.smtp_port ?? o.smtpPort, 465),
+    smtp_secure: asBool(o.smtp_secure ?? o.smtpSecure, true),
+    imap_host: asString(o.imap_host ?? o.imapHost) || "imap.titan.email",
+    imap_port: asPort(o.imap_port ?? o.imapPort, 993),
+    imap_secure: asBool(o.imap_secure ?? o.imapSecure, true),
+    username: asString(o.username) || email,
   };
 }
 
-/** Boîte mail de l’utilisateur connecté. null = non configurée (404 inclus). */
-export async function getMailAccount(): Promise<MailAccount | null> {
+function normalizeStatus(raw: unknown): MailAccountStatus {
+  const o = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const configured = o.configured === true;
+  const account = normalizeAccount(o.account);
+  if (!configured || !account) return { configured: false };
+  return { configured: true, account };
+}
+
+function normalizeProbe(raw: unknown): MailProbeResult {
+  const o = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const error = asString(o.error);
+  return { ok: o.ok === true, ...(error ? { error } : {}) };
+}
+
+/** GET /me/mail-account → { configured, account? } */
+export async function getMailAccount(): Promise<MailAccountStatus> {
   try {
-    const raw = await api.get<unknown>("/mail/account");
-    return normalizeMailAccount(raw);
+    const raw = await api.get<unknown>("/me/mail-account");
+    return normalizeStatus(raw);
   } catch (err) {
-    if (err instanceof ApiError && (err.status === 404 || err.status === 204)) return null;
+    if (err instanceof ApiError && err.status === 404) return { configured: false };
     throw err;
   }
+}
+
+/** PUT /me/mail-account */
+export function saveMailAccount(body: SaveMailAccountBody) {
+  return api.put<unknown>("/me/mail-account", body);
+}
+
+/** POST /me/mail-account/test → { smtp, imap } */
+export async function testMailAccount(body: SaveMailAccountBody): Promise<MailAccountTestResult> {
+  const raw = await api.post<unknown>("/me/mail-account/test", body);
+  const o = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  return {
+    smtp: normalizeProbe(o.smtp),
+    imap: normalizeProbe(o.imap),
+  };
+}
+
+/** DELETE /me/mail-account */
+export function deleteMailAccount() {
+  return api.delete<void>("/me/mail-account");
 }

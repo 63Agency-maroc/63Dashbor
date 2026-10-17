@@ -12,6 +12,7 @@ import {
   type AppSidebar,
   type AppTheme,
 } from "@/components/providers/ThemeProvider";
+import { MailAccountForm } from "@/components/settings/MailAccountForm";
 import { TimezoneSelect } from "@/components/settings/TimezoneSelect";
 import { detectBrowserTimezone, shortTimezoneLabel } from "@/lib/datetime/timezone";
 import { markTimezoneSynced } from "@/lib/auth/timezoneSync";
@@ -30,7 +31,7 @@ const TABS: { id: SettingsTab; label: string; soon?: boolean }[] = [
   { id: "security", label: "Sécurité" },
   { id: "appearance", label: "Apparence" },
   { id: "notifications", label: "Notifications", soon: true },
-  { id: "integrations", label: "Intégrations", soon: true },
+  { id: "integrations", label: "Intégrations" },
   { id: "backup", label: "Sauvegarde", soon: true },
   { id: "developer", label: "Développeur", soon: true },
 ];
@@ -398,9 +399,8 @@ export default function SettingsPage() {
                 />
               )}
               {activeTab === "integrations" && (
-                <ComingSoonPanel
-                  title="Intégrations"
-                  description="Google Analytics, SMTP, passerelles de paiement — bientôt."
+                <MailAccountForm
+                  onToast={(message, variant) => setToast({ message, variant })}
                 />
               )}
               {activeTab === "backup" && (

@@ -75,7 +75,7 @@ export function LeadEmailPanel({ leadId, leadEmail, onToast }: Props) {
     void getMailAccount()
       .then((account) => {
         if (cancelled) return;
-        setConfigured(Boolean(account));
+        setConfigured(Boolean(account?.configured));
       })
       .catch((err) => {
         if (cancelled) return;
