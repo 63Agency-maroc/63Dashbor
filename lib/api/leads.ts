@@ -179,3 +179,80 @@ export async function sendLeadTemplate(id: string, dto: SendLeadTemplateDto) {
   }
   return raw;
 }
+
+export type EmailDirection = "inbound" | "outbound";
+
+export type EmailMessage = {
+  id: string;
+  direction: EmailDirection;
+  subject: string | null;
+  from: string | null;
+  to: string | null;
+  bodyHtml: string | null;
+  bodyText: string | null;
+  createdAt: string;
+  sentAt: string | null;
+};
+
+export type SendLeadEmailDto = {
+  subject: string;
+  bodyHtml: string;
+  bodyText: string;
+};
+
+function asEmailString(value: unknown): string | null {
+  if (value == null) return null;
+  if (typeof value === "string") {
+    const s = value.trim();
+    return s.length ? s : null;
+  }
+  if (typeof value === "object") {
+    const o = value as Record<string, unknown>;
+    return asEmailString(o.email ?? o.address ?? o.name);
+  }
+  const s = String(value).trim();
+  return s.length ? s : null;
+}
+
+function normalizeEmailMessage(raw: unknown): EmailMessage {
+  const m = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const dirRaw = String(m.direction ?? m.type ?? "")
+    .trim()
+    .toLowerCase();
+  const direction: EmailDirection =
+    dirRaw === "outbound" || dirRaw === "out" || dirRaw === "sent" || m.outbound === true
+      ? "outbound"
+      : "inbound";
+  return {
+    id: String(m.id ?? ""),
+    direction,
+    subject: asEmailString(m.subject),
+    from: asEmailString(m.from ?? m.fromEmail ?? m.from_email ?? m.fromAddress ?? m.from_address),
+    to: asEmailString(m.to ?? m.toEmail ?? m.to_email ?? m.toAddress ?? m.to_address),
+    bodyHtml: asEmailString(m.bodyHtml ?? m.body_html ?? m.html),
+    bodyText: asEmailString(m.bodyText ?? m.body_text ?? m.text ?? m.body),
+    createdAt: String(m.createdAt ?? m.created_at ?? ""),
+    sentAt: asEmailString(m.sentAt ?? m.sent_at),
+  };
+}
+
+function extractEmailList(raw: unknown): unknown[] {
+  if (Array.isArray(raw)) return raw;
+  if (!raw || typeof raw !== "object") return [];
+  const o = raw as Record<string, unknown>;
+  if (Array.isArray(o.items)) return o.items;
+  if (Array.isArray(o.emails)) return o.emails;
+  if (Array.isArray(o.messages)) return o.messages;
+  return [];
+}
+
+/** Historique email du lead */
+export async function getLeadEmails(id: string): Promise<EmailMessage[]> {
+  const raw = await api.get<unknown>(`/leads/${id}/emails`);
+  return extractEmailList(raw).map(normalizeEmailMessage);
+}
+
+/** Envoi d’un email au lead via la boîte connectée */
+export function sendLeadEmail(id: string, dto: SendLeadEmailDto) {
+  return api.post<unknown>(`/leads/${id}/email`, dto);
+}

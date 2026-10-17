@@ -13,6 +13,7 @@ import { getLeadEmail, getLeadName, getLeadPhoneDisplay } from "@/lib/leads/clic
 import { getLeadStatusPalette } from "@/lib/leads/statusPalette";
 import { formatDateTime } from "@/lib/utils/date";
 import { AppToast } from "@/components/clients/AppToast";
+import { LeadEmailPanel } from "@/components/leads/LeadEmailPanel";
 import { LeadWhatsappPanel } from "@/components/leads/LeadWhatsappPanel";
 
 type ConvTab = "whatsapp" | "email";
@@ -335,11 +336,11 @@ export default function LeadDetailPage() {
                     onToast={(message, variant) => setToast({ message, variant })}
                   />
                 ) : (
-                  <div className="flex-grow-1 d-flex align-items-center justify-content-center p-4 text-center">
-                    <p className="text-muted mb-0">
-                      📧 Intégration email bientôt disponible — configuration SMTP requise (Phase 2).
-                    </p>
-                  </div>
+                  <LeadEmailPanel
+                    leadId={id}
+                    leadEmail={email}
+                    onToast={(message, variant) => setToast({ message, variant })}
+                  />
                 )}
               </div>
             </div>

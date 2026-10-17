@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ApiError } from "@/lib/api/client";
 import { changePassword } from "@/lib/api/auth";
 import { updateMyTimezone } from "@/lib/api/users";
@@ -58,6 +58,13 @@ function ComingSoonPanel({ title, description }: { title: string; description: s
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("security");
+
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab && TABS.some((t) => t.id === tab)) {
+      setActiveTab(tab as SettingsTab);
+    }
+  }, []);
   const { settings, setSettings } = useThemeSettings();
   const { user, applyUser } = useAuth();
 
