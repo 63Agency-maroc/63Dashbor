@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import DOMPurify from "isomorphic-dompurify";
 import { ApiError } from "@/lib/api/client";
 import {
+  downloadAttachment,
   getMessage,
   isMailboxDisconnected,
   listFolders,
@@ -12,6 +13,7 @@ import {
   markSeen,
   replyMail,
   sendMail,
+  type MailFilePayload,
   type MailFolder,
   type MailListItem,
   type MailMessage,
@@ -20,6 +22,10 @@ import { AppToast } from "@/components/clients/AppToast";
 import { CASABLANCA_TZ, formatDate, formatDateTime, formatTime, parseIso, toYmdInZone } from "@/lib/utils/date";
 
 const PAGE_SIZE = 50;
+const FAVORITE_ID = "__favorite__";
+const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+
+type DraftFile = MailFilePayload & { id: string; size: number };
 
 type FolderView = {
   label: string;
@@ -46,7 +52,7 @@ const FOLDER_VIEWS: { test: (folder: MailFolder) => boolean; view: FolderView }[
   },
   {
     test: (f) => matchUse(f, "flag") || matchUse(f, "star") || /star/i.test(f.name),
-    view: { label: "Starred", icon: "fi fi-rr-star", order: 4 },
+    view: { label: "Favorite", icon: "fi fi-rr-star", order: 4 },
   },
   {
     test: (f) => matchUse(f, "junk") || matchUse(f, "spam") || /spam|junk/i.test(f.name),
@@ -64,6 +70,16 @@ const FOLDER_VIEWS: { test: (folder: MailFolder) => boolean; view: FolderView }[
 
 function matchUse(folder: MailFolder, token: string) {
   return (folder.specialUse ?? "").toLowerCase().includes(token);
+}
+
+function isFavoriteMailbox(folder: MailFolder) {
+  return matchUse(folder, "flag") || matchUse(folder, "star") || /star|favor/i.test(folder.name);
+}
+
+type SavedMail = MailListItem & { sourceFolder: string };
+
+function mailIsStarred(item: MailListItem, stars: Record<string, boolean>) {
+  return item.uid in stars ? stars[item.uid] : item.flagged;
 }
 
 function folderView(folder: MailFolder): FolderView {
@@ -103,6 +119,30 @@ function formatListDate(iso: string): string {
   const today = toYmdInZone(new Date(), CASABLANCA_TZ);
   const day = toYmdInZone(d, CASABLANCA_TZ);
   return day === today ? formatTime(iso, CASABLANCA_TZ) : formatDate(iso, CASABLANCA_TZ);
+}
+
+function formatFileSize(size: number | null): string {
+  if (size == null) return "";
+  if (size < 1024) return `${size} o`;
+  if (size < 1024 * 1024) return `${Math.ceil(size / 1024)} Ko`;
+  return `${(size / (1024 * 1024)).toFixed(1)} Mo`;
+}
+
+function readFileBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      const comma = result.indexOf(",");
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Lecture du fichier impossible."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function toPayload(files: DraftFile[]): MailFilePayload[] {
+  return files.map(({ filename, contentType, contentBase64 }) => ({ filename, contentType, contentBase64 }));
 }
 
 function sanitizeHtml(html: string): string {
@@ -147,6 +187,9 @@ export function MailboxApp() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<MailListItem[]>([]);
+  const [savedMails, setSavedMails] = useState<SavedMail[]>([]);
+  const [checkedUids, setCheckedUids] = useState<string[]>([]);
+  const [starredUids, setStarredUids] = useState<Record<string, boolean>>({});
   const [total, setTotal] = useState(0);
   const [listLoading, setListLoading] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
@@ -163,6 +206,7 @@ export function MailboxApp() {
   const [ccDraft, setCcDraft] = useState("");
   const [composeSubject, setComposeSubject] = useState("");
   const [composeBody, setComposeBody] = useState("");
+  const [composeFiles, setComposeFiles] = useState<DraftFile[]>([]);
   const [sending, setSending] = useState(false);
   const [composeError, setComposeError] = useState<string | null>(null);
 
@@ -170,7 +214,11 @@ export function MailboxApp() {
   const [replyTo, setReplyTo] = useState("");
   const [replySubjectValue, setReplySubjectValue] = useState("");
   const [replyBody, setReplyBody] = useState("");
+  const [replyFiles, setReplyFiles] = useState<DraftFile[]>([]);
   const [replyError, setReplyError] = useState<string | null>(null);
+  const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
+  const composeFileRef = useRef<HTMLInputElement>(null);
+  const replyFileRef = useRef<HTMLInputElement>(null);
 
   const fail = useCallback((err: unknown, fallback: string) => {
     if (isMailboxDisconnected(err)) {
@@ -206,12 +254,18 @@ export function MailboxApp() {
   }, [fail]);
 
   const loadList = useCallback(async () => {
-    if (!folderId || disconnected) return;
+    if (!folderId || disconnected || folderId === FAVORITE_ID) return;
     setListLoading(true);
     setListError(null);
     try {
       const res = await listMessages({ folder: folderId, page, limit: PAGE_SIZE, search });
       setItems(res.items);
+      setSavedMails((prev) => {
+        const map = new Map(prev.map((mail) => [`${mail.sourceFolder}:${mail.uid}`, mail]));
+        for (const item of res.items) map.set(`${folderId}:${item.uid}`, { ...item, sourceFolder: folderId });
+        return [...map.values()];
+      });
+      setCheckedUids([]);
       setTotal(res.total);
     } catch (err) {
       if (!fail(err, "Impossible de charger les messages.")) {
@@ -249,14 +303,79 @@ export function MailboxApp() {
     [folders],
   );
 
-  const rangeLabel = useMemo(() => {
-    if (total <= 0 || items.length === 0) return "0";
-    const start = (page - 1) * PAGE_SIZE + 1;
-    const end = start + items.length - 1;
-    return `${start} - ${end} of ${total}`;
-  }, [items.length, page, total]);
+  const favoriteMails = useMemo(
+    () => savedMails.filter((item) => mailIsStarred(item, starredUids)),
+    [savedMails, starredUids],
+  );
 
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const showingFavorites = folderId === FAVORITE_ID;
+
+  const visibleFavorites = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return favoriteMails;
+    return favoriteMails.filter(
+      (item) =>
+        item.subject.toLowerCase().includes(q) ||
+        item.from.toLowerCase().includes(q) ||
+        item.snippet.toLowerCase().includes(q),
+    );
+  }, [favoriteMails, search]);
+
+  const listItems = useMemo(() => {
+    if (!showingFavorites) return items.map((item) => ({ ...item, sourceFolder: folderId }));
+    const start = (page - 1) * PAGE_SIZE;
+    return visibleFavorites.slice(start, start + PAGE_SIZE);
+  }, [showingFavorites, items, folderId, page, visibleFavorites]);
+
+  const listTotal = showingFavorites ? visibleFavorites.length : total;
+
+  const sidebarFolders = useMemo(() => {
+    const favorite: MailFolder = {
+      id: FAVORITE_ID,
+      name: "Favorite",
+      specialUse: "\\Flagged",
+      unseen: favoriteMails.length,
+    };
+    return [...orderedFolders.filter((folder) => !isFavoriteMailbox(folder)), favorite].sort((a, b) => {
+      const diff = folderView(a).order - folderView(b).order;
+      return diff !== 0 ? diff : a.name.localeCompare(b.name);
+    });
+  }, [orderedFolders, favoriteMails.length]);
+
+  const rangeLabel = useMemo(() => {
+    if (listTotal <= 0 || listItems.length === 0) return "0";
+    const start = (page - 1) * PAGE_SIZE + 1;
+    const end = start + listItems.length - 1;
+    return `${start} - ${end} of ${listTotal}`;
+  }, [listItems.length, page, listTotal]);
+
+  const pageCount = Math.max(1, Math.ceil(listTotal / PAGE_SIZE));
+  const allChecked = listItems.length > 0 && listItems.every((item) => checkedUids.includes(item.uid));
+  const someChecked = listItems.some((item) => checkedUids.includes(item.uid));
+  const selectAllRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (selectAllRef.current) selectAllRef.current.indeterminate = someChecked && !allChecked;
+  }, [someChecked, allChecked]);
+
+  function isStarred(item: MailListItem) {
+    return mailIsStarred(item, starredUids);
+  }
+
+  function toggleChecked(uid: string) {
+    setCheckedUids((current) =>
+      current.includes(uid) ? current.filter((id) => id !== uid) : [...current, uid],
+    );
+  }
+
+  function toggleAllChecked() {
+    setCheckedUids(allChecked ? [] : listItems.map((item) => item.uid));
+  }
+
+  function toggleStar(item: MailListItem) {
+    const next = !isStarred(item);
+    setStarredUids((current) => ({ ...current, [item.uid]: next }));
+  }
 
   function openCompose() {
     setComposing(true);
@@ -267,6 +386,7 @@ export function MailboxApp() {
     setCcDraft("");
     setComposeSubject("");
     setComposeBody("");
+    setComposeFiles([]);
     setComposeError(null);
   }
 
@@ -279,8 +399,9 @@ export function MailboxApp() {
     setReplying(false);
   }
 
-  async function openMessage(item: MailListItem) {
-    if (!folderId) return;
+  async function openMessage(item: SavedMail) {
+    const box = item.sourceFolder && item.sourceFolder !== FAVORITE_ID ? item.sourceFolder : folderId;
+    if (!box || box === FAVORITE_ID) return;
     setComposing(false);
     setReplying(false);
     setSelectedUid(item.uid);
@@ -288,17 +409,20 @@ export function MailboxApp() {
     setMessageLoading(true);
     setMessageError(null);
     try {
-      const full = await getMessage(item.uid, folderId);
+      const full = await getMessage(item.uid, box);
       setMessage(full);
       if (!item.seen) {
         try {
-          await markSeen(item.uid, folderId);
+          await markSeen(item.uid, box);
           setItems((prev) => prev.map((row) => (row.uid === item.uid ? { ...row, seen: true } : row)));
+          setSavedMails((prev) =>
+            prev.map((row) =>
+              row.uid === item.uid && row.sourceFolder === box ? { ...row, seen: true } : row,
+            ),
+          );
           setFolders((prev) =>
             prev.map((folder) =>
-              folder.id === folderId
-                ? { ...folder, unseen: Math.max(0, folder.unseen - 1) }
-                : folder,
+              folder.id === box ? { ...folder, unseen: Math.max(0, folder.unseen - 1) } : folder,
             ),
           );
           setMessage((current) => (current && current.uid === item.uid ? { ...current, seen: true } : current));
@@ -322,6 +446,7 @@ export function MailboxApp() {
     setReplyTo(from.email || message.from);
     setReplySubjectValue(replySubject(message.subject));
     setReplyBody(quoteText(message));
+    setReplyFiles([]);
     setReplyError(null);
   }
 
@@ -338,7 +463,13 @@ export function MailboxApp() {
     setSending(true);
     setComposeError(null);
     try {
-      await sendMail({ to, subject, bodyText: body, bodyHtml: textToHtml(body) });
+      await sendMail({
+        to,
+        subject,
+        bodyText: body,
+        bodyHtml: textToHtml(body),
+        ...(composeFiles.length ? { attachments: toPayload(composeFiles) } : {}),
+      });
       setToast({ message: "Message envoyé.", variant: "success" });
       setComposing(false);
       setComposeTo("");
@@ -347,6 +478,7 @@ export function MailboxApp() {
       setCcDraft("");
       setComposeSubject("");
       setComposeBody("");
+      setComposeFiles([]);
       void loadList();
     } catch (err) {
       if (!fail(err, "Envoi impossible.")) {
@@ -359,7 +491,9 @@ export function MailboxApp() {
 
   async function handleReply(e: FormEvent) {
     e.preventDefault();
-    if (!message || !folderId || sending) return;
+    if (!message || sending) return;
+    const box = message.folder && message.folder !== FAVORITE_ID ? message.folder : folderId;
+    if (!box || box === FAVORITE_ID) return;
     const body = replyBody.trim();
     if (!body) {
       setReplyError("Le message est requis.");
@@ -369,12 +503,14 @@ export function MailboxApp() {
     setReplyError(null);
     try {
       await replyMail(message.uid, {
-        folder: folderId,
+        folder: box,
         bodyText: body,
         bodyHtml: textToHtml(body),
+        ...(replyFiles.length ? { attachments: toPayload(replyFiles) } : {}),
       });
       setToast({ message: "Réponse envoyée.", variant: "success" });
       setReplying(false);
+      setReplyFiles([]);
       void loadList();
     } catch (err) {
       if (!fail(err, "Réponse impossible.")) {
@@ -382,6 +518,49 @@ export function MailboxApp() {
       }
     } finally {
       setSending(false);
+    }
+  }
+
+  async function pickFiles(list: FileList | null, current: DraftFile[], apply: (files: DraftFile[]) => void) {
+    if (!list?.length) return;
+    const next = [...current];
+    let total = next.reduce((sum, file) => sum + file.size, 0);
+    let rejected = false;
+    for (const file of Array.from(list)) {
+      if (total + file.size > MAX_ATTACHMENT_BYTES) {
+        rejected = true;
+        break;
+      }
+      try {
+        const contentBase64 = await readFileBase64(file);
+        next.push({
+          id: `${file.name}-${file.size}-${file.lastModified}-${next.length}`,
+          filename: file.name || "piece-jointe",
+          contentType: file.type || "application/octet-stream",
+          contentBase64,
+          size: file.size,
+        });
+        total += file.size;
+      } catch {
+        setToast({ message: `Impossible de lire ${file.name || "le fichier"}.`, variant: "danger" });
+      }
+    }
+    if (rejected) {
+      setToast({ message: "La taille totale des pièces jointes ne peut pas dépasser 20 Mo.", variant: "danger" });
+    }
+    apply(next);
+  }
+
+  async function handleDownload(uid: string, folder: string, index: number, filename: string) {
+    const key = `${uid}:${index}`;
+    if (downloadingKey) return;
+    setDownloadingKey(key);
+    try {
+      await downloadAttachment(uid, folder, index, filename);
+    } catch (err) {
+      fail(err, "Téléchargement impossible.");
+    } finally {
+      setDownloadingKey(null);
     }
   }
 
@@ -532,9 +711,9 @@ export function MailboxApp() {
           grid-template-rows: minmax(0, 1fr);
           overflow: hidden;
         }
-        .mailbox-page.is-reading .mb-panes {
-          grid-template-columns: minmax(280px, 46%) minmax(0, 1fr);
-        }
+        .mailbox-page.is-reading .mb-toolbar,
+        .mailbox-page.is-reading .mb-list-tools,
+        .mailbox-page.is-reading .mb-list { display: none; }
         .mailbox-page.is-composing .mb-panes {
           grid-template-columns: minmax(0, 1fr);
         }
@@ -557,9 +736,8 @@ export function MailboxApp() {
           overflow-y: auto;
           border-right: 0;
         }
-        .mailbox-page.is-reading .mb-list { border-right: 1px solid var(--bs-border-color); }
         .mailbox-page .mb-read {
-          grid-column: 2;
+          grid-column: 1;
           grid-row: 1;
           display: none;
           flex-direction: column;
@@ -648,6 +826,48 @@ export function MailboxApp() {
           cursor: pointer;
           min-width: 0;
         }
+        .mailbox-page .mb-check {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex: 0 0 auto;
+          margin: 0;
+          cursor: pointer;
+        }
+        .mailbox-page .mb-check .form-check-input {
+          width: 16px;
+          height: 16px;
+          margin: 0;
+          cursor: pointer;
+        }
+        .mailbox-page .mb-star {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex: 0 0 18px;
+          width: 18px;
+          height: 18px;
+          padding: 0;
+          border: 0;
+          background: transparent;
+          color: var(--bs-secondary-color);
+          font-size: 15px;
+          line-height: 1;
+          cursor: pointer;
+        }
+        .mailbox-page .mb-star.is-on { color: var(--bs-warning); }
+        .mailbox-page .mb-row-open {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex: 1 1 auto;
+          min-width: 0;
+          padding: 0;
+          border: 0;
+          background: transparent;
+          text-align: left;
+          cursor: pointer;
+        }
         .mailbox-page .mb-row:hover { background: rgba(var(--bs-primary-rgb), 0.05); }
         .mailbox-page .mb-row.is-active { background: rgba(var(--bs-primary-rgb), 0.1); }
         .mailbox-page .mb-dot {
@@ -703,6 +923,25 @@ export function MailboxApp() {
           align-items: center;
           gap: 6px;
         }
+        .mailbox-page .mb-file {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 0;
+          padding: 8px 0;
+        }
+        .mailbox-page .mb-file + .mb-file { border-top: 1px solid var(--bs-border-color); }
+        .mailbox-page .mb-file-icon {
+          flex: 0 0 auto;
+          color: var(--bs-primary);
+          font-size: 18px;
+        }
+        .mailbox-page .mb-attach-chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          padding: 0 16px 8px;
+        }
         .mailbox-page .mb-chip {
           display: inline-flex;
           align-items: center;
@@ -730,9 +969,6 @@ export function MailboxApp() {
             flex-basis: 220px;
             width: 220px;
             max-width: 220px;
-          }
-          .mailbox-page.is-reading .mb-panes {
-            grid-template-columns: minmax(240px, 42%) minmax(0, 1fr);
           }
         }
         @media (max-width: 1023.98px) {
@@ -839,10 +1075,8 @@ export function MailboxApp() {
                   </div>
                 ) : foldersError ? (
                   <p className="small text-danger px-2 mb-0">{foldersError}</p>
-                ) : orderedFolders.length === 0 ? (
-                  <p className="small text-muted px-2 mb-0">Aucun dossier.</p>
                 ) : (
-                  orderedFolders.map((folder) => {
+                  sidebarFolders.map((folder) => {
                     const view = folderView(folder);
                     const active = folder.id === folderId;
                     return (
@@ -874,7 +1108,7 @@ export function MailboxApp() {
                   value={folderId}
                   onChange={(e) => selectFolder(e.target.value)}
                 >
-                  {orderedFolders.map((folder) => {
+                  {sidebarFolders.map((folder) => {
                     const view = folderView(folder);
                     const count = folder.unseen > 0 ? ` (${folder.unseen})` : "";
                     return (
@@ -927,6 +1161,17 @@ export function MailboxApp() {
               </div>
 
               <div className="mb-list-tools">
+                <label className="mb-check">
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={allChecked}
+                    onChange={toggleAllChecked}
+                    disabled={listItems.length === 0}
+                    aria-label="Sélectionner les messages affichés"
+                  />
+                </label>
                 <button
                   type="button"
                   className="btn btn-link p-0 text-body"
@@ -951,29 +1196,49 @@ export function MailboxApp() {
                         Réessayer
                       </button>
                     </div>
-                  ) : items.length === 0 ? (
-                    <p className="text-center text-muted py-5 mb-0">Aucun message.</p>
+                  ) : listItems.length === 0 ? (
+                    <p className="text-center text-muted py-5 mb-0">
+                      {showingFavorites ? "Aucun favori." : "Aucun message."}
+                    </p>
                   ) : (
                     <ul className="list-unstyled m-0">
-                      {items.map((item) => (
-                        <li key={item.uid}>
-                          <button
-                            type="button"
+                      {listItems.map((item) => (
+                        <li key={`${item.sourceFolder}:${item.uid}`}>
+                          <div
                             className={`mb-row${item.seen ? "" : " is-unread"}${item.uid === selectedUid ? " is-active" : ""}`}
-                            onClick={() => void openMessage(item)}
                           >
-                            <span className="mb-row-main">
-                              <span className="mb-row-line">
-                                <span className="mb-sender">{parseAddress(item.from).name}</span>
-                                <span className="mb-subject">{item.subject}</span>
-                                {item.snippet ? <span className="mb-preview">{item.snippet}</span> : null}
+                            <label className="mb-check" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                className="form-check-input"
+                                checked={checkedUids.includes(item.uid)}
+                                onChange={() => toggleChecked(item.uid)}
+                                aria-label={`Sélectionner ${parseAddress(item.from).name}`}
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              className={`mb-star${isStarred(item) ? " is-on" : ""}`}
+                              aria-label={isStarred(item) ? "Retirer l'étoile" : "Ajouter une étoile"}
+                              aria-pressed={isStarred(item)}
+                              onClick={() => toggleStar(item)}
+                            >
+                              <i className={isStarred(item) ? "fi fi-sr-star" : "fi fi-rr-star"} aria-hidden />
+                            </button>
+                            <button type="button" className="mb-row-open" onClick={() => void openMessage(item)}>
+                              <span className="mb-row-main">
+                                <span className="mb-row-line">
+                                  <span className="mb-sender">{parseAddress(item.from).name}</span>
+                                  <span className="mb-subject">{item.subject}</span>
+                                  {item.snippet ? <span className="mb-preview">{item.snippet}</span> : null}
+                                </span>
                               </span>
-                            </span>
-                            <span className="mb-time">
-                              {item.hasAttachments ? <i className="fi fi-rr-clip" title="Pièce jointe" /> : null}
-                              {formatListDate(item.date)}
-                            </span>
-                          </button>
+                              <span className="mb-time">
+                                {item.hasAttachments ? <i className="fi fi-rr-clip" title="Pièce jointe" /> : null}
+                                {formatListDate(item.date)}
+                              </span>
+                            </button>
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -1039,18 +1304,30 @@ export function MailboxApp() {
                             />
                             {message.attachments.length > 0 ? (
                               <div className="px-sm-4 px-3 pb-3">
-                                <h5 className="mb-2 fw-semibold">Attachment</h5>
+                                <h5 className="mb-2 fw-semibold">Pièces jointes</h5>
                                 <div className="p-3 bg-light rounded-2">
                                   <ul className="list-unstyled mb-0">
-                                    {message.attachments.map((file) => (
-                                      <li key={`${file.filename}-${file.size ?? 0}`} className="d-flex align-items-center gap-2 py-1 min-w-0">
-                                        <i className="fi fi-rr-clip flex-shrink-0" />
-                                        <span className="text-truncate">{file.filename}</span>
-                                        {file.size != null ? (
-                                          <small className="text-muted flex-shrink-0">{Math.ceil(file.size / 1024)} Ko</small>
-                                        ) : null}
-                                      </li>
-                                    ))}
+                                    {message.attachments.map((file) => {
+                                      const key = `${message.uid}:${file.index}`;
+                                      const busy = downloadingKey === key;
+                                      return (
+                                        <li key={key} className="mb-file">
+                                          <i className="fi fi-rr-file mb-file-icon" aria-hidden />
+                                          <span className="text-truncate">{file.filename}</span>
+                                          {file.size != null ? (
+                                            <small className="text-muted flex-shrink-0">{formatFileSize(file.size)}</small>
+                                          ) : null}
+                                          <button
+                                            type="button"
+                                            className="btn btn-sm btn-outline-primary ms-auto flex-shrink-0"
+                                            disabled={busy}
+                                            onClick={() => void handleDownload(message.uid, message.folder, file.index, file.filename)}
+                                          >
+                                            {busy ? "Téléchargement…" : "Télécharger"}
+                                          </button>
+                                        </li>
+                                      );
+                                    })}
                                   </ul>
                                 </div>
                               </div>
@@ -1079,12 +1356,58 @@ export function MailboxApp() {
                                   onChange={(e) => setReplyBody(e.target.value)}
                                   disabled={sending}
                                 />
-                                <div className="d-flex gap-2">
+                                {replyFiles.length > 0 ? (
+                                  <div className="mb-attach-chips px-0">
+                                    {replyFiles.map((file) => (
+                                      <span className="mb-chip" key={file.id}>
+                                        <i className="fi fi-rr-clip" aria-hidden />
+                                        <span>{file.filename}</span>
+                                        <button
+                                          type="button"
+                                          className="btn btn-link btn-sm p-0 text-primary"
+                                          aria-label={`Retirer ${file.filename}`}
+                                          disabled={sending}
+                                          onClick={() => setReplyFiles((current) => current.filter((item) => item.id !== file.id))}
+                                        >
+                                          ×
+                                        </button>
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : null}
+                                <div className="d-flex align-items-center gap-2">
                                   <button type="submit" className="btn btn-primary" disabled={sending}>
                                     {sending ? "Envoi…" : "Envoyer"}
                                   </button>
-                                  <button type="button" className="btn btn-light" disabled={sending} onClick={() => setReplying(false)}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-light"
+                                    disabled={sending}
+                                    onClick={() => {
+                                      setReplying(false);
+                                      setReplyFiles([]);
+                                    }}
+                                  >
                                     Annuler
+                                  </button>
+                                  <input
+                                    ref={replyFileRef}
+                                    type="file"
+                                    multiple
+                                    className="d-none"
+                                    onChange={(e) => {
+                                      void pickFiles(e.target.files, replyFiles, setReplyFiles);
+                                      e.target.value = "";
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="btn btn-action-gray text-dark btn-icon waves-effect ms-auto"
+                                    aria-label="Joindre un fichier"
+                                    disabled={sending}
+                                    onClick={() => replyFileRef.current?.click()}
+                                  >
+                                    <i className="fi fi-rr-clip" />
                                   </button>
                                 </div>
                               </form>
@@ -1223,6 +1546,25 @@ export function MailboxApp() {
                       disabled={sending}
                       placeholder="Écrire un message…"
                     />
+                    {composeFiles.length > 0 ? (
+                      <div className="mb-attach-chips">
+                        {composeFiles.map((file) => (
+                          <span className="mb-chip" key={file.id}>
+                            <i className="fi fi-rr-clip" aria-hidden />
+                            <span>{file.filename}</span>
+                            <button
+                              type="button"
+                              className="btn btn-link btn-sm p-0 text-primary"
+                              aria-label={`Retirer ${file.filename}`}
+                              disabled={sending}
+                              onClick={() => setComposeFiles((current) => current.filter((item) => item.id !== file.id))}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
                     <div className="d-flex align-items-center px-4 py-3">
                       <button type="submit" className="btn btn-primary waves-effect waves-light" disabled={sending}>
                         {sending ? (
@@ -1234,7 +1576,26 @@ export function MailboxApp() {
                           "Envoyer"
                         )}
                       </button>
-                      <button type="button" className="btn btn-action-gray text-dark btn-icon waves-effect ms-3" aria-label="Lien" tabIndex={-1}>
+                      <input
+                        ref={composeFileRef}
+                        type="file"
+                        multiple
+                        className="d-none"
+                        onChange={(e) => {
+                          void pickFiles(e.target.files, composeFiles, setComposeFiles);
+                          e.target.value = "";
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-action-gray text-dark btn-icon waves-effect ms-3"
+                        aria-label="Joindre un fichier"
+                        disabled={sending}
+                        onClick={() => composeFileRef.current?.click()}
+                      >
+                        <i className="fi fi-rr-clip" />
+                      </button>
+                      <button type="button" className="btn btn-action-gray text-dark btn-icon waves-effect ms-1" aria-label="Lien" tabIndex={-1}>
                         <i className="fi fi-rr-link-alt" />
                       </button>
                       <button type="button" className="btn btn-action-gray text-dark btn-icon waves-effect ms-1" aria-label="Image" tabIndex={-1}>

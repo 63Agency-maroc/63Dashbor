@@ -1,4 +1,6 @@
+import { API_BASE_URL } from "@/lib/api/config";
 import { api, ApiError } from "@/lib/api/client";
+import { clearSession, getToken } from "@/lib/auth/storage";
 
 export type MailFolder = {
   /** Chemin IMAP envoyé comme `folder` */
@@ -15,13 +17,21 @@ export type MailListItem = {
   snippet: string;
   date: string;
   seen: boolean;
+  flagged: boolean;
   hasAttachments: boolean;
 };
 
 export type MailAttachment = {
+  index: number;
   filename: string;
   size: number | null;
   contentType: string | null;
+};
+
+export type MailFilePayload = {
+  filename: string;
+  contentType: string;
+  contentBase64: string;
 };
 
 export type MailMessage = {
@@ -57,12 +67,14 @@ export type SendMailDto = {
   subject: string;
   bodyHtml: string;
   bodyText: string;
+  attachments?: MailFilePayload[];
 };
 
 export type ReplyMailDto = {
   folder: string;
   bodyHtml: string;
   bodyText: string;
+  attachments?: MailFilePayload[];
 };
 
 function asString(value: unknown): string {
@@ -127,6 +139,11 @@ function normalizeListItem(raw: unknown): MailListItem | null {
     o.hasAttachments === true ||
     o.has_attachments === true ||
     (Array.isArray(attachments) && attachments.length > 0);
+  const flagged =
+    o.flagged === true ||
+    o.starred === true ||
+    o.isStarred === true ||
+    flags.some((f) => f.includes("flag") || f.includes("star"));
   return {
     uid,
     from: asString(o.from ?? o.sender ?? o.fromAddress ?? o.from_address) || "—",
@@ -134,16 +151,19 @@ function normalizeListItem(raw: unknown): MailListItem | null {
     snippet: asString(o.snippet ?? o.preview ?? o.textPreview ?? o.text_preview),
     date: asString(o.date ?? o.sentAt ?? o.sent_at ?? o.internalDate ?? o.createdAt ?? o.created_at),
     seen: o.seen === false || o.unread === true ? false : seen,
+    flagged,
     hasAttachments,
   };
 }
 
-function normalizeAttachment(raw: unknown): MailAttachment | null {
+function normalizeAttachment(raw: unknown, fallbackIndex: number): MailAttachment | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
-  const filename = asString(o.filename ?? o.fileName ?? o.name ?? o.file_name);
-  if (!filename) return null;
+  const index = asNumber(o.index ?? o.partIndex ?? o.part_index ?? o.part) ?? fallbackIndex;
+  const filename =
+    asString(o.filename ?? o.fileName ?? o.name ?? o.file_name) || `piece-jointe-${index + 1}`;
   return {
+    index,
     filename,
     size: asNumber(o.size ?? o.fileSize ?? o.file_size),
     contentType: asString(o.contentType ?? o.content_type ?? o.mimeType ?? o.mime) || null,
@@ -159,7 +179,7 @@ function normalizeMessage(raw: unknown, fallbackFolder: string): MailMessage | n
   const uid = asString(o.uid ?? o.id);
   if (!uid) return null;
   const attachments = (Array.isArray(o.attachments) ? o.attachments : [])
-    .map(normalizeAttachment)
+    .map((item, index) => normalizeAttachment(item, index))
     .filter((a): a is MailAttachment => Boolean(a));
   const flags = Array.isArray(o.flags) ? o.flags.map((f) => String(f).toLowerCase()) : [];
   const seen = o.seen === false ? false : o.seen === true || flags.some((f) => f.includes("seen"));
@@ -244,4 +264,60 @@ export function sendMail(dto: SendMailDto) {
 
 export function replyMail(uid: string, dto: ReplyMailDto) {
   return api.post<unknown>(`/me/mail/messages/${encodeURIComponent(uid)}/reply`, dto);
+}
+
+function errorMessage(data: unknown, fallback: string): string {
+  if (!data || typeof data !== "object") return fallback;
+  const obj = data as Record<string, unknown>;
+  if (typeof obj.message === "string" && obj.message.trim()) return obj.message;
+  if (Array.isArray(obj.message)) return obj.message.map(String).join(", ");
+  if (typeof obj.error === "string" && obj.error.trim()) return obj.error;
+  return fallback;
+}
+
+/** GET authentifié (Bearer JWT) renvoyé en blob, puis téléchargement navigateur. */
+export async function downloadAttachment(uid: string, folder: string, index: number, filename: string): Promise<void> {
+  const headers = new Headers();
+  const token = getToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const path = `/me/mail/messages/${encodeURIComponent(uid)}/attachment${buildQuery({ folder, index })}`;
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, { method: "GET", headers });
+  } catch {
+    throw new ApiError("Impossible de joindre le serveur. Vérifiez votre connexion ou l’API.", 0);
+  }
+
+  if (res.status === 401) {
+    clearSession();
+    if (typeof window !== "undefined") {
+      const next = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.href = `/login?next=${next}`;
+    }
+    throw new ApiError("Session expirée. Veuillez vous reconnecter.", 401);
+  }
+
+  if (!res.ok) {
+    const text = await res.text();
+    let data: unknown = text;
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = text;
+      }
+    }
+    throw new ApiError(errorMessage(data, "Téléchargement impossible."), res.status, data);
+  }
+
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = filename || "piece-jointe";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
 }
