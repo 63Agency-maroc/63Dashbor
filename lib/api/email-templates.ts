@@ -1,5 +1,12 @@
 import { api, ApiError } from "@/lib/api/client";
 
+export type EmailTemplate = {
+  id: string;
+  waTemplateName: string;
+  subject: string;
+  htmlBody: string;
+};
+
 export type EmailTemplateMapping = {
   subject: string;
   htmlBody: string;
@@ -16,6 +23,41 @@ type EmailTemplateApiResponse = {
   htmlBody?: string;
   html_body?: string;
 };
+
+function asText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return "";
+}
+
+function normalizeTemplate(raw: unknown): EmailTemplate | null {
+  if (!raw || typeof raw !== "object") return null;
+  const row = raw as Record<string, unknown>;
+  const waTemplateName = asText(row.waTemplateName ?? row.wa_template_name).trim();
+  const subject = asText(row.subject);
+  const htmlBody = asText(row.htmlBody ?? row.html_body);
+  const id = asText(row.id).trim() || waTemplateName;
+  if (!id) return null;
+  return { id, waTemplateName, subject, htmlBody };
+}
+
+function pickTemplateList(raw: unknown): unknown[] {
+  if (Array.isArray(raw)) return raw;
+  if (!raw || typeof raw !== "object") return [];
+  const row = raw as Record<string, unknown>;
+  for (const key of ["templates", "items", "data"]) {
+    if (Array.isArray(row[key])) return row[key] as unknown[];
+  }
+  return [];
+}
+
+/** GET /email/templates — [{ id, wa_template_name, subject, html_body }] */
+export async function getEmailTemplates(): Promise<EmailTemplate[]> {
+  const raw = await api.get<unknown>("/email/templates");
+  return pickTemplateList(raw)
+    .map(normalizeTemplate)
+    .filter((item): item is EmailTemplate => Boolean(item));
+}
 
 function normalizeMapping(raw: EmailTemplateApiResponse | null | undefined): EmailTemplateMapping | null {
   if (!raw || typeof raw !== "object") return null;

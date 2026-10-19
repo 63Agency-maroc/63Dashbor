@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { ApiError } from "@/lib/api/client";
+import { getEmailTemplates, type EmailTemplate } from "@/lib/api/email-templates";
 import { getLeadEmails, sendLeadEmail, type EmailMessage } from "@/lib/api/leads";
 import { getMailAccount } from "@/lib/api/mailAccount";
 import { CASABLANCA_TZ, formatDateTime } from "@/lib/utils/date";
@@ -21,10 +22,7 @@ function textToHtml(text: string): string {
     .replace(/\n/g, "<br>");
 }
 
-function displayBody(message: EmailMessage): string {
-  const text = (message.bodyText ?? "").trim();
-  if (text) return text;
-  const html = message.bodyHtml ?? "";
+function htmlToText(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/p>/gi, "\n")
@@ -34,6 +32,19 @@ function displayBody(message: EmailMessage): string {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .trim();
+}
+
+function displayBody(message: EmailMessage): string {
+  const text = (message.bodyText ?? "").trim();
+  if (text) return text;
+  return htmlToText(message.bodyHtml ?? "");
+}
+
+function templateLabel(template: EmailTemplate): string {
+  const name = template.waTemplateName.trim();
+  if (name) return name;
+  if (template.subject.trim()) return template.subject.trim();
+  return template.id;
 }
 
 export function LeadEmailPanel({ leadId, leadEmail, onToast }: Props) {
@@ -48,6 +59,9 @@ export function LeadEmailPanel({ leadId, leadEmail, onToast }: Props) {
   const [threadLoading, setThreadLoading] = useState(false);
   const [threadError, setThreadError] = useState<string | null>(null);
 
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [templatesError, setTemplatesError] = useState<string | null>(null);
+  const [templateId, setTemplateId] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
@@ -97,6 +111,36 @@ export function LeadEmailPanel({ leadId, leadEmail, onToast }: Props) {
     void loadThread();
   }, [configured, loadThread]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void getEmailTemplates()
+      .then((list) => {
+        if (!cancelled) setTemplates(list);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setTemplates([]);
+        setTemplatesError(err instanceof ApiError ? err.message : "Impossible de charger les templates.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function applyTemplate(value: string) {
+    if (!value || value === "__none__") {
+      setTemplateId("");
+      setSubject("");
+      setBody("");
+      return;
+    }
+    const template = templates.find((item) => item.id === value);
+    if (!template) return;
+    setTemplateId(template.id);
+    setSubject(template.subject);
+    setBody(htmlToText(template.htmlBody));
+  }
+
   async function handleSend(e: FormEvent) {
     e.preventDefault();
     if (!hasEmail || sending) return;
@@ -114,6 +158,7 @@ export function LeadEmailPanel({ leadId, leadEmail, onToast }: Props) {
       });
       setSubject("");
       setBody("");
+      setTemplateId("");
       onToast?.("Email envoyé.", "success");
       await loadThread();
     } catch (err) {
@@ -218,6 +263,27 @@ export function LeadEmailPanel({ leadId, leadEmail, onToast }: Props) {
             readOnly
             disabled
           />
+        </div>
+        <div className="mb-2">
+          <label className="form-label small mb-1" htmlFor="lead-email-template">
+            Template
+          </label>
+          <select
+            id="lead-email-template"
+            className="form-select form-select-sm"
+            value={templateId}
+            onChange={(e) => applyTemplate(e.target.value)}
+            disabled={composerDisabled}
+          >
+            <option value="">Choisir un template…</option>
+            <option value="__none__">— Aucun / vide —</option>
+            {templates.map((template) => (
+              <option key={template.id} value={template.id}>
+                {templateLabel(template)}
+              </option>
+            ))}
+          </select>
+          {templatesError ? <small className="text-danger">{templatesError}</small> : null}
         </div>
         <div className="mb-2">
           <label className="form-label small mb-1" htmlFor="lead-email-subject">
