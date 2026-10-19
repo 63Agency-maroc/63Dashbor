@@ -109,6 +109,13 @@ function sanitizeHtml(html: string): string {
   return DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
 }
 
+function splitEmails(value: string): string[] {
+  return value
+    .split(/[,;]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
 function replySubject(subject: string): string {
   const s = subject.trim();
   if (/^re:/i.test(s)) return s;
@@ -151,6 +158,9 @@ export function MailboxApp() {
 
   const [composing, setComposing] = useState(false);
   const [composeTo, setComposeTo] = useState("");
+  const [composeCc, setComposeCc] = useState("");
+  const [toDraft, setToDraft] = useState("");
+  const [ccDraft, setCcDraft] = useState("");
   const [composeSubject, setComposeSubject] = useState("");
   const [composeBody, setComposeBody] = useState("");
   const [sending, setSending] = useState(false);
@@ -243,7 +253,7 @@ export function MailboxApp() {
     if (total <= 0 || items.length === 0) return "0";
     const start = (page - 1) * PAGE_SIZE + 1;
     const end = start + items.length - 1;
-    return `${start} – ${end} of ${total}`;
+    return `${start} - ${end} of ${total}`;
   }, [items.length, page, total]);
 
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -252,6 +262,9 @@ export function MailboxApp() {
     setComposing(true);
     setReplying(false);
     setComposeTo("");
+    setComposeCc("");
+    setToDraft("");
+    setCcDraft("");
     setComposeSubject("");
     setComposeBody("");
     setComposeError(null);
@@ -315,7 +328,7 @@ export function MailboxApp() {
   async function handleSend(e: FormEvent) {
     e.preventDefault();
     if (sending) return;
-    const to = composeTo.trim();
+    const to = [...splitEmails(composeTo), toDraft.trim()].filter(Boolean).join(", ");
     const subject = composeSubject.trim();
     const body = composeBody.trim();
     if (!to || !subject || !body) {
@@ -329,6 +342,9 @@ export function MailboxApp() {
       setToast({ message: "Message envoyé.", variant: "success" });
       setComposing(false);
       setComposeTo("");
+      setComposeCc("");
+      setToDraft("");
+      setCcDraft("");
       setComposeSubject("");
       setComposeBody("");
       void loadList();
@@ -383,53 +399,87 @@ export function MailboxApp() {
           display: flex;
           flex-direction: row;
           align-items: stretch;
+          gap: 0;
           height: calc(100vh - 168px);
           min-height: 480px;
           max-width: 100%;
           overflow: hidden;
           background: var(--bs-body-bg);
           border: 1px solid var(--bs-border-color);
-          border-radius: var(--bs-border-radius);
+          border-radius: 16px;
+          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+        }
+        [data-bs-theme="dark"] .mailbox-page .mb-shell {
+          background: var(--bs-secondary-bg);
+          box-shadow: none;
         }
         .mailbox-page .mb-folders {
           position: static;
-          flex: 0 0 240px;
-          width: 240px;
-          max-width: 240px;
-          height: auto;
+          flex: 0 0 248px;
+          width: 248px;
+          max-width: 248px;
           align-self: stretch;
           min-width: 0;
+          min-height: 0;
           display: flex;
           flex-direction: column;
-          border-right: 1px solid var(--bs-border-color);
           background: var(--bs-light);
+          border: 0;
           overflow: hidden;
+          padding: 16px 12px 12px;
         }
-        .mailbox-page .mb-folders-nav {
+        [data-bs-theme="dark"] .mailbox-page .mb-folders {
+          background: var(--bs-tertiary-bg);
+        }
+        .mailbox-page .mb-compose-btn {
+          flex: 0 0 auto;
+          font-weight: 600;
+          border-radius: 10px;
+          padding: 0.62rem 1rem;
+          margin-bottom: 10px;
+        }
+        .mailbox-page .mb-folder-card {
           flex: 1 1 auto;
           min-height: 0;
           overflow-x: hidden;
           overflow-y: auto;
+          padding: 4px 0 0;
+          background: transparent;
+          border: 0;
+          box-shadow: none;
         }
-        .mailbox-page .mail-nav-item {
-          font-size: 15px;
+        .mailbox-page .mb-folder {
+          width: 100%;
+          min-height: 42px;
+          border: 0;
+          background: transparent;
           color: var(--bs-heading-color);
-          padding: 8px 12px;
-          border-radius: var(--bs-border-radius);
+          border-radius: 10px;
+          padding: 0 12px;
+          margin: 2px 0;
           display: flex;
           align-items: center;
-          min-width: 0;
+          gap: 10px;
+          font-size: 14.5px;
+          font-weight: 500;
+          text-align: left;
           cursor: pointer;
         }
-        .mailbox-page .mail-nav-item span { min-width: 0; }
-        .mailbox-page .mail-nav-item i { font-size: 18px; color: var(--bs-body-color); }
-        .mailbox-page .mail-nav-item:hover,
-        .mailbox-page .mail-nav-item.active {
+        .mailbox-page .mb-folder i { font-size: 18px; color: var(--bs-secondary-color); }
+        .mailbox-page .mb-folder span { min-width: 0; }
+        .mailbox-page .mb-folder:hover { background: rgba(255, 255, 255, 0.55); }
+        [data-bs-theme="dark"] .mailbox-page .mb-folder:hover { background: rgba(255, 255, 255, 0.04); }
+        .mailbox-page .mb-folder.is-active {
           background: var(--bs-body-bg);
-          box-shadow: 0 2px 2px rgba(0, 0, 0, 0.05);
+          color: var(--bs-heading-color);
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.04);
         }
-        .mailbox-page .mail-nav-item:hover i,
-        .mailbox-page .mail-nav-item.active i { color: var(--bs-primary); }
+        [data-bs-theme="dark"] .mailbox-page .mb-folder.is-active {
+          background: var(--bs-secondary-bg);
+          box-shadow: none;
+        }
+        .mailbox-page .mb-folder.is-active i { color: var(--bs-primary); }
+        .mailbox-page .mb-folder .badge { font-weight: 600; font-size: 11px; }
         .mailbox-page .mb-main {
           flex: 1 1 auto;
           min-width: 0;
@@ -443,15 +493,33 @@ export function MailboxApp() {
           display: flex;
           flex-wrap: wrap;
           align-items: center;
-          gap: 8px;
-          padding: 10px 12px;
-          border-bottom: 1px solid var(--bs-border-color);
+          gap: 12px;
+          padding: 14px 16px 10px;
+          border-bottom: 0;
           min-width: 0;
+          background: transparent;
         }
         .mailbox-page .mb-search {
-          flex: 1 1 180px;
+          flex: 0 1 280px;
           min-width: 0;
           max-width: 320px;
+        }
+        .mailbox-page .mb-search .form-control {
+          border-radius: 8px;
+          background: var(--bs-body-bg);
+        }
+        .mailbox-page .mb-list-tools {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 8px 18px;
+          background: var(--bs-light);
+          border-top: 1px solid var(--bs-border-color);
+          border-bottom: 1px solid var(--bs-border-color);
+          color: var(--bs-secondary-color);
+        }
+        [data-bs-theme="dark"] .mailbox-page .mb-list-tools {
+          background: rgba(255, 255, 255, 0.03);
         }
         .mailbox-page .mb-folder-select { display: none; }
         .mailbox-page .mb-compose-toolbar { display: none; }
@@ -460,9 +528,22 @@ export function MailboxApp() {
           min-width: 0;
           min-height: 0;
           display: grid;
-          grid-template-columns: 420px minmax(0, 1fr);
+          grid-template-columns: minmax(0, 1fr);
           grid-template-rows: minmax(0, 1fr);
           overflow: hidden;
+        }
+        .mailbox-page.is-reading .mb-panes {
+          grid-template-columns: minmax(280px, 46%) minmax(0, 1fr);
+        }
+        .mailbox-page.is-composing .mb-panes {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .mailbox-page.is-composing .mb-list,
+        .mailbox-page.is-composing .mb-read,
+        .mailbox-page.is-composing .mb-list-tools { display: none; }
+        .mailbox-page.is-composing .mb-compose-layer {
+          grid-column: 1;
+          background: var(--bs-body-bg);
         }
         .mailbox-page .mb-list,
         .mailbox-page .mb-read {
@@ -474,12 +555,13 @@ export function MailboxApp() {
           grid-row: 1;
           overflow-x: hidden;
           overflow-y: auto;
-          border-right: 1px solid var(--bs-border-color);
+          border-right: 0;
         }
+        .mailbox-page.is-reading .mb-list { border-right: 1px solid var(--bs-border-color); }
         .mailbox-page .mb-read {
           grid-column: 2;
           grid-row: 1;
-          display: flex;
+          display: none;
           flex-direction: column;
           overflow: hidden;
           background: var(--bs-body-bg);
@@ -526,10 +608,11 @@ export function MailboxApp() {
         .mailbox-page .mail-html img { max-width: 100%; height: auto; }
         .mailbox-page .mail-html a { color: var(--bs-primary); }
         .mailbox-page .mb-compose-layer { display: none; }
+        .mailbox-page.is-reading .mb-read { display: flex; }
         .mailbox-page.is-composing .mb-compose-layer {
           display: flex;
           flex-direction: column;
-          grid-column: 2;
+          grid-column: 1;
           grid-row: 1;
           min-width: 0;
           min-height: 0;
@@ -551,14 +634,105 @@ export function MailboxApp() {
           height: auto;
         }
         .mailbox-page .mb-fab { display: none; }
+        .mailbox-page .mb-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          width: 100%;
+          min-height: 52px;
+          padding: 10px 18px;
+          border: 0;
+          border-bottom: 1px solid var(--bs-border-color);
+          background: transparent;
+          text-align: left;
+          cursor: pointer;
+          min-width: 0;
+        }
+        .mailbox-page .mb-row:hover { background: rgba(var(--bs-primary-rgb), 0.05); }
+        .mailbox-page .mb-row.is-active { background: rgba(var(--bs-primary-rgb), 0.1); }
+        .mailbox-page .mb-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          flex: 0 0 8px;
+          background: transparent;
+        }
+        .mailbox-page .mb-row.is-unread .mb-dot { background: var(--bs-primary); }
+        .mailbox-page .mb-row-main { flex: 1 1 auto; min-width: 0; }
+        .mailbox-page .mb-row-line {
+          display: flex;
+          align-items: baseline;
+          gap: 8px;
+          min-width: 0;
+        }
+        .mailbox-page .mb-sender {
+          flex: 0 0 132px;
+          max-width: 28%;
+          font-weight: 500;
+          color: var(--bs-heading-color);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .mailbox-page .mb-subject {
+          flex: 0 1 auto;
+          max-width: 42%;
+          font-weight: 600;
+          color: var(--bs-heading-color);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .mailbox-page .mb-preview {
+          flex: 1 1 auto;
+          min-width: 0;
+          color: var(--bs-secondary-color);
+          font-weight: 400;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .mailbox-page .mb-row.is-unread .mb-sender,
+        .mailbox-page .mb-row.is-unread .mb-subject { font-weight: 700; }
+        .mailbox-page .mb-time {
+          flex: 0 0 auto;
+          color: var(--bs-secondary-color);
+          font-size: 12px;
+          white-space: nowrap;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .mailbox-page .mb-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          background: rgba(var(--bs-primary-rgb), 0.12);
+          color: var(--bs-primary);
+          border-radius: 999px;
+          padding: 2px 8px;
+          font-size: 12px;
+          font-weight: 600;
+          max-width: 180px;
+        }
+        .mailbox-page .mb-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mailbox-page .mb-chips {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 6px;
+          flex: 1;
+          min-width: 0;
+          padding: 6px 0;
+        }
         @media (max-width: 1279.98px) and (min-width: 1024px) {
           .mailbox-page .mb-folders {
-            flex-basis: 200px;
-            width: 200px;
-            max-width: 200px;
+            flex-basis: 220px;
+            width: 220px;
+            max-width: 220px;
           }
-          .mailbox-page .mb-panes {
-            grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+          .mailbox-page.is-reading .mb-panes {
+            grid-template-columns: minmax(240px, 42%) minmax(0, 1fr);
           }
         }
         @media (max-width: 1023.98px) {
@@ -590,6 +764,7 @@ export function MailboxApp() {
             background: var(--bs-body-bg);
           }
           .mailbox-page.is-reading .mb-read { display: flex; }
+          .mailbox-page.is-reading .mb-list { display: none; }
           .mailbox-page.is-composing .mb-read { display: none; }
           .mailbox-page.is-composing .mb-compose-layer {
             position: fixed;
@@ -654,16 +829,10 @@ export function MailboxApp() {
         <>
           <div className="mb-shell">
             <aside className="mb-folders">
-              <div className="px-3 pt-3 mb-2">
-                <button
-                  type="button"
-                  className="btn btn-primary waves-effect waves-light w-100"
-                  onClick={openCompose}
-                >
-                  Nouveau message ✉️
-                </button>
-              </div>
-              <div className="d-grid gap-1 p-2 mb-folders-nav" role="tablist">
+              <button type="button" className="btn btn-primary waves-effect waves-light w-100 mb-compose-btn" onClick={openCompose}>
+                Compose
+              </button>
+              <div className="mb-folder-card" role="tablist">
                 {foldersLoading ? (
                   <div className="text-center py-4">
                     <div className="spinner-border spinner-border-sm text-primary" role="status" />
@@ -680,13 +849,13 @@ export function MailboxApp() {
                       <button
                         key={folder.id}
                         type="button"
-                        className={`mail-nav-item border-0 bg-transparent text-start w-100${active ? " active" : ""}`}
+                        className={`mb-folder${active ? " is-active" : ""}`}
                         onClick={() => selectFolder(folder.id)}
                       >
-                        <i className={`${view.icon} me-2`} />
+                        <i className={view.icon} aria-hidden />
                         <span className="text-truncate">{view.label}</span>
                         {folder.unseen > 0 ? (
-                          <span className="badge badge-sm bg-primary-subtle text-primary ms-auto">
+                          <span className="badge rounded-pill bg-primary-subtle text-primary ms-auto">
                             {folder.unseen}
                           </span>
                         ) : null}
@@ -732,17 +901,8 @@ export function MailboxApp() {
                     onChange={(e) => setSearchInput(e.target.value)}
                   />
                 </form>
-                <div className="d-flex align-items-center gap-2 ms-auto">
-                  <button
-                    type="button"
-                    className="btn btn-white btn-shadow btn-icon waves-effect"
-                    onClick={() => void loadList()}
-                    aria-label="Actualiser"
-                    disabled={listLoading}
-                  >
-                    <i className="fi fi-rr-rotate-right" />
-                  </button>
-                  <span className="small text-nowrap">{rangeLabel}</span>
+                <div className="d-flex align-items-center gap-3 ms-auto">
+                  <span className="small text-nowrap text-body">{rangeLabel}</span>
                   <div className="d-flex gap-2">
                     <button
                       type="button"
@@ -766,6 +926,18 @@ export function MailboxApp() {
                 </div>
               </div>
 
+              <div className="mb-list-tools">
+                <button
+                  type="button"
+                  className="btn btn-link p-0 text-body"
+                  onClick={() => void loadList()}
+                  aria-label="Actualiser"
+                  disabled={listLoading}
+                >
+                  <i className="fi fi-rr-rotate-right" />
+                </button>
+              </div>
+
               <div className="mb-panes">
                 <div className="mb-list">
                   {listLoading ? (
@@ -782,31 +954,26 @@ export function MailboxApp() {
                   ) : items.length === 0 ? (
                     <p className="text-center text-muted py-5 mb-0">Aucun message.</p>
                   ) : (
-                    <ul className="list-unstyled mail-list m-0">
+                    <ul className="list-unstyled m-0">
                       {items.map((item) => (
-                        <li
-                          key={item.uid}
-                          className={`mail-list-item${item.seen ? "" : " mail-unread"}${
-                            item.uid === selectedUid ? " is-active" : ""
-                          }`}
-                        >
+                        <li key={item.uid}>
                           <button
                             type="button"
-                            className="mail-item-content ms-0 me-2 border-0 bg-transparent text-start p-0"
+                            className={`mb-row${item.seen ? "" : " is-unread"}${item.uid === selectedUid ? " is-active" : ""}`}
                             onClick={() => void openMessage(item)}
                           >
-                            <span className="mail-item-username me-2">{parseAddress(item.from).name}</span>
-                            <span className="mail-item-subject">{item.subject}</span>
-                            {item.snippet ? (
-                              <span className="mail-item-text text-body"> {item.snippet}</span>
-                            ) : null}
-                          </button>
-                          <div className="mail-item-meta">
-                            <small className="mail-item-time d-inline-flex align-items-center gap-1">
+                            <span className="mb-row-main">
+                              <span className="mb-row-line">
+                                <span className="mb-sender">{parseAddress(item.from).name}</span>
+                                <span className="mb-subject">{item.subject}</span>
+                                {item.snippet ? <span className="mb-preview">{item.snippet}</span> : null}
+                              </span>
+                            </span>
+                            <span className="mb-time">
                               {item.hasAttachments ? <i className="fi fi-rr-clip" title="Pièce jointe" /> : null}
                               {formatListDate(item.date)}
-                            </small>
-                          </div>
+                            </span>
+                          </button>
                         </li>
                       ))}
                     </ul>
@@ -950,25 +1117,93 @@ export function MailboxApp() {
                         <i className="fi fi-rr-cross-small" />
                       </button>
                     </div>
-                    <div className="px-3 pt-3">
+                    <div className="px-4 py-3">
                       {composeError ? (
                         <div className="alert alert-danger py-2" role="alert">
                           {composeError}
                         </div>
                       ) : null}
                       <ul className="list-group list-group-flush border-bottom">
-                        <li className="list-group-item d-flex align-items-center px-0 py-0">
+                        <li className="list-group-item d-flex align-items-center px-0 py-1 bg-transparent">
                           <span className="text-body minw-100px">To</span>
-                          <input
-                            className="form-control border-0 shadow-none px-2"
-                            type="email"
-                            value={composeTo}
-                            onChange={(e) => setComposeTo(e.target.value)}
-                            disabled={sending}
-                            required
-                          />
+                          <div className="mb-chips">
+                            {splitEmails(composeTo).map((email) => (
+                              <span className="mb-chip" key={email}>
+                                <span>{email}</span>
+                                <button
+                                  type="button"
+                                  className="btn btn-link btn-sm p-0 text-primary"
+                                  aria-label={`Retirer ${email}`}
+                                  onClick={() =>
+                                    setComposeTo(splitEmails(composeTo).filter((item) => item !== email).join(", "))
+                                  }
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))}
+                            <input
+                              className="form-control border-0 shadow-none px-1 flex-grow-1"
+                              style={{ minWidth: 120 }}
+                              value={toDraft}
+                              placeholder="email@exemple.com"
+                              disabled={sending}
+                              onChange={(e) => setToDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === "," || e.key === ";") {
+                                  e.preventDefault();
+                                  const next = toDraft.trim().replace(/[,;]$/, "");
+                                  if (!next) return;
+                                  setComposeTo([...splitEmails(composeTo), next].join(", "));
+                                  setToDraft("");
+                                }
+                              }}
+                              onBlur={() => {
+                                const next = toDraft.trim().replace(/[,;]$/, "");
+                                if (!next) return;
+                                setComposeTo([...splitEmails(composeTo), next].join(", "));
+                                setToDraft("");
+                              }}
+                            />
+                          </div>
                         </li>
-                        <li className="list-group-item d-flex align-items-center px-0 py-2">
+                        <li className="list-group-item d-flex align-items-center px-0 py-1 bg-transparent">
+                          <span className="text-body minw-100px">CC</span>
+                          <div className="mb-chips">
+                            {splitEmails(composeCc).map((email) => (
+                              <span className="mb-chip" key={email}>
+                                <span>{email}</span>
+                                <button
+                                  type="button"
+                                  className="btn btn-link btn-sm p-0 text-primary"
+                                  aria-label={`Retirer ${email}`}
+                                  onClick={() =>
+                                    setComposeCc(splitEmails(composeCc).filter((item) => item !== email).join(", "))
+                                  }
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))}
+                            <input
+                              className="form-control border-0 shadow-none px-1 flex-grow-1"
+                              style={{ minWidth: 120 }}
+                              value={ccDraft}
+                              disabled={sending}
+                              onChange={(e) => setCcDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === "," || e.key === ";") {
+                                  e.preventDefault();
+                                  const next = ccDraft.trim().replace(/[,;]$/, "");
+                                  if (!next) return;
+                                  setComposeCc([...splitEmails(composeCc), next].join(", "));
+                                  setCcDraft("");
+                                }
+                              }}
+                            />
+                          </div>
+                        </li>
+                        <li className="list-group-item d-flex align-items-center px-0 py-2 bg-transparent">
                           <span className="text-body minw-100px">Subject</span>
                           <input
                             type="text"
@@ -988,7 +1223,7 @@ export function MailboxApp() {
                       disabled={sending}
                       placeholder="Écrire un message…"
                     />
-                    <div className="d-flex px-3 py-2">
+                    <div className="d-flex align-items-center px-4 py-3">
                       <button type="submit" className="btn btn-primary waves-effect waves-light" disabled={sending}>
                         {sending ? (
                           <>
@@ -999,6 +1234,12 @@ export function MailboxApp() {
                           "Envoyer"
                         )}
                       </button>
+                      <button type="button" className="btn btn-action-gray text-dark btn-icon waves-effect ms-3" aria-label="Lien" tabIndex={-1}>
+                        <i className="fi fi-rr-link-alt" />
+                      </button>
+                      <button type="button" className="btn btn-action-gray text-dark btn-icon waves-effect ms-1" aria-label="Image" tabIndex={-1}>
+                        <i className="fi fi-rr-add-image" />
+                      </button>
                     </div>
                   </form>
                 </div>
@@ -1007,7 +1248,7 @@ export function MailboxApp() {
           </div>
 
           <button type="button" className="btn btn-primary mb-fab" onClick={openCompose}>
-            Nouveau message ✉️
+            Compose
           </button>
         </>
       )}
