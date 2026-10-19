@@ -728,9 +728,118 @@ export default function WhatsappPage() {
     <div className="container-fluid whatsapp-page">
       <style>{`
         .whatsapp-page .chat-wrapper {
-          height: calc(100vh - var(--app-header-height, 70px) - var(--footer-height, 56px) - 110px);
-          min-height: 420px;
-          max-height: calc(100vh - var(--app-header-height, 70px) - var(--footer-height, 56px) - 110px);
+          position: relative;
+          height: calc(100vh - var(--app-header-height, 70px) - var(--footer-height, 56px) - 96px);
+          min-height: 520px;
+          max-height: calc(100vh - var(--app-header-height, 70px) - var(--footer-height, 56px) - 96px);
+          border-radius: 16px;
+          background: var(--bs-body-bg);
+        }
+        .whatsapp-page .chat-sidebar {
+          width: 340px;
+          min-width: 300px;
+          max-width: 360px;
+          background: var(--bs-body-bg);
+          border-right: 1px solid var(--bs-border-color);
+        }
+        @media (max-width: 991.98px) {
+          .whatsapp-page .chat-sidebar {
+            width: 300px;
+            min-width: 300px;
+            max-width: 300px;
+          }
+        }
+        .whatsapp-page .wa-search {
+          padding: 16px 16px 8px;
+        }
+        .whatsapp-page .wa-search .form-control {
+          border-radius: 8px;
+          background: var(--bs-body-bg);
+          min-height: 40px;
+        }
+        .whatsapp-page .chat-nav {
+          padding: 4px 0 8px;
+        }
+        .whatsapp-page .chat-nav .chat-nav-item {
+          margin: 0;
+          border-radius: 0;
+          padding: 12px 16px;
+          text-decoration: none;
+          color: inherit;
+        }
+        .whatsapp-page .chat-nav .chat-nav-item:hover,
+        .whatsapp-page .chat-nav .chat-nav-item.active {
+          background: var(--bs-light);
+        }
+        .whatsapp-page .chat-nav-item .avatar {
+          width: 44px;
+          height: 44px;
+          min-width: 44px;
+          font-size: 15px;
+          font-weight: 700;
+        }
+        .whatsapp-page .chat-nav-item .chat-avatar-info {
+          min-width: 0;
+          align-items: flex-start;
+        }
+        .whatsapp-page .chat-nav-item .clearfix {
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+        .whatsapp-page .chat-nav-item .name {
+          font-size: 15px;
+          font-weight: 600;
+          color: var(--bs-heading-color);
+        }
+        .whatsapp-page .chat-nav-item .text {
+          color: var(--bs-secondary-color);
+          font-size: 13px;
+          max-width: 100%;
+        }
+        .whatsapp-page .chat-nav-item .time {
+          color: var(--bs-secondary-color);
+          font-size: 12px;
+          white-space: nowrap;
+        }
+        .whatsapp-page .chat-nav-item .badge {
+          min-width: 18px;
+          height: 18px;
+          padding: 0 5px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+        }
+        .whatsapp-page .chat-header {
+          min-height: 72px;
+          padding: 12px 18px;
+          background: var(--bs-body-bg);
+        }
+        .whatsapp-page .chat-header .avatar {
+          width: 42px;
+          height: 42px;
+          min-width: 42px;
+          font-size: 15px;
+          font-weight: 700;
+        }
+        .whatsapp-page .chat-header h6 {
+          font-size: 15px;
+          font-weight: 650;
+        }
+        .whatsapp-page .chat-body {
+          background: var(--bs-light);
+        }
+        .whatsapp-page .chat-send-form {
+          padding: 12px 16px;
+          gap: 8px;
+        }
+        .whatsapp-page .chat-send-form .chat-input {
+          background: transparent;
+          font-size: 14px;
+        }
+        .whatsapp-page .chat-send-form .btn-primary {
+          min-width: 84px;
+          border-radius: 8px;
         }
         .whatsapp-page .chat-container {
           display: flex;
@@ -771,36 +880,34 @@ export default function WhatsappPage() {
         }
         .whatsapp-page .chat-conversation .chat-message-left,
         .whatsapp-page .chat-conversation .chat-message-right {
-          max-width: 68%;
-          gap: 2px;
-          margin-bottom: 4px;
+          max-width: min(72%, 520px);
+          gap: 6px;
+          margin-bottom: 16px;
         }
-        .whatsapp-page .chat-conversation .chat-message-left + .chat-message-right,
-        .whatsapp-page .chat-conversation .chat-message-right + .chat-message-left {
-          margin-top: 8px;
-        }
-        .whatsapp-page .chat-conversation .chat-message-text {
-          padding: 6px 10px;
-          font-size: 0.875rem;
-          line-height: 1.35;
-          border-radius: 8px;
-          box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+        .whatsapp-page .chat-conversation .chat-message-text,
+        .whatsapp-page .chat-conversation .chat-message-text:first-child,
+        .whatsapp-page .chat-conversation .chat-message-text:nth-last-child(2),
+        .whatsapp-page .chat-conversation .chat-message-left .chat-message-text,
+        .whatsapp-page .chat-conversation .chat-message-left .chat-message-text:first-child,
+        .whatsapp-page .chat-conversation .chat-message-right .chat-message-text,
+        .whatsapp-page .chat-conversation .chat-message-right .chat-message-text:first-child,
+        .whatsapp-page .chat-conversation .chat-message-right .chat-message-text:nth-last-child(2) {
+          padding: 10px 14px;
+          font-size: 14px;
+          line-height: 1.45;
+          border-radius: 14px;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
         .whatsapp-page .chat-conversation .chat-message-left .chat-message-text {
-          border-radius: 2px 8px 8px 8px;
+          background: var(--bs-body-bg);
+          color: var(--bs-heading-color);
         }
         .whatsapp-page .chat-conversation .chat-message-right .chat-message-text {
-          border-radius: 8px 2px 8px 8px;
+          background: var(--bs-primary);
+          color: #fff;
         }
-        .whatsapp-page .chat-conversation .chat-message-text:first-child,
-        .whatsapp-page .chat-conversation .chat-message-text:nth-last-child(2) {
-          border-radius: inherit;
-        }
-        .whatsapp-page .chat-conversation .chat-message-left .chat-message-text:first-child {
-          border-radius: 2px 8px 8px 8px;
-        }
-        .whatsapp-page .chat-conversation .chat-message-right .chat-message-text:first-child {
-          border-radius: 8px 2px 8px 8px;
+        .whatsapp-page .chat-conversation .chat-message-right .chat-message-text a {
+          color: #fff;
         }
         .whatsapp-page .chat-conversation .wa-reply-quote {
           font-size: 0.75rem;
@@ -811,10 +918,11 @@ export default function WhatsappPage() {
           margin-bottom: 0 !important;
         }
         .whatsapp-page .chat-conversation .chat-time {
-          font-size: 0.7rem;
+          font-size: 12px;
           line-height: 1.2;
-          opacity: 0.75;
-          margin-top: 1px;
+          opacity: 1;
+          margin-top: 0;
+          color: var(--bs-secondary-color);
         }
         .whatsapp-page .chat-conversation .chat-time i {
           font-size: 0.75rem;
@@ -1063,18 +1171,16 @@ export default function WhatsappPage() {
 
             {/* LISTE */}
             <div className={`chat-sidebar${mobileSidebarOpen ? " open" : ""}`}>
-              <div className="d-flex p-3 align-items-center justify-content-between flex-shrink-0">
+              <div className="wa-search d-flex align-items-center flex-shrink-0">
                 <form
-                  className="d-flex align-items-center shadow-sm position-relative w-100 app-search-field"
+                  className="d-flex align-items-center position-relative w-100"
                   onSubmit={(e) => e.preventDefault()}
                 >
-                  <button type="button" className="btn btn-sm border-0 position-absolute start-0 ms-3 p-0">
-                    <i className="fi fi-rr-search" />
-                  </button>
+                  <i className="fi fi-rr-search position-absolute start-0 ms-3 text-muted" aria-hidden />
                   <input
                     type="search"
                     className="form-control ps-5"
-                    placeholder="Rechercher un contact…"
+                    placeholder="Search"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                   />
@@ -1165,7 +1271,7 @@ export default function WhatsappPage() {
                               </span>
                             ) : null}
                           </h6>
-                          <span className="text text-truncate d-block" style={{ maxWidth: 140 }}>
+                          <span className="text text-truncate d-block">
                             {c.lastMessageText || "—"}
                           </span>
                         </div>
@@ -1191,7 +1297,7 @@ export default function WhatsappPage() {
               {activeConv ? (
                 <>
                   <div className="chat-header">
-                    <div className="d-flex align-items-center">
+                    <div className="d-flex align-items-center min-w-0">
                       <button
                         type="button"
                         className="btn btn-white btn-shadow btn-icon waves-effect chat-sidebar-toggler d-lg-none me-2"
@@ -1199,19 +1305,38 @@ export default function WhatsappPage() {
                       >
                         <i className="fi fi-rr-menu-burger" />
                       </button>
-                      <a href="#" className="chat-nav-item" onClick={(e) => e.preventDefault()}>
-                        <div className="avatar rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center">
-                          {initials(activeConv)}
-                        </div>
-                        <div className="chat-avatar-info">
-                          <div className="clearfix">
-                            <h6 className="name mb-0">{displayName(activeConv)}</h6>
-                            <span className="text small text-muted">{activeConv.phoneNumber}</span>
-                          </div>
-                        </div>
-                      </a>
+                      <div className="avatar rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center flex-shrink-0">
+                        {initials(activeConv)}
+                      </div>
+                      <div className="min-w-0 ms-2">
+                        <h6 className="mb-0 text-truncate">{displayName(activeConv)}</h6>
+                        <span className="small text-muted text-truncate d-block">
+                          {activeConv.lastMessageText || activeConv.phoneNumber}
+                        </span>
+                      </div>
                     </div>
-                    {/* TODO: pas d'API — actions header template (call/video/info) retirées */}
+                    <div className="d-flex align-items-center gap-2 flex-shrink-0">
+                      {activeConv.phoneNumber ? (
+                        <a
+                          className="btn btn-white btn-shadow btn-icon waves-effect"
+                          href={`tel:${activeConv.phoneNumber}`}
+                          aria-label="Appeler"
+                        >
+                          <i className="fi fi-rr-phone-call" />
+                        </a>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="btn btn-white btn-shadow btn-icon waves-effect"
+                        aria-label="Plus"
+                        onClick={() => {
+                          setShowTemplate((v) => !v);
+                          void ensureTemplates();
+                        }}
+                      >
+                        <i className="fi fi-rr-menu-dots" />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="chat-body">
