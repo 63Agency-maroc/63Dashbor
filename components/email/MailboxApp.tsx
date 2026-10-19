@@ -381,14 +381,23 @@ export function MailboxApp() {
         .mailbox-page { max-width: 100%; overflow-x: hidden; }
         .mailbox-page .mb-shell {
           display: flex;
+          flex-direction: row;
+          align-items: stretch;
           height: calc(100vh - 168px);
-          min-height: 420px;
+          min-height: 480px;
           max-width: 100%;
           overflow: hidden;
+          background: var(--bs-body-bg);
+          border: 1px solid var(--bs-border-color);
+          border-radius: var(--bs-border-radius);
         }
         .mailbox-page .mb-folders {
-          flex: 0 0 220px;
-          width: 220px;
+          position: static;
+          flex: 0 0 240px;
+          width: 240px;
+          max-width: 240px;
+          height: auto;
+          align-self: stretch;
           min-width: 0;
           display: flex;
           flex-direction: column;
@@ -399,6 +408,7 @@ export function MailboxApp() {
         .mailbox-page .mb-folders-nav {
           flex: 1 1 auto;
           min-height: 0;
+          overflow-x: hidden;
           overflow-y: auto;
         }
         .mailbox-page .mail-nav-item {
@@ -423,6 +433,7 @@ export function MailboxApp() {
         .mailbox-page .mb-main {
           flex: 1 1 auto;
           min-width: 0;
+          min-height: 0;
           display: flex;
           flex-direction: column;
           overflow: hidden;
@@ -442,14 +453,15 @@ export function MailboxApp() {
           min-width: 0;
           max-width: 320px;
         }
-        .mailbox-page .mb-folder-select { display: none; width: 160px; max-width: 42vw; }
+        .mailbox-page .mb-folder-select { display: none; }
         .mailbox-page .mb-compose-toolbar { display: none; }
         .mailbox-page .mb-panes {
-          position: relative;
           flex: 1 1 auto;
           min-width: 0;
           min-height: 0;
-          display: flex;
+          display: grid;
+          grid-template-columns: 420px minmax(0, 1fr);
+          grid-template-rows: minmax(0, 1fr);
           overflow: hidden;
         }
         .mailbox-page .mb-list,
@@ -458,15 +470,18 @@ export function MailboxApp() {
           min-height: 0;
         }
         .mailbox-page .mb-list {
-          flex: 1 1 42%;
+          grid-column: 1;
+          grid-row: 1;
+          overflow-x: hidden;
           overflow-y: auto;
+          border-right: 1px solid var(--bs-border-color);
         }
         .mailbox-page .mb-read {
-          flex: 1 1 58%;
+          grid-column: 2;
+          grid-row: 1;
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          border-left: 1px solid var(--bs-border-color);
           background: var(--bs-body-bg);
         }
         .mailbox-page .mb-read-scroll {
@@ -511,12 +526,23 @@ export function MailboxApp() {
         .mailbox-page .mail-html img { max-width: 100%; height: auto; }
         .mailbox-page .mail-html a { color: var(--bs-primary); }
         .mailbox-page .mb-compose-layer { display: none; }
-        .mailbox-page.is-composing .mb-compose-layer { display: flex; }
+        .mailbox-page.is-composing .mb-compose-layer {
+          display: flex;
+          flex-direction: column;
+          grid-column: 2;
+          grid-row: 1;
+          min-width: 0;
+          min-height: 0;
+          background: var(--bs-body-bg);
+        }
+        .mailbox-page.is-composing .mb-read { display: none; }
         .mailbox-page .mb-compose-card {
           display: flex;
           flex-direction: column;
+          flex: 1 1 auto;
           min-width: 0;
           min-height: 0;
+          width: 100%;
           background: var(--bs-body-bg);
         }
         .mailbox-page .mb-compose-card .mail-textarea {
@@ -525,57 +551,55 @@ export function MailboxApp() {
           height: auto;
         }
         .mailbox-page .mb-fab { display: none; }
-        @media (min-width: 1280px) {
-          .mailbox-page .mb-compose-layer {
-            position: absolute;
-            top: 0;
-            right: 0;
-            bottom: 0;
-            width: 58%;
-            z-index: 3;
-            border-left: 1px solid var(--bs-border-color);
-            background: var(--bs-body-bg);
+        @media (max-width: 1279.98px) and (min-width: 1024px) {
+          .mailbox-page .mb-folders {
+            flex-basis: 200px;
+            width: 200px;
+            max-width: 200px;
           }
-          .mailbox-page .mb-compose-card { flex: 1; width: 100%; }
-        }
-        @media (max-width: 1279.98px) {
-          .mailbox-page .mb-folders { display: none; }
-          .mailbox-page .mb-folder-select { display: block; }
-          .mailbox-page .mb-compose-toolbar { display: inline-flex; }
-          .mailbox-page .mb-compose-layer {
-            position: fixed;
-            inset: 0;
-            z-index: 1060;
-            background: rgba(15, 23, 42, 0.45);
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-          }
-          .mailbox-page .mb-compose-card {
-            width: min(640px, 100%);
-            max-height: min(100%, 720px);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+          .mailbox-page .mb-panes {
+            grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
           }
         }
         @media (max-width: 1023.98px) {
-          .mailbox-page .mb-shell { height: calc(100vh - 140px); }
-          .mailbox-page .mb-compose-toolbar { display: none; }
+          .mailbox-page .mb-shell {
+            flex-direction: column;
+            height: calc(100vh - 140px);
+          }
+          .mailbox-page .mb-folders { display: none; }
+          .mailbox-page .mb-folder-select {
+            display: block;
+            width: 148px;
+            max-width: 42vw;
+          }
+          .mailbox-page .mb-panes {
+            display: flex;
+            flex-direction: column;
+          }
+          .mailbox-page .mb-list {
+            flex: 1 1 auto;
+            width: 100%;
+            border-right: 0;
+          }
           .mailbox-page .mb-read {
             display: none;
             position: fixed;
             inset: 0;
             z-index: 1040;
-            border-left: 0;
             width: 100%;
+            background: var(--bs-body-bg);
           }
           .mailbox-page.is-reading .mb-read { display: flex; }
-          .mailbox-page .mb-list { flex: 1 1 auto; }
-          .mailbox-page .mb-compose-layer { padding: 0; align-items: stretch; }
+          .mailbox-page.is-composing .mb-read { display: none; }
+          .mailbox-page.is-composing .mb-compose-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 1060;
+            grid-column: auto;
+            background: var(--bs-body-bg);
+          }
           .mailbox-page .mb-compose-card {
             width: 100%;
-            max-height: none;
             height: 100%;
             border-radius: 0;
           }
@@ -586,7 +610,7 @@ export function MailboxApp() {
             position: fixed;
             right: 16px;
             bottom: 16px;
-            z-index: 1045;
+            z-index: 1035;
             border-radius: 999px;
             padding: 12px 18px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
@@ -628,7 +652,7 @@ export function MailboxApp() {
         </div>
       ) : (
         <>
-          <div className="card overflow-hidden mb-shell p-0">
+          <div className="mb-shell">
             <aside className="mb-folders">
               <div className="px-3 pt-3 mb-2">
                 <button
