@@ -38,7 +38,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=JSON.parse(localStorage.getItem('nexlink-app-settings')||'{}');var d=document.documentElement;if(s.appTheme)d.setAttribute('data-bs-theme',s.appTheme);var c=s.appColor;if(c==='gold'||!c||(c!=='blue'&&c!=='teal'&&c!=='slate'))c='blue';d.setAttribute('data-color-theme',c);if(s.appSidebar&&window.innerWidth>=1191)d.setAttribute('data-app-sidebar',s.appSidebar);}catch(e){}})();`,
+            __html: `(function(){try{var s=JSON.parse(localStorage.getItem('nexlink-app-settings')||'{}');var d=document.documentElement;if(s.appTheme)d.setAttribute('data-bs-theme',s.appTheme);var c=s.appColor;if(c==='gold'||!c||(c!=='blue'&&c!=='teal'&&c!=='slate'))c='blue';d.setAttribute('data-color-theme',c);if(s.appSidebar&&window.innerWidth>=1024)d.setAttribute('data-app-sidebar',s.appSidebar);}catch(e){}})();`,
           }}
         />
         <ThemeProvider>

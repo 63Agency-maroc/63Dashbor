@@ -16,8 +16,8 @@ export type MenuSection = {
 };
 
 /**
- * Sections du menubar NexLink (double-rail) :
- * rail d’icônes → onglets Bootstrap ; panneau → side-menubar par section.
+ * Navigation : les sections ne sont que des groupes.
+ * L’UI affiche leurs items au premier niveau du sidebar.
  */
 export const menuSections: MenuSection[] = [
   {
@@ -76,8 +76,18 @@ export const menuSections: MenuSection[] = [
 /** Flat list (rétrocompat) */
 export const businessMenu: MenuItem[] = menuSections.flatMap((s) => s.items);
 
-export function sectionTabId(sectionId: string) {
-  return `${sectionId}Tab`;
+export type FlatMenuEntry =
+  | { kind: "item"; item: MenuItem }
+  | { kind: "divider" };
+
+/** Sections conteneurs → entrées de premier niveau, séparateurs conservés. */
+export function flattenMenu(sections: MenuSection[]): FlatMenuEntry[] {
+  const entries: FlatMenuEntry[] = [];
+  sections.forEach((section, index) => {
+    for (const item of section.items) entries.push({ kind: "item", item });
+    if (section.dividerAfter && index < sections.length - 1) entries.push({ kind: "divider" });
+  });
+  return entries;
 }
 
 export function isMenuItemActive(pathname: string, href: string, siblingHrefs: string[]): boolean {
@@ -90,16 +100,6 @@ export function isMenuItemActive(pathname: string, href: string, siblingHrefs: s
       h.startsWith(href) &&
       (pathname === h || pathname.startsWith(`${h}/`)),
   );
-}
-
-export function findSectionIdForPath(pathname: string, sections: MenuSection[]): string {
-  for (const section of sections) {
-    const hrefs = section.items.map((i) => i.href);
-    if (section.items.some((item) => isMenuItemActive(pathname, item.href, hrefs))) {
-      return section.id;
-    }
-  }
-  return sections[0]?.id ?? "dashboard";
 }
 
 export function filterSectionsByRole(sections: MenuSection[], isAdmin: boolean): MenuSection[] {

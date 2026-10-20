@@ -179,8 +179,8 @@ export type CreateMeetingDto = {
   notifyOnCreate?: boolean;
 };
 
-/** PATCH : null = efface setter/closer ; absent = inchangé */
-export type UpdateMeetingDto = CreateMeetingDto;
+/** PATCH : champs absents = inchangés ; null efface setter/closer */
+export type UpdateMeetingDto = Partial<CreateMeetingDto>;
 
 export type SendReminderDto = {
   channel?: "whatsapp" | "email" | "both";

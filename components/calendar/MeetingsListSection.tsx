@@ -1,14 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Flatpickr from "react-flatpickr";
 import {
   getMeetings,
   getMeetingsToday,
   meetingUserDisplayName,
   MEETING_STATUSES,
+  updateMeeting,
   type AssignableUser,
   type Meeting,
+  type MeetingStatus,
 } from "@/lib/api/meetings";
 import { ApiError } from "@/lib/api/client";
 import {
@@ -32,6 +35,8 @@ type Props = {
   reloadToken: number;
   onView: (meeting: Meeting) => void;
   onEdit: (meeting: Meeting) => void;
+  onMeetingChange?: (meeting: Meeting) => void;
+  onToast?: (message: string, variant: "success" | "danger" | "info") => void;
 };
 
 function assigneeNames(m: Meeting): string {
@@ -42,12 +47,135 @@ function assigneeNames(m: Meeting): string {
   return (m.assignedUserIds ?? []).join(", ") || "—";
 }
 
+function StatusBadgeControl({
+  meeting,
+  saving,
+  onPick,
+}: {
+  meeting: Meeting;
+  saving: boolean;
+  onPick: (status: MeetingStatus) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number; openUp: boolean } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const palette = getStatusPalette(meeting.status);
+
+  const placeMenu = useCallback(() => {
+    const el = buttonRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const openUp = window.innerHeight - rect.bottom < 280 && rect.top > 280;
+    setMenuPos({
+      top: openUp ? rect.top - 6 : rect.bottom + 6,
+      left: Math.max(8, Math.min(rect.left, window.innerWidth - 220)),
+      openUp,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    placeMenu();
+    const onWin = () => placeMenu();
+    const onDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (buttonRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("resize", onWin);
+    window.addEventListener("scroll", onWin, true);
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("resize", onWin);
+      window.removeEventListener("scroll", onWin, true);
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, placeMenu]);
+
+  const menu =
+    open && menuPos && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            ref={menuRef}
+            className="dropdown-menu show shadow-sm py-1 status-menu"
+            role="listbox"
+            aria-label="Statut"
+            style={{
+              position: "fixed",
+              top: menuPos.openUp ? undefined : menuPos.top,
+              bottom: menuPos.openUp ? window.innerHeight - menuPos.top : undefined,
+              left: menuPos.left,
+              zIndex: 2000,
+              minWidth: 180,
+              maxHeight: 280,
+              overflowY: "auto",
+            }}
+          >
+            {MEETING_STATUSES.map((status) => {
+              const option = getStatusPalette(status);
+              const active = status === meeting.status;
+              return (
+                <button
+                  key={status}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  className="dropdown-item d-flex align-items-center gap-2"
+                  onClick={() => {
+                    setOpen(false);
+                    if (status !== meeting.status) onPick(status);
+                  }}
+                >
+                  <span
+                    className="badge rounded-pill"
+                    style={{ backgroundColor: option.bg, color: option.text }}
+                  >
+                    {option.label}
+                  </span>
+                  {active ? <i className="fi fi-rr-check ms-auto text-primary" aria-hidden /> : null}
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )
+      : null;
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        className="badge rounded-pill border-0 d-inline-flex align-items-center"
+        style={{ backgroundColor: palette.bg, color: palette.text, cursor: saving ? "wait" : "pointer" }}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={`Statut : ${palette.label || meeting.status}`}
+        disabled={saving}
+        onClick={() => setOpen((current) => !current)}
+      >
+        {palette.label || meeting.status}
+        <i className="fi fi-rr-angle-small-down ms-1" aria-hidden />
+      </button>
+      {menu}
+    </>
+  );
+}
+
 export function MeetingsListSection({
   canAssign,
   assignableUsers,
   reloadToken,
   onView,
   onEdit,
+  onMeetingChange,
+  onToast,
 }: Props) {
   const viewerTimezone = useViewerTimezone();
   const viewerTzLabel = useViewerTimezoneLabel();
@@ -61,6 +189,7 @@ export function MeetingsListSection({
   const [items, setItems] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -159,6 +288,32 @@ export function MeetingsListSection({
   function onPeriodChange(next: ListPeriod) {
     setPeriod(next);
     if (next !== "date") setPreciseYmd("");
+  }
+
+  async function changeStatus(meeting: Meeting, next: MeetingStatus) {
+    if (savingId) return;
+    const previous = meeting.status;
+    const optimistic = { ...meeting, status: next };
+    setSavingId(meeting.id);
+    setItems((rows) => rows.map((row) => (row.id === meeting.id ? optimistic : row)));
+    onMeetingChange?.(optimistic);
+    try {
+      const updated = await updateMeeting(meeting.id, { status: next });
+      const merged: Meeting =
+        updated && typeof updated === "object" && updated.id
+          ? { ...meeting, ...updated, status: updated.status || next }
+          : optimistic;
+      setItems((rows) => rows.map((row) => (row.id === meeting.id ? merged : row)));
+      onMeetingChange?.(merged);
+      onToast?.("Statut mis à jour.", "success");
+    } catch (err) {
+      const reverted = { ...meeting, status: previous };
+      setItems((rows) => rows.map((row) => (row.id === meeting.id ? reverted : row)));
+      onMeetingChange?.(reverted);
+      onToast?.(err instanceof ApiError ? err.message : "Impossible de modifier le statut.", "danger");
+    } finally {
+      setSavingId(null);
+    }
   }
 
   return (
@@ -279,9 +434,7 @@ export function MeetingsListSection({
                     </tr>
                   </thead>
                   <tbody>
-                    {pageItems.map((m) => {
-                      const palette = getStatusPalette(m.status);
-                      return (
+                    {pageItems.map((m) => (
                         <tr key={m.id} style={{ cursor: "pointer" }} onClick={() => onView(m)}>
                           <td className="text-nowrap">
                             {formatDateTime(m.meetingDate, viewerTimezone)}
@@ -294,16 +447,12 @@ export function MeetingsListSection({
                               {[m.contactPhone, m.contactEmail].filter(Boolean).join(" · ") || "—"}
                             </small>
                           </td>
-                          <td>
-                            <span
-                              className="badge rounded-pill"
-                              style={{
-                                backgroundColor: palette.bg,
-                                color: palette.text,
-                              }}
-                            >
-                              {palette.label || m.status}
-                            </span>
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <StatusBadgeControl
+                              meeting={m}
+                              saving={savingId === m.id}
+                              onPick={(status) => void changeStatus(m, status)}
+                            />
                           </td>
                           <td>
                             <span className="small">
@@ -366,8 +515,7 @@ export function MeetingsListSection({
                             </div>
                           </td>
                         </tr>
-                      );
-                    })}
+                    ))}
                   </tbody>
                 </table>
               </div>

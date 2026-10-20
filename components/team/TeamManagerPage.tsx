@@ -62,7 +62,7 @@ function MemberAvatar({
     .map((p) => p[0]?.toUpperCase() ?? "")
     .join("");
   return (
-    <div className={`avatar ${sizeClass} rounded-circle me-2 flex-shrink-0`}>
+    <div className={`avatar ${sizeClass} rounded-circle me-2 flex-shrink-0 team-member-avatar`}>
       {src ? (
         <img src={src} alt="" />
       ) : (

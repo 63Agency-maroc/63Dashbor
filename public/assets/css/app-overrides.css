@@ -1044,42 +1044,193 @@ textarea.form-control {
 }
 
 /* =============================================================================
- * Sidebar â€” logout (rail + panneau)
+ * Sidebar unique — liens de premier niveau
  * ============================================================================= */
 
-.app-menubar-tabs .app-navbar-logout {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 80px;
-  padding: 0.75rem 0 1rem;
+.app-menubar .menubar > li.menu-item > .menu-link {
   display: flex;
-  justify-content: center;
-  z-index: 10;
-  background: linear-gradient(to top, var(--app-sidebar-bg) 70%, transparent);
+  align-items: center;
+  gap: 10px;
 }
 
-.app-menubar-tabs .app-navbar-logout .menu-link {
-  display: inline-flex;
-  align-items: center;
+.app-menubar .menubar .menu-divider {
+  border-bottom: 1px solid var(--bs-border-color);
+  margin: 8px 8px 12px;
+  height: 0;
+  list-style: none;
+}
+
+.app-menubar .app-navbar-brand .navbar-brand-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--bs-heading-color);
+  white-space: nowrap;
+}
+
+[data-app-sidebar="mini"] .app-menubar .app-navbar-brand {
   justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.app-menubar .app-footer .menu-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
   border: 0;
-  border-radius: 50%;
   background: transparent;
   color: var(--bs-danger);
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  text-align: left;
 }
 
-.app-menubar-tabs .app-navbar-logout .menu-link:hover {
-  background-color: var(--bs-danger-bg-subtle);
-  color: var(--bs-danger);
+.app-menubar .app-footer .menu-link:hover {
+  background: var(--bs-danger-bg-subtle);
 }
 
-.app-menubar-tabs .app-navbar-tabs {
-  padding-bottom: 4.5rem;
+.app-menubar {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.app-menubar .app-navbar-brand {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+.app-menubar .app-navbar {
+  flex: 1 1 auto;
+  width: 100%;
+  height: auto !important;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(31, 78, 121, 0.45) transparent;
+}
+
+.app-menubar .app-navbar::-webkit-scrollbar,
+.status-menu::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.app-menubar .app-navbar::-webkit-scrollbar-thumb,
+.status-menu::-webkit-scrollbar-thumb {
+  background: rgba(31, 78, 121, 0.45);
+  border-radius: 99px;
+}
+
+.app-menubar .app-navbar::-webkit-scrollbar-track,
+.status-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.status-menu {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(31, 78, 121, 0.45) transparent;
+}
+
+.app-menubar .app-footer {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.app-menubar .menu-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-wrapper {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.app-header-inner,
+.app-header-start,
+.app-header-end {
+  min-width: 0;
+}
+
+.app-header-start {
+  flex: 1 1 auto;
+}
+
+.app-header-start form {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.app-sidebar-backdrop {
+  display: none;
+}
+
+[data-app-sidebar="mini"] .app-menubar .app-navbar {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+[data-app-sidebar="mini"] .app-menubar .menubar > li.menu-item > .menu-link,
+[data-app-sidebar="mini"] .app-menubar .app-footer .menu-link {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+@media (min-width: 1024px) and (max-width: 1199.98px) {
+  .app-menubar {
+    left: 0;
+    transform: none;
+  }
+  .app-wrapper {
+    margin-left: var(--app-sidebar-width);
+  }
+  .app-header {
+    padding-left: var(--app-sidebar-width);
+  }
+  .footer-wrapper {
+    margin-left: var(--app-sidebar-width);
+  }
+}
+
+@media (max-width: 1023.98px) {
+  .app-menubar {
+    left: 0;
+    transform: translateX(-100%);
+    z-index: 1040;
+  }
+  .app-menubar.open {
+    transform: translateX(0);
+  }
+  .app-wrapper {
+    margin-left: 0;
+  }
+  .app-header {
+    padding-left: 0;
+  }
+  .footer-wrapper {
+    margin-left: 0;
+  }
+  .app-menubar.open + .app-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1030;
+    border: 0;
+    padding: 0;
+    background: var(--custom-modal-backdrop-bg, rgba(0, 0, 0, 0.45));
+    opacity: 0.6;
+    cursor: pointer;
+  }
 }
 
 /* Login â€” formulaire centrÃ© (sans panneau latÃ©ral) */
@@ -3220,7 +3371,19 @@ button.agency-list-row {
   justify-content: center;
 }
 
-.employees-card-avatar img {
+.team-member-avatar {
+  overflow: hidden;
+  border-radius: 50% !important;
+}
+
+.team-member-avatar img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
   width: 100%;
   height: 100%;
   object-fit: cover;

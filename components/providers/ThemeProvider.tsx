@@ -11,17 +11,11 @@ import {
 } from "react";
 
 /**
- * Breakpoints NexLink (issus du template) :
- * - main.js : 1191 → décide data-app-sidebar vs class .open
- * - styles.css @media (max-width: 1480px) : force --app-menubar-tabs: 80px
- *   et n’affiche le panneau texte que via #appMenubar.open
- *
- * Conséquence : entre 1191 et 1480, basculer seulement data-app-sidebar
- * ne change RIEN visuellement. On porte le JS template + on aligne le
- * mécanisme visible sur le breakpoint CSS 1480.
+ * Sidebar unique.
+ * >1023px : data-app-sidebar full | mini (bouton «).
+ * ≤1023px : #appMenubar.open fait glisser la barre.
  */
-const JS_SIDEBAR_BREAKPOINT = 1191; // main.js
-const CSS_COMPACT_MAX = 1480; // styles.css media query
+const SIDEBAR_OVERLAY_MAX = 1023;
 const STORAGE_KEY = "nexlink-app-settings";
 
 export type AppTheme = "light" | "dark";
@@ -46,12 +40,6 @@ type ThemeContextValue = {
   setSettings: (patch: Partial<AppSettings>) => void;
   toggleTheme: () => void;
   toggleSidebar: () => void;
-  /** true si le panneau sous-menus est visible (full / .open). */
-  isSidebarPanelOpen: () => boolean;
-  /** Ouvre le panneau sous-menus (full desktop ou .open ≤1480). */
-  expandSidebarPanel: () => void;
-  /** Ferme / réduit le panneau (mini desktop ou retire .open ≤1480). */
-  collapseSidebarPanel: () => void;
   setSidebarHover: (hover: boolean) => void;
 };
 
@@ -99,7 +87,7 @@ function applyToDom(settings: AppSettings) {
   docEl.setAttribute("data-color-theme", settings.appColor);
 
   // appSettings.js : n’applique data-app-sidebar qu’au-dessus du breakpoint JS
-  if (window.innerWidth >= JS_SIDEBAR_BREAKPOINT) {
+  if (window.innerWidth > SIDEBAR_OVERLAY_MAX) {
     docEl.setAttribute("data-app-sidebar", settings.appSidebar);
   } else {
     docEl.removeAttribute("data-app-sidebar");
@@ -121,7 +109,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setSettingsState(initial);
     applyToDom(initial);
     // Sur grand écran, .active reflète le mode mini (comme après un clic template)
-    if (window.innerWidth > CSS_COMPACT_MAX) {
+    if (window.innerWidth > SIDEBAR_OVERLAY_MAX) {
       syncTogglerActive(persistSidebarMode(initial.appSidebar) === "mini");
     }
     setHydrated(true);
@@ -137,7 +125,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const onResize = () => {
       applyToDom(settings);
       // Sous 1480px le panneau se gère via .open — on retire data-driven active si besoin
-      if (window.innerWidth <= CSS_COMPACT_MAX) {
+      if (window.innerWidth <= SIDEBAR_OVERLAY_MAX) {
         const open = document.getElementById("appMenubar")?.classList.contains("open") ?? false;
         syncTogglerActive(open);
       } else {
@@ -161,21 +149,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   * Port de main.js initAppToggler + alignement CSS @media 1480px.
-   * Bouton : .app-toggler
-   * Desktop large (>1480) : <html data-app-sidebar="full"|"mini">
-   * ≤1480 (incl. “desktop” laptop) : #appMenubar.classList "open" (+ .active backdrop)
+   * Bouton « : replie toute la sidebar (full ↔ mini) à partir de 1024px,
+   * ou la fait glisser en overlay en dessous.
    */
   const toggleSidebar = useCallback(() => {
     const width = window.innerWidth;
     const docEl = document.documentElement;
     const menubar = document.getElementById("appMenubar");
 
-    if (width > CSS_COMPACT_MAX) {
-      // Comportement template desktop (main.js) — effective seulement hors media 1480
-      // Lit l’attribut DOM comme le template (gère aussi mini-hover)
+    if (width > SIDEBAR_OVERLAY_MAX) {
       const current = docEl.getAttribute("data-app-sidebar");
-      const next: "full" | "mini" = current === "full" ? "mini" : "full";
+      const next: "full" | "mini" = current === "full" || current === "mini-hover" ? "mini" : "full";
       docEl.setAttribute("data-app-sidebar", next);
       syncTogglerActive(next === "mini");
       menubar?.classList.remove("open");
@@ -183,73 +167,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Viewport ≤1480 : le CSS force déjà le rail 80px ; le panneau s’ouvre via .open
-    // (même markup/CSS que le template pour tablette / laptop)
     if (menubar) {
       const willOpen = !menubar.classList.contains("open");
       menubar.classList.toggle("open", willOpen);
       syncTogglerActive(willOpen);
     }
-
-    // Au-dessus du breakpoint JS, on garde aussi data-app-sidebar cohérent pour le resize → grand écran
-    if (width >= JS_SIDEBAR_BREAKPOINT) {
-      const current = docEl.getAttribute("data-app-sidebar");
-      // Ne force pas un toggle full/mini ici : l’UI visible est .open.
-      // On s’assure juste que l’attribut existe (défaut full en storage).
-      if (!current || current === "mini-hover") {
-        const mode = persistSidebarMode(settings.appSidebar);
-        docEl.setAttribute("data-app-sidebar", mode);
-      }
-    }
-  }, [settings.appSidebar]);
-
-  const isSidebarPanelOpen = useCallback(() => {
-    if (typeof window === "undefined") return false;
-    const menubar = document.getElementById("appMenubar");
-    if (window.innerWidth <= CSS_COMPACT_MAX) {
-      return menubar?.classList.contains("open") ?? false;
-    }
-    const mode = document.documentElement.getAttribute("data-app-sidebar");
-    return mode === "full" || mode === "mini-hover";
-  }, []);
-
-  /** Clic icône rail : garantir que le panneau sous-menus est visible. */
-  const expandSidebarPanel = useCallback(() => {
-    const menubar = document.getElementById("appMenubar");
-    if (window.innerWidth <= CSS_COMPACT_MAX) {
-      menubar?.classList.add("open");
-      syncTogglerActive(true);
-      return;
-    }
-    document.documentElement.setAttribute("data-app-sidebar", "full");
-    menubar?.classList.remove("open");
-    syncTogglerActive(false);
-    setSettingsState((prev) =>
-      prev.appSidebar === "full" ? prev : { ...prev, appSidebar: "full" },
-    );
-  }, []);
-
-  /** Reclic même section : refermer le panneau (toggle naturel). */
-  const collapseSidebarPanel = useCallback(() => {
-    const menubar = document.getElementById("appMenubar");
-    if (window.innerWidth <= CSS_COMPACT_MAX) {
-      menubar?.classList.remove("open");
-      syncTogglerActive(false);
-      return;
-    }
-    document.documentElement.setAttribute("data-app-sidebar", "mini");
-    menubar?.classList.remove("open");
-    syncTogglerActive(true);
-    setSettingsState((prev) =>
-      persistSidebarMode(prev.appSidebar) === "mini"
-        ? prev
-        : { ...prev, appSidebar: "mini" },
-    );
   }, []);
 
   const setSidebarHover = useCallback((hover: boolean) => {
-    // Hover expand seulement en vrai mode mini desktop (comme main.js)
-    if (window.innerWidth <= CSS_COMPACT_MAX) return;
+    if (window.innerWidth <= SIDEBAR_OVERLAY_MAX) return;
 
     setSettingsState((prev) => {
       if (hover && prev.appSidebar === "mini") {
@@ -268,21 +194,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setSettings,
       toggleTheme,
       toggleSidebar,
-      isSidebarPanelOpen,
-      expandSidebarPanel,
-      collapseSidebarPanel,
       setSidebarHover,
     }),
-    [
-      settings,
-      setSettings,
-      toggleTheme,
-      toggleSidebar,
-      isSidebarPanelOpen,
-      expandSidebarPanel,
-      collapseSidebarPanel,
-      setSidebarHover,
-    ],
+    [settings, setSettings, toggleTheme, toggleSidebar, setSidebarHover],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

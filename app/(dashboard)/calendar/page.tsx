@@ -846,6 +846,8 @@ export default function CalendarPage() {
               reloadToken={listReloadToken}
               onView={openDetail}
               onEdit={openEdit}
+              onMeetingChange={upsertMeeting}
+              onToast={(message, variant) => setToast({ message, variant })}
             />
           </div>
         </>
