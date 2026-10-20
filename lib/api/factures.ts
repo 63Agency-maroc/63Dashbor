@@ -40,6 +40,14 @@ export function updateFacture(id: string, dto: UpsertFactureDto) {
   return api.patch<Facture>(`/factures/${encodeURIComponent(id)}`, dto);
 }
 
+/** PATCH /factures/:id/status — { status } uniquement */
+export function updateFactureStatus(id: string, status: string) {
+  return api.patch<{ id: string; status: string }>(
+    `/factures/${encodeURIComponent(id)}/status`,
+    { status },
+  );
+}
+
 export function deleteFacture(id: string) {
   return api.delete<{ message?: string; id?: string }>(`/factures/${encodeURIComponent(id)}`);
 }

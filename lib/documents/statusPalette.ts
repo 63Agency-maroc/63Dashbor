@@ -169,6 +169,29 @@ function hashStatus(s: string): number {
   return h;
 }
 
+/** Statuts proposés dans le menu des devis */
+export const DEVIS_STATUSES = [
+  "draft",
+  "sent",
+  "accepted",
+  "rejected",
+  "pending",
+  "cancelled",
+] as const;
+
+/** Statuts proposés dans le menu des factures */
+export const FACTURE_STATUSES = [
+  "draft",
+  "sent",
+  "paid",
+  "overdue",
+  "pending",
+  "cancelled",
+] as const;
+
+/** Statuts proposés dans le menu des propositions */
+export const PROPOSITION_STATUSES = ["draft", "sent", "accepted", "rejected"] as const;
+
 /** Légende courante pour les pages documents */
 export const DOC_STATUS_LEGEND_KEYS = [
   "draft",

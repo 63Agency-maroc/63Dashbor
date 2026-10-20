@@ -48,6 +48,14 @@ export function updateDevis(id: string, dto: UpsertDevisDto) {
   return api.patch<Devis>(`/devis/${encodeURIComponent(id)}`, dto);
 }
 
+/** PATCH /devis/:id/status — { status } uniquement */
+export function updateDevisStatus(id: string, status: string) {
+  return api.patch<{ id: string; status: string }>(
+    `/devis/${encodeURIComponent(id)}/status`,
+    { status },
+  );
+}
+
 export function deleteDevis(id: string) {
   return api.delete<{ message?: string; id?: string }>(`/devis/${encodeURIComponent(id)}`);
 }

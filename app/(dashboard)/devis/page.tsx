@@ -13,6 +13,7 @@ import {
   sendDevisEmail,
   transferToFacture,
   updateDevis,
+  updateDevisStatus,
   type Devis,
   type DevisListItem,
   type UpsertDevisDto,
@@ -20,8 +21,9 @@ import {
 import { AppToast } from "@/components/clients/AppToast";
 import { DevisEmailModal } from "@/components/devis/DevisEmailModal";
 import { DevisFormModal } from "@/components/devis/DevisFormModal";
-import { DocStatusBadge, DocsPageShell } from "@/components/documents/DocsPageShell";
-import { getDocumentStatusPalette } from "@/lib/documents/statusPalette";
+import { DocStatusControl } from "@/components/documents/DocStatusControl";
+import { DocsPageShell } from "@/components/documents/DocsPageShell";
+import { DEVIS_STATUSES, getDocumentStatusPalette } from "@/lib/documents/statusPalette";
 
 const PAGE_SIZE = 10;
 
@@ -79,6 +81,7 @@ export default function DevisPage() {
   const [transferSubmitting, setTransferSubmitting] = useState(false);
 
   const [pdfBusyId, setPdfBusyId] = useState<string | null>(null);
+  const [savingStatusId, setSavingStatusId] = useState<string | null>(null);
 
   const [toast, setToast] = useState<{
     message: string;
@@ -108,6 +111,26 @@ export default function DevisPage() {
   useEffect(() => {
     void loadList();
   }, [loadList]);
+
+  const changeStatus = async (row: DevisListItem, status: string) => {
+    const previous = row.status;
+    setSavingStatusId(row.id);
+    setItems((list) => list.map((item) => (item.id === row.id ? { ...item, status } : item)));
+    try {
+      const updated = await updateDevisStatus(row.id, status);
+      const next = updated?.status || status;
+      setItems((list) => list.map((item) => (item.id === row.id ? { ...item, status: next } : item)));
+      setToast({ message: "Statut mis à jour.", variant: "success" });
+    } catch (err) {
+      setItems((list) => list.map((item) => (item.id === row.id ? { ...item, status: previous } : item)));
+      setToast({
+        message: err instanceof ApiError ? err.message : "Impossible de changer le statut.",
+        variant: "danger",
+      });
+    } finally {
+      setSavingStatusId(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -415,8 +438,13 @@ export default function DevisPage() {
                       <td>{dash(row.clientNom)}</td>
                       <td>{formatDate(row.dateEmission)}</td>
                       <td className="font-monospace">{money(row.totals?.totalTtc)} MAD</td>
-                      <td>
-                        <DocStatusBadge status={row.status} />
+                      <td onClick={(event) => event.stopPropagation()}>
+                        <DocStatusControl
+                          status={row.status}
+                          statuses={DEVIS_STATUSES}
+                          saving={savingStatusId === row.id}
+                          onPick={(status) => void changeStatus(row, status)}
+                        />
                       </td>
                       <td className="text-end">
                         <div className="btn-group">

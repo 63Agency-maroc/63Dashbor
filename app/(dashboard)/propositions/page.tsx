@@ -10,12 +10,14 @@ import {
   getPropositionPdfBlob,
   getPropositions,
   sendPropositionEmail,
+  updatePropositionStatus,
   type PropositionListItem,
 } from "@/lib/api/propositions";
 import { AppToast } from "@/components/clients/AppToast";
 import { PropositionEmailModal } from "@/components/propositions/PropositionEmailModal";
-import { DocStatusBadge, DocsPageShell } from "@/components/documents/DocsPageShell";
-import { getDocumentStatusPalette } from "@/lib/documents/statusPalette";
+import { DocStatusControl } from "@/components/documents/DocStatusControl";
+import { DocsPageShell } from "@/components/documents/DocsPageShell";
+import { getDocumentStatusPalette, PROPOSITION_STATUSES } from "@/lib/documents/statusPalette";
 
 const PAGE_SIZE = 10;
 
@@ -56,6 +58,7 @@ export default function PropositionsPage() {
   const [emailError, setEmailError] = useState<string | null>(null);
 
   const [pdfBusyId, setPdfBusyId] = useState<string | null>(null);
+  const [savingStatusId, setSavingStatusId] = useState<string | null>(null);
 
   const [toast, setToast] = useState<{
     message: string;
@@ -86,6 +89,26 @@ export default function PropositionsPage() {
   useEffect(() => {
     void loadList();
   }, [loadList]);
+
+  const changeStatus = async (row: PropositionListItem, status: string) => {
+    const previous = row.status;
+    setSavingStatusId(row.id);
+    setItems((list) => list.map((item) => (item.id === row.id ? { ...item, status } : item)));
+    try {
+      const updated = await updatePropositionStatus(row.id, status);
+      const next = updated?.status || status;
+      setItems((list) => list.map((item) => (item.id === row.id ? { ...item, status: next } : item)));
+      setToast({ message: "Statut mis à jour.", variant: "success" });
+    } catch (err) {
+      setItems((list) => list.map((item) => (item.id === row.id ? { ...item, status: previous } : item)));
+      setToast({
+        message: err instanceof ApiError ? err.message : "Impossible de changer le statut.",
+        variant: "danger",
+      });
+    } finally {
+      setSavingStatusId(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -330,8 +353,13 @@ export default function PropositionsPage() {
                       </td>
                       <td>{dash(row.clientNom)}</td>
                       <td>{formatDate(row.dateEmission)}</td>
-                      <td>
-                        <DocStatusBadge status={row.status} />
+                      <td onClick={(event) => event.stopPropagation()}>
+                        <DocStatusControl
+                          status={row.status}
+                          statuses={PROPOSITION_STATUSES}
+                          saving={savingStatusId === row.id}
+                          onPick={(status) => void changeStatus(row, status)}
+                        />
                       </td>
                       <td className="text-end">
                         <div className="btn-group">

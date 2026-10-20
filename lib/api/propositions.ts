@@ -412,6 +412,14 @@ export function updateProposition(id: string, dto: UpsertPropositionDto) {
   return api.patch<Proposition>(`/propositions/${encodeURIComponent(id)}`, dto);
 }
 
+/** PATCH /propositions/:id/status — { status } uniquement */
+export function updatePropositionStatus(id: string, status: string) {
+  return api.patch<{ id: string; status: string }>(
+    `/propositions/${encodeURIComponent(id)}/status`,
+    { status },
+  );
+}
+
 export function deleteProposition(id: string) {
   return api.delete<{ message?: string; id?: string }>(`/propositions/${encodeURIComponent(id)}`);
 }
