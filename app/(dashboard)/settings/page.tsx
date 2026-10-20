@@ -36,6 +36,17 @@ const TABS: { id: SettingsTab; label: string; soon?: boolean }[] = [
   { id: "developer", label: "Développeur", soon: true },
 ];
 
+/** Onglets que le rôle peut ouvrir. Le reste de la page reste masqué. */
+function tabsForRole(role: string): { id: SettingsTab; label: string; soon?: boolean }[] {
+  const isAdmin = role === "admin";
+  const canNotify = isAdmin || role === "admin_whatsapp" || role === "setter";
+  return TABS.filter((tab) => {
+    if (tab.id === "backup" || tab.id === "developer") return isAdmin;
+    if (tab.id === "notifications") return canNotify;
+    return true;
+  });
+}
+
 const COLOR_OPTIONS: { value: AppColor; label: string; swatch: string; onSwatch?: string }[] = [
   { value: "blue", label: "Ink Blue", swatch: "#1F4E79", onSwatch: "#ffffff" },
   { value: "teal", label: "Teal", swatch: "#0F766E", onSwatch: "#ffffff" },
@@ -59,15 +70,21 @@ function ComingSoonPanel({ title, description }: { title: string; description: s
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("security");
+  const { settings, setSettings } = useThemeSettings();
+  const { user, applyUser } = useAuth();
+  const role = typeof user?.role === "string" ? user.role : "";
+  const visibleTabs = useMemo(() => tabsForRole(role), [role]);
 
   useEffect(() => {
     const tab = new URLSearchParams(window.location.search).get("tab");
-    if (tab && TABS.some((t) => t.id === tab)) {
+    if (tab && visibleTabs.some((t) => t.id === tab)) {
       setActiveTab(tab as SettingsTab);
+      return;
     }
-  }, []);
-  const { settings, setSettings } = useThemeSettings();
-  const { user, applyUser } = useAuth();
+    setActiveTab((current) =>
+      visibleTabs.some((t) => t.id === current) ? current : (visibleTabs[0]?.id ?? "security"),
+    );
+  }, [visibleTabs]);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -187,7 +204,7 @@ export default function SettingsPage() {
           <div className="card">
             <div className="card-header">
               <ul className="nav nav-underline card-header-tabs flex-wrap" role="tablist">
-                {TABS.map((tab) => (
+                {visibleTabs.map((tab) => (
                   <li className="nav-item" key={tab.id}>
                     <button
                       type="button"

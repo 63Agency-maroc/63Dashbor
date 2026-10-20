@@ -67,7 +67,7 @@ export const menuSections: MenuSection[] = [
     label: "Administration",
     icon: "fi fi-rr-settings",
     items: [
-      { label: "Settings", href: "/settings", icon: "fi fi-rr-settings", adminOnly: true },
+      { label: "Settings", href: "/settings", icon: "fi fi-rr-settings" },
       { label: "Profile", href: "/profile", icon: "fi fi-rr-user" },
     ],
   },
