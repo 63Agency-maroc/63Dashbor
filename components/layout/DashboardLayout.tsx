@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { Footer } from "@/components/layout/Footer";
+import { RoleRouteGuard } from "@/components/layout/RoleRouteGuard";
 
 /**
  * Shell layout NexLink : page-layout + header + menubar + wrapper + footer.
@@ -12,7 +13,9 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     <div className="page-layout">
       <Topbar />
       <Sidebar />
-      <main className="app-wrapper">{children}</main>
+      <main className="app-wrapper">
+        <RoleRouteGuard>{children}</RoleRouteGuard>
+      </main>
       <Footer />
     </div>
   );

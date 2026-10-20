@@ -24,13 +24,13 @@ export function Sidebar() {
   const pathname = usePathname();
   const { setSidebarHover, settings } = useThemeSettings();
   const { user, logout } = useAuth();
-  const isAdmin = (user?.role ?? "") === "admin";
+  const role = typeof user?.role === "string" ? user.role : "";
   const [confirmLogout, setConfirmLogout] = useState(false);
 
   const entries = useMemo(() => {
-    const sections = filterSectionsByRole(menuSections, isAdmin);
+    const sections = filterSectionsByRole(menuSections, role);
     return flattenMenu(sections);
-  }, [isAdmin]);
+  }, [role]);
 
   const hrefs = useMemo(
     () => entries.flatMap((entry) => (entry.kind === "item" ? [entry.item.href] : [])),

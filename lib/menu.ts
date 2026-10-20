@@ -1,9 +1,12 @@
+/** Qui peut voir l’entrée. `all` = tous les rôles connectés. */
+export type MenuAccess = "all" | "admin" | "leads" | "meetings" | "whatsapp";
+
 export type MenuItem = {
   label: string;
   href: string;
   icon: string;
-  /** Masqué pour les non-admin (sidebar) */
-  adminOnly?: boolean;
+  /** Défaut : visible pour tous les rôles */
+  access?: MenuAccess;
 };
 
 export type MenuSection = {
@@ -26,8 +29,8 @@ export const menuSections: MenuSection[] = [
     icon: "fi fi-rr-house-blank",
     items: [
       { label: "Dashboard Data", href: "/", icon: "fi fi-rr-dashboard" },
-      { label: "Team Manager", href: "/team-manager", icon: "fi fi-rr-leaderboard", adminOnly: true },
-      { label: "Employees", href: "/employees", icon: "fi fi-rr-employee-man", adminOnly: true },
+      { label: "Team Manager", href: "/team-manager", icon: "fi fi-rr-leaderboard", access: "admin" },
+      { label: "Employees", href: "/employees", icon: "fi fi-rr-employee-man", access: "admin" },
     ],
   },
   {
@@ -35,9 +38,9 @@ export const menuSections: MenuSection[] = [
     label: "CRM",
     icon: "fi fi-rr-users",
     items: [
-      { label: "Clients", href: "/clients", icon: "fi fi-rr-review" },
-      { label: "Leads", href: "/leads", icon: "fi fi-rr-chart-user" },
-      { label: "Calendar", href: "/calendar", icon: "fi fi-rr-calendar" },
+      { label: "Clients", href: "/clients", icon: "fi fi-rr-review", access: "admin" },
+      { label: "Leads", href: "/leads", icon: "fi fi-rr-chart-user", access: "leads" },
+      { label: "Calendar", href: "/calendar", icon: "fi fi-rr-calendar", access: "meetings" },
     ],
   },
   {
@@ -46,8 +49,8 @@ export const menuSections: MenuSection[] = [
     icon: "fi fi-rr-comment",
     dividerAfter: true,
     items: [
-      { label: "WhatsApp", href: "/whatsapp", icon: "fab fa-whatsapp" },
-      { label: "Broadcast", href: "/whatsapp/broadcast", icon: "fi fi-rr-paper-plane" },
+      { label: "WhatsApp", href: "/whatsapp", icon: "fab fa-whatsapp", access: "whatsapp" },
+      { label: "Broadcast", href: "/whatsapp/broadcast", icon: "fi fi-rr-paper-plane", access: "whatsapp" },
       { label: "Email", href: "/email", icon: "fi fi-rr-envelope" },
     ],
   },
@@ -57,9 +60,9 @@ export const menuSections: MenuSection[] = [
     icon: "fi fi-rr-folder",
     dividerAfter: true,
     items: [
-      { label: "Devis", href: "/devis", icon: "fi fi-rr-file-invoice", adminOnly: true },
-      { label: "Factures", href: "/factures", icon: "fi fi-rr-receipt", adminOnly: true },
-      { label: "Propositions", href: "/propositions", icon: "fi fi-rr-document", adminOnly: true },
+      { label: "Devis", href: "/devis", icon: "fi fi-rr-file-invoice", access: "admin" },
+      { label: "Factures", href: "/factures", icon: "fi fi-rr-receipt", access: "admin" },
+      { label: "Propositions", href: "/propositions", icon: "fi fi-rr-document", access: "admin" },
     ],
   },
   {
@@ -102,11 +105,45 @@ export function isMenuItemActive(pathname: string, href: string, siblingHrefs: s
   );
 }
 
-export function filterSectionsByRole(sections: MenuSection[], isAdmin: boolean): MenuSection[] {
+export function roleHasAccess(role: string | null | undefined, access: MenuAccess = "all"): boolean {
+  const r = (role ?? "").trim();
+  if (access === "all") return true;
+  if (access === "admin") return r === "admin";
+  if (access === "whatsapp") return r === "admin" || r === "admin_whatsapp";
+  if (access === "leads") return r === "admin" || r === "admin_whatsapp" || r === "setter";
+  if (access === "meetings") {
+    return r === "admin" || r === "admin_whatsapp" || r === "fixed_meeting" || r === "setter";
+  }
+  return false;
+}
+
+const PATH_ACCESS: { prefix: string; access: MenuAccess }[] = [
+  { prefix: "/team-manager", access: "admin" },
+  { prefix: "/employees", access: "admin" },
+  { prefix: "/clients", access: "admin" },
+  { prefix: "/devis", access: "admin" },
+  { prefix: "/factures", access: "admin" },
+  { prefix: "/propositions", access: "admin" },
+  { prefix: "/whatsapp/broadcast", access: "whatsapp" },
+  { prefix: "/whatsapp", access: "whatsapp" },
+  { prefix: "/leads", access: "leads" },
+  { prefix: "/calendar", access: "meetings" },
+];
+
+/** true si ce rôle peut ouvrir l’URL. Les pages hors liste restent ouvertes. */
+export function canAccessPath(role: string | null | undefined, pathname: string): boolean {
+  const rule = PATH_ACCESS.find(
+    (entry) => pathname === entry.prefix || pathname.startsWith(`${entry.prefix}/`),
+  );
+  if (!rule) return true;
+  return roleHasAccess(role, rule.access);
+}
+
+export function filterSectionsByRole(sections: MenuSection[], role: string | null | undefined): MenuSection[] {
   return sections
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => (item.adminOnly ? isAdmin : true)),
+      items: section.items.filter((item) => roleHasAccess(role, item.access ?? "all")),
     }))
     .filter((section) => section.items.length > 0);
 }
