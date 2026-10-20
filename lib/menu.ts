@@ -7,6 +7,8 @@ export type MenuItem = {
   icon: string;
   /** Défaut : visible pour tous les rôles */
   access?: MenuAccess;
+  /** Reste en bas du sidebar, au-dessus de la déconnexion */
+  pin?: "bottom";
 };
 
 export type MenuSection = {
@@ -70,8 +72,8 @@ export const menuSections: MenuSection[] = [
     label: "Administration",
     icon: "fi fi-rr-settings",
     items: [
-      { label: "Settings", href: "/settings", icon: "fi fi-rr-settings" },
-      { label: "Profile", href: "/profile", icon: "fi fi-rr-user" },
+      { label: "Settings", href: "/settings", icon: "fi fi-rr-settings", pin: "bottom" },
+      { label: "Profile", href: "/profile", icon: "fi fi-rr-user", pin: "bottom" },
     ],
   },
 ];
@@ -83,12 +85,24 @@ export type FlatMenuEntry =
   | { kind: "item"; item: MenuItem }
   | { kind: "divider" };
 
-/** Sections conteneurs → entrées de premier niveau, séparateurs conservés. */
+/** Entrées épinglées en bas (Paramètres, Profil), dans l’ordre du menu. */
+export function pinnedMenuItems(sections: MenuSection[]): MenuItem[] {
+  return sections.flatMap((section) => section.items.filter((item) => item.pin === "bottom"));
+}
+
+/** Sections conteneurs → entrées de premier niveau. Les items épinglés sont exclus. */
 export function flattenMenu(sections: MenuSection[]): FlatMenuEntry[] {
+  const visible = sections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => item.pin !== "bottom"),
+    }))
+    .filter((section) => section.items.length > 0);
+
   const entries: FlatMenuEntry[] = [];
-  sections.forEach((section, index) => {
+  visible.forEach((section, index) => {
     for (const item of section.items) entries.push({ kind: "item", item });
-    if (section.dividerAfter && index < sections.length - 1) entries.push({ kind: "divider" });
+    if (section.dividerAfter && index < visible.length - 1) entries.push({ kind: "divider" });
   });
   return entries;
 }

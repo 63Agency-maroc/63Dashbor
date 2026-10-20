@@ -174,14 +174,11 @@ export default function ProfilePage() {
               <div className="mb-4 border-bottom pb-4 d-flex border-0 justify-content-between align-items-start">
                 <div className="d-flex align-items-center">
                   {/* Wrapper sans overflow : l’icône caméra reste hors du cercle */}
-                  <div className="position-relative me-3 flex-shrink-0" style={{ width: 72, height: 72 }}>
-                    <div
-                      className="avatar avatar-xl rounded-circle bg-primary-subtle overflow-hidden w-100 h-100"
-                      style={{ width: 72, height: 72 }}
-                    >
+                  <div className="position-relative me-3 flex-shrink-0 profile-avatar-wrap">
+                    <div className="profile-avatar">
                       {hasCustomAvatar ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={avatarSrc} alt="" className="w-100 h-100" style={{ objectFit: "cover" }} />
+                        <img src={avatarSrc} alt="" />
                       ) : (
                         <span className="d-flex align-items-center justify-content-center w-100 h-100 fw-bold text-primary">
                           {initials}

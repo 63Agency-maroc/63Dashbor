@@ -8,6 +8,7 @@ import {
   flattenMenu,
   isMenuItemActive,
   menuSections,
+  pinnedMenuItems,
 } from "@/lib/menu";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useThemeSettings } from "@/components/providers/ThemeProvider";
@@ -27,14 +28,16 @@ export function Sidebar() {
   const role = typeof user?.role === "string" ? user.role : "";
   const [confirmLogout, setConfirmLogout] = useState(false);
 
-  const entries = useMemo(() => {
-    const sections = filterSectionsByRole(menuSections, role);
-    return flattenMenu(sections);
-  }, [role]);
+  const sections = useMemo(() => filterSectionsByRole(menuSections, role), [role]);
+  const entries = useMemo(() => flattenMenu(sections), [sections]);
+  const pinned = useMemo(() => pinnedMenuItems(sections), [sections]);
 
   const hrefs = useMemo(
-    () => entries.flatMap((entry) => (entry.kind === "item" ? [entry.item.href] : [])),
-    [entries],
+    () => [
+      ...entries.flatMap((entry) => (entry.kind === "item" ? [entry.item.href] : [])),
+      ...pinned.map((item) => item.href),
+    ],
+    [entries, pinned],
   );
 
   const iconRail = settings.appSidebar === "mini";
@@ -53,7 +56,7 @@ export function Sidebar() {
       disposed = true;
       tips.forEach((tip) => tip.dispose());
     };
-  }, [iconRail, entries]);
+  }, [iconRail, entries, pinned]);
 
   function closeDrawer() {
     document.getElementById("appMenubar")?.classList.remove("open");
@@ -113,6 +116,27 @@ export function Sidebar() {
       </nav>
 
       <div className="app-footer">
+        {pinned.map((item) => {
+          const active = isMenuItemActive(pathname, item.href, hrefs);
+          return (
+            <Link
+              key={item.href}
+              className={`menu-link${active ? " active" : ""}`}
+              href={item.href}
+              title={item.label}
+              {...(iconRail
+                ? {
+                    "data-bs-toggle": "tooltip",
+                    "data-bs-placement": "right",
+                    "data-bs-title": item.label,
+                  }
+                : {})}
+            >
+              <i className={item.icon} aria-hidden />
+              <span className="menu-label">{item.label}</span>
+            </Link>
+          );
+        })}
         <button
           type="button"
           className="menu-link text-danger"

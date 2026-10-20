@@ -1079,13 +1079,41 @@ textarea.form-control {
   gap: 10px;
   width: 100%;
   border: 0;
+  border-radius: 8px;
   background: transparent;
-  color: var(--bs-danger);
+  color: var(--bs-heading-color);
+  font-size: 14px;
+  padding: 10px 15px;
+  margin-bottom: 4px;
   cursor: pointer;
   text-align: left;
+  text-decoration: none;
 }
 
-.app-menubar .app-footer .menu-link:hover {
+.app-menubar .app-footer .menu-link > i {
+  display: inline-flex;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--bs-body-color);
+}
+
+.app-menubar .app-footer a.menu-link:hover,
+.app-menubar .app-footer a.menu-link.active {
+  color: #fff;
+  background-color: var(--bs-primary);
+}
+
+.app-menubar .app-footer a.menu-link:hover > i,
+.app-menubar .app-footer a.menu-link.active > i {
+  color: #fff;
+}
+
+.app-menubar .app-footer .menu-link.text-danger {
+  color: var(--bs-danger);
+}
+
+.app-menubar .app-footer .menu-link.text-danger:hover {
+  color: var(--bs-danger);
   background: var(--bs-danger-bg-subtle);
 }
 
@@ -1140,6 +1168,7 @@ textarea.form-control {
 .app-menubar .app-footer {
   flex: 0 0 auto;
   width: 100%;
+  border-top: 1px solid var(--bs-border-color);
 }
 
 .app-menubar .menu-label {
@@ -4133,6 +4162,33 @@ button.agency-list-row {
     padding-left: 1rem;
     padding-right: 1rem;
   }
+}
+
+.profile-avatar-wrap {
+  width: 72px;
+  height: 72px;
+}
+
+.profile-avatar {
+  width: 72px;
+  height: 72px;
+  min-width: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(31, 78, 121, 0.12);
+  color: var(--bs-primary);
+}
+
+.profile-avatar img {
+  width: 72px !important;
+  height: 72px !important;
+  max-width: none;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
 }
 
 
