@@ -12,8 +12,7 @@ import {
 } from "@/lib/menu";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useThemeSettings } from "@/components/providers/ThemeProvider";
-import { BrandText } from "@/components/brand/AgencyLogo";
-import { BRAND_NAME, LOGO_SIDEBAR } from "@/lib/constants/brand";
+import { BRAND_NAME, LOGO_SIDEBAR, LOGO_SIDEBAR_OPEN } from "@/lib/constants/brand";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 
 const OVERLAY_MAX = 1023;
@@ -78,12 +77,11 @@ export function Sidebar() {
       onMouseLeave={() => setSidebarHover(false)}
     >
       <div className="app-navbar-brand">
-        <Link href="/" aria-label={BRAND_NAME} className="d-inline-flex align-items-center">
+        <Link href="/" aria-label={BRAND_NAME} className="app-sidebar-brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={LOGO_SIDEBAR} alt={BRAND_NAME} className="app-sidebar-logo" />
-        </Link>
-        <Link href="/" className="navbar-brand-text menu-label text-decoration-none">
-          <BrandText />
+          <img src={LOGO_SIDEBAR} alt="" className="app-sidebar-logo app-sidebar-logo--mark" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={LOGO_SIDEBAR_OPEN} alt={BRAND_NAME} className="app-sidebar-logo app-sidebar-logo--wordmark" />
         </Link>
       </div>
 
