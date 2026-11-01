@@ -6,10 +6,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApiError } from "@/lib/api/client";
 import {
   deleteProposition,
-  downloadBlob,
   generateBrandedProposalPdf,
   getPropositionById,
-  getPropositionPdfBlob,
   getPropositions,
   sendPropositionEmail,
   updatePropositionStatus,
@@ -64,7 +62,6 @@ export default function PropositionsPage() {
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
 
-  const [pdfBusyId, setPdfBusyId] = useState<string | null>(null);
   const [brandedBusyId, setBrandedBusyId] = useState<string | null>(null);
   const [brandedOpen, setBrandedOpen] = useState(false);
   const [brandedInitial, setBrandedInitial] = useState<Partial<BrandedProposalPdfDto> | null>(null);
@@ -191,22 +188,6 @@ export default function PropositionsPage() {
       setDeleteError(err instanceof ApiError ? err.message : "Suppression impossible.");
     } finally {
       setDeleteSubmitting(false);
-    }
-  }
-
-  async function handlePdf(row: PropositionListItem) {
-    setPdfBusyId(row.id);
-    try {
-      const blob = await getPropositionPdfBlob(row.id);
-      downloadBlob(blob, `${row.numero || "proposition"}.pdf`);
-      setToast({ message: "PDF téléchargé.", variant: "success" });
-    } catch (err) {
-      setToast({
-        message: err instanceof ApiError ? err.message : "Téléchargement PDF impossible.",
-        variant: "danger",
-      });
-    } finally {
-      setPdfBusyId(null);
     }
   }
 
@@ -397,11 +378,11 @@ export default function PropositionsPage() {
                           <button
                             type="button"
                             className="btn btn-sm btn-subtle-secondary"
-                            title="PDF"
-                            disabled={pdfBusyId === row.id}
-                            onClick={() => void handlePdf(row)}
+                            title="PDF / Proposition 63"
+                            disabled={brandedBusyId === row.id}
+                            onClick={() => void openBrandedPdf(row)}
                           >
-                            {pdfBusyId === row.id ? (
+                            {brandedBusyId === row.id ? (
                               <span className="spinner-border spinner-border-sm" />
                             ) : (
                               <i className="fi fi-rr-file-pdf" />
@@ -410,7 +391,7 @@ export default function PropositionsPage() {
                           <button
                             type="button"
                             className="btn btn-sm btn-subtle-primary"
-                            title="Proposition 63"
+                            title="PDF / Proposition 63"
                             disabled={brandedBusyId === row.id}
                             onClick={() => void openBrandedPdf(row)}
                           >
