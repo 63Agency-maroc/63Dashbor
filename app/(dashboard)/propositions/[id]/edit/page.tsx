@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ApiError } from "@/lib/api/client";
 import {
+  generateBrandedProposalPdf,
   getPropositionById,
   propositionToUpsert,
   sanitizeUpsertDto,
@@ -13,6 +14,11 @@ import {
 } from "@/lib/api/propositions";
 import { AppToast } from "@/components/clients/AppToast";
 import { PropositionForm } from "@/components/propositions/PropositionForm";
+import { BrandedProposalModal } from "@/components/proposals/BrandedProposalModal";
+import {
+  brandedInitialFromProposition,
+  type BrandedProposalPdfDto,
+} from "@/lib/proposals/brandedPdf";
 
 export default function EditPropositionPage() {
   const params = useParams();
@@ -26,9 +32,12 @@ export default function EditPropositionPage() {
   const [forbidden, setForbidden] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; variant: "success" | "danger" } | null>(
-    null,
-  );
+  const [toast, setToast] = useState<{
+    message: string;
+    variant: "success" | "danger" | "info";
+  } | null>(null);
+  const [brandedOpen, setBrandedOpen] = useState(false);
+  const [brandedInitial, setBrandedInitial] = useState<Partial<BrandedProposalPdfDto> | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -142,9 +151,25 @@ export default function EditPropositionPage() {
             submitLabel="Enregistrer"
             onCancel={() => router.push("/propositions")}
             onSubmit={(dto) => void handleSubmit(dto)}
+            onBrandedPdf={(values) => {
+              setBrandedInitial(brandedInitialFromProposition(values));
+              setBrandedOpen(true);
+            }}
           />
         </>
       ) : null}
+
+      <BrandedProposalModal
+        open={brandedOpen}
+        initial={brandedInitial}
+        title="Proposition 63"
+        generatePdf={generateBrandedProposalPdf}
+        onClose={() => {
+          setBrandedOpen(false);
+          setBrandedInitial(null);
+        }}
+        onToast={(message, variant) => setToast({ message, variant })}
+      />
     </div>
   );
 }

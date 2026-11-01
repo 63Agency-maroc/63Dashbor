@@ -1,5 +1,6 @@
 import { api } from "@/lib/api/client";
 import { fetchPdfBlobPost } from "@/lib/api/documents";
+import type { BrandedProposalPdfDto } from "@/lib/proposals/brandedPdf";
 import {
   normalizeWhatsappConversation,
   normalizeWhatsappMessage,
@@ -258,18 +259,12 @@ export function sendLeadEmail(id: string, dto: SendLeadEmailDto) {
   return api.post<unknown>(`/leads/${id}/email`, dto);
 }
 
-/** Body POST /leads/:id/proposal/pdf — champs optionnels, defaults côté backend */
-export type LeadProposalPdfDto = {
+/** Body POST /leads/:id/proposal/pdf — mêmes champs que le PDF marque 63 */
+export type LeadProposalPdfDto = Partial<BrandedProposalPdfDto> & {
   client?: string;
-  date?: string;
-  offerName?: string;
-  price?: string;
-  currency?: string;
-  period?: string;
-  adBudget?: string;
 };
 
-/** Génère le PDF de proposition (stream blob) */
+/** Génère le PDF de proposition lead (stream blob) */
 export function generateLeadProposalPdf(id: string, dto: LeadProposalPdfDto) {
   return fetchPdfBlobPost(`/leads/${encodeURIComponent(id)}/proposal/pdf`, dto);
 }

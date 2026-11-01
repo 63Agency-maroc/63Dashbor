@@ -7,6 +7,8 @@ import { ApiError } from "@/lib/api/client";
 import {
   deleteProposition,
   downloadBlob,
+  generateBrandedProposalPdf,
+  getPropositionById,
   getPropositionPdfBlob,
   getPropositions,
   sendPropositionEmail,
@@ -15,9 +17,14 @@ import {
 } from "@/lib/api/propositions";
 import { AppToast } from "@/components/clients/AppToast";
 import { PropositionEmailModal } from "@/components/propositions/PropositionEmailModal";
+import { BrandedProposalModal } from "@/components/proposals/BrandedProposalModal";
 import { DocStatusControl } from "@/components/documents/DocStatusControl";
 import { DocsPageShell } from "@/components/documents/DocsPageShell";
 import { getDocumentStatusPalette, PROPOSITION_STATUSES } from "@/lib/documents/statusPalette";
+import {
+  brandedInitialFromProposition,
+  type BrandedProposalPdfDto,
+} from "@/lib/proposals/brandedPdf";
 
 const PAGE_SIZE = 10;
 
@@ -58,6 +65,9 @@ export default function PropositionsPage() {
   const [emailError, setEmailError] = useState<string | null>(null);
 
   const [pdfBusyId, setPdfBusyId] = useState<string | null>(null);
+  const [brandedBusyId, setBrandedBusyId] = useState<string | null>(null);
+  const [brandedOpen, setBrandedOpen] = useState(false);
+  const [brandedInitial, setBrandedInitial] = useState<Partial<BrandedProposalPdfDto> | null>(null);
   const [savingStatusId, setSavingStatusId] = useState<string | null>(null);
 
   const [toast, setToast] = useState<{
@@ -197,6 +207,19 @@ export default function PropositionsPage() {
       });
     } finally {
       setPdfBusyId(null);
+    }
+  }
+
+  async function openBrandedPdf(row: PropositionListItem) {
+    setBrandedBusyId(row.id);
+    try {
+      const full = await getPropositionById(row.id);
+      setBrandedInitial(brandedInitialFromProposition(full));
+    } catch {
+      setBrandedInitial(brandedInitialFromProposition(row));
+    } finally {
+      setBrandedBusyId(null);
+      setBrandedOpen(true);
     }
   }
 
@@ -386,6 +409,19 @@ export default function PropositionsPage() {
                           </button>
                           <button
                             type="button"
+                            className="btn btn-sm btn-subtle-primary"
+                            title="Proposition 63"
+                            disabled={brandedBusyId === row.id}
+                            onClick={() => void openBrandedPdf(row)}
+                          >
+                            {brandedBusyId === row.id ? (
+                              <span className="spinner-border spinner-border-sm" />
+                            ) : (
+                              <i className="fi fi-rr-document" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
                             className="btn btn-sm btn-subtle-info"
                             title="Email"
                             onClick={() => {
@@ -416,6 +452,18 @@ export default function PropositionsPage() {
           </div>
         )}
       </DocsPageShell>
+
+      <BrandedProposalModal
+        open={brandedOpen}
+        initial={brandedInitial}
+        title="Proposition 63"
+        generatePdf={generateBrandedProposalPdf}
+        onClose={() => {
+          setBrandedOpen(false);
+          setBrandedInitial(null);
+        }}
+        onToast={(message, variant) => setToast({ message, variant })}
+      />
 
       <PropositionEmailModal
         open={Boolean(emailTarget)}

@@ -1,6 +1,7 @@
 import { api } from "@/lib/api/client";
-import { downloadBlob, fetchPdfBlob } from "@/lib/api/documents";
+import { downloadBlob, fetchPdfBlob, fetchPdfBlobPost } from "@/lib/api/documents";
 import { COMPANY_63 } from "@/lib/constants/company";
+import type { BrandedProposalPdfDto } from "@/lib/proposals/brandedPdf";
 
 export type PropositionStatus = "draft" | string;
 
@@ -112,6 +113,7 @@ export type PropositionListItem = Pick<
   | "titreProposition"
   | "clientNom"
   | "nomEtablissement"
+  | "preparePour"
   | "dateEmission"
   | "clientEmail"
   | "clientTelephone"
@@ -433,6 +435,11 @@ export function sendPropositionEmail(id: string, dto: SendPropositionEmailDto) {
 
 export function getPropositionPdfBlob(id: string): Promise<Blob> {
   return fetchPdfBlob(`/propositions/${encodeURIComponent(id)}/pdf`);
+}
+
+/** POST /proposals/pdf — PDF marque 63 Agency (sans id proposition). */
+export function generateBrandedProposalPdf(dto: BrandedProposalPdfDto): Promise<Blob> {
+  return fetchPdfBlobPost("/proposals/pdf", dto);
 }
 
 export { downloadBlob };

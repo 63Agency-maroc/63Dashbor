@@ -24,6 +24,8 @@ type Props = {
   submitLabel: string;
   onSubmit: (dto: UpsertPropositionDto) => void;
   onCancel: () => void;
+  /** Ouvre le PDF marque 63 avec les valeurs courantes du formulaire */
+  onBrandedPdf?: (values: UpsertPropositionDto) => void;
 };
 
 function StringListEditor({
@@ -87,6 +89,7 @@ export function PropositionForm({
   submitLabel,
   onSubmit,
   onCancel,
+  onBrandedPdf,
 }: Props) {
   const [form, setForm] = useState<UpsertPropositionDto>(initial);
   const [open, setOpen] = useState<Record<SectionKey, boolean>>({
@@ -1161,6 +1164,17 @@ export function PropositionForm({
         <button type="button" className="doc-form__btn doc-form__btn--ghost" onClick={onCancel} disabled={submitting}>
           Annuler
         </button>
+        {onBrandedPdf ? (
+          <button
+            type="button"
+            className="doc-form__btn doc-form__btn--ghost"
+            disabled={submitting}
+            onClick={() => onBrandedPdf(form)}
+          >
+            <i className="fi fi-rr-document me-1" aria-hidden />
+            Proposition 63
+          </button>
+        ) : null}
         <button type="submit" className="doc-form__btn doc-form__btn--primary" disabled={submitting}>
           {submitting ? (
             <>

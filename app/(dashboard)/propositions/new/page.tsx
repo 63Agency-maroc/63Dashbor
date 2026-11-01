@@ -7,20 +7,29 @@ import { ApiError } from "@/lib/api/client";
 import {
   createProposition,
   emptyUpsertProposition,
+  generateBrandedProposalPdf,
   sanitizeUpsertDto,
   type UpsertPropositionDto,
 } from "@/lib/api/propositions";
 import { AppToast } from "@/components/clients/AppToast";
 import { PropositionForm } from "@/components/propositions/PropositionForm";
+import { BrandedProposalModal } from "@/components/proposals/BrandedProposalModal";
+import {
+  brandedInitialFromProposition,
+  type BrandedProposalPdfDto,
+} from "@/lib/proposals/brandedPdf";
 
 export default function NewPropositionPage() {
   const router = useRouter();
   const initial = useMemo(() => emptyUpsertProposition(), []);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; variant: "success" | "danger" } | null>(
-    null,
-  );
+  const [toast, setToast] = useState<{
+    message: string;
+    variant: "success" | "danger" | "info";
+  } | null>(null);
+  const [brandedOpen, setBrandedOpen] = useState(false);
+  const [brandedInitial, setBrandedInitial] = useState<Partial<BrandedProposalPdfDto> | null>(null);
 
   async function handleSubmit(values: UpsertPropositionDto) {
     setSubmitting(true);
@@ -76,6 +85,22 @@ export default function NewPropositionPage() {
         submitLabel="Créer la proposition"
         onCancel={() => router.push("/propositions")}
         onSubmit={(dto) => void handleSubmit(dto)}
+        onBrandedPdf={(values) => {
+          setBrandedInitial(brandedInitialFromProposition(values));
+          setBrandedOpen(true);
+        }}
+      />
+
+      <BrandedProposalModal
+        open={brandedOpen}
+        initial={brandedInitial}
+        title="Proposition 63"
+        generatePdf={generateBrandedProposalPdf}
+        onClose={() => {
+          setBrandedOpen(false);
+          setBrandedInitial(null);
+        }}
+        onToast={(message, variant) => setToast({ message, variant })}
       />
     </div>
   );
