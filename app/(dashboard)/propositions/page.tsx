@@ -378,7 +378,7 @@ export default function PropositionsPage() {
                           <button
                             type="button"
                             className="btn btn-sm btn-subtle-secondary"
-                            title="PDF / Proposition 63"
+                            title="PDF"
                             disabled={brandedBusyId === row.id}
                             onClick={() => void openBrandedPdf(row)}
                           >
@@ -386,19 +386,6 @@ export default function PropositionsPage() {
                               <span className="spinner-border spinner-border-sm" />
                             ) : (
                               <i className="fi fi-rr-file-pdf" />
-                            )}
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-subtle-primary"
-                            title="PDF / Proposition 63"
-                            disabled={brandedBusyId === row.id}
-                            onClick={() => void openBrandedPdf(row)}
-                          >
-                            {brandedBusyId === row.id ? (
-                              <span className="spinner-border spinner-border-sm" />
-                            ) : (
-                              <i className="fi fi-rr-document" />
                             )}
                           </button>
                           <button
