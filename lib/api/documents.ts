@@ -120,6 +120,18 @@ export function downloadBlob(blob: Blob, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
+async function readPdfError(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = await res.json();
+    if (data && typeof data === "object" && typeof (data as { message?: unknown }).message === "string") {
+      return (data as { message: string }).message;
+    }
+  } catch {
+    /* ignore */
+  }
+  return fallback;
+}
+
 /** GET …/pdf — stream PDF avec JWT → Blob */
 export async function fetchPdfBlob(path: string): Promise<Blob> {
   const token = getToken();
@@ -127,16 +139,24 @@ export async function fetchPdfBlob(path: string): Promise<Blob> {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) {
-    let message = `PDF indisponible (${res.status})`;
-    try {
-      const data = await res.json();
-      if (data && typeof data === "object" && typeof (data as { message?: unknown }).message === "string") {
-        message = (data as { message: string }).message;
-      }
-    } catch {
-      /* ignore */
-    }
-    throw new ApiError(message, res.status);
+    throw new ApiError(await readPdfError(res, `PDF indisponible (${res.status})`), res.status);
+  }
+  return res.blob();
+}
+
+/** POST …/pdf — JSON body + JWT → Blob (ex. proposition lead) */
+export async function fetchPdfBlobPost(path: string, body: unknown): Promise<Blob> {
+  const token = getToken();
+  const res = await fetch(`${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body ?? {}),
+  });
+  if (!res.ok) {
+    throw new ApiError(await readPdfError(res, `PDF indisponible (${res.status})`), res.status);
   }
   return res.blob();
 }

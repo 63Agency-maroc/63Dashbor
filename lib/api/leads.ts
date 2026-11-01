@@ -1,4 +1,5 @@
 import { api } from "@/lib/api/client";
+import { fetchPdfBlobPost } from "@/lib/api/documents";
 import {
   normalizeWhatsappConversation,
   normalizeWhatsappMessage,
@@ -255,4 +256,20 @@ export async function getLeadEmails(id: string): Promise<EmailMessage[]> {
 /** Envoi d’un email au lead via la boîte connectée */
 export function sendLeadEmail(id: string, dto: SendLeadEmailDto) {
   return api.post<unknown>(`/leads/${id}/email`, dto);
+}
+
+/** Body POST /leads/:id/proposal/pdf — champs optionnels, defaults côté backend */
+export type LeadProposalPdfDto = {
+  client?: string;
+  date?: string;
+  offerName?: string;
+  price?: string;
+  currency?: string;
+  period?: string;
+  adBudget?: string;
+};
+
+/** Génère le PDF de proposition (stream blob) */
+export function generateLeadProposalPdf(id: string, dto: LeadProposalPdfDto) {
+  return fetchPdfBlobPost(`/leads/${encodeURIComponent(id)}/proposal/pdf`, dto);
 }

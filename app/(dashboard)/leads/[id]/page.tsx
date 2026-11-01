@@ -14,6 +14,7 @@ import { getLeadStatusPalette } from "@/lib/leads/statusPalette";
 import { formatDateTime } from "@/lib/utils/date";
 import { AppToast } from "@/components/clients/AppToast";
 import { LeadEmailPanel } from "@/components/leads/LeadEmailPanel";
+import { LeadProposalModal } from "@/components/leads/LeadProposalModal";
 import { LeadWhatsappPanel } from "@/components/leads/LeadWhatsappPanel";
 
 type ConvTab = "whatsapp" | "email";
@@ -51,6 +52,7 @@ export default function LeadDetailPage() {
     message: string;
     variant: "success" | "danger" | "info";
   } | null>(null);
+  const [proposalOpen, setProposalOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -231,16 +233,26 @@ export default function LeadDetailPage() {
                     {lead.status || "—"}
                   </span>
                 </div>
-                {clickupUrl ? (
-                  <a
-                    href={clickupUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-sm btn-outline-primary"
+                <div className="d-flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    onClick={() => setProposalOpen(true)}
                   >
-                    Open in ClickUp
-                  </a>
-                ) : null}
+                    <i className="fi fi-rr-document me-1" aria-hidden />
+                    Proposition
+                  </button>
+                  {clickupUrl ? (
+                    <a
+                      href={clickupUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-sm btn-outline-primary"
+                    >
+                      Open in ClickUp
+                    </a>
+                  ) : null}
+                </div>
               </div>
 
               <div className="row g-3 mb-4">
@@ -347,6 +359,14 @@ export default function LeadDetailPage() {
           </div>
         </div>
       ) : null}
+
+      <LeadProposalModal
+        open={proposalOpen}
+        leadId={id}
+        leadName={displayName}
+        onClose={() => setProposalOpen(false)}
+        onToast={(message, variant) => setToast({ message, variant })}
+      />
     </div>
   );
 }
