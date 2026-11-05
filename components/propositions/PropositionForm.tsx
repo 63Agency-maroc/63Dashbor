@@ -216,28 +216,21 @@ export function PropositionForm({
               />
             </div>
 
-            <div className="col-12">
-              <label className="form-label d-block">Langue du PDF</label>
-              <div className="btn-group" role="group" aria-label="Langue du PDF">
-                <button
-                  type="button"
-                  className={`btn ${form.language === "fr" ? "btn-primary" : "btn-outline-primary"}`}
-                  disabled={busy}
-                  aria-pressed={form.language === "fr"}
-                  onClick={() => setLanguage("fr")}
-                >
-                  Français
-                </button>
-                <button
-                  type="button"
-                  className={`btn ${form.language === "en" ? "btn-primary" : "btn-outline-primary"}`}
-                  disabled={busy}
-                  aria-pressed={form.language === "en"}
-                  onClick={() => setLanguage("en")}
-                >
-                  English
-                </button>
-              </div>
+            <div className="col-md-4">
+              <label className="form-label" htmlFor="prop-language">
+                Langue du PDF <span className="text-danger">*</span>
+              </label>
+              <select
+                id="prop-language"
+                className="form-select"
+                value={form.language ?? "fr"}
+                disabled={busy}
+                required
+                onChange={(e) => setLanguage(e.target.value === "en" ? "en" : "fr")}
+              >
+                <option value="fr">Français</option>
+                <option value="en">English</option>
+              </select>
             </div>
 
             <div className="col-12">
