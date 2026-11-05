@@ -112,6 +112,10 @@ export default function EditPropositionPage() {
             </li>
           </ol>
         </nav>
+        <Link href="/propositions" className="btn btn-white btn-shadow btn-sm">
+          <i className="fi fi-rr-arrow-left me-1" aria-hidden />
+          Retour à la liste
+        </Link>
       </div>
 
       <div className="mb-3 doc-form-page-head">
