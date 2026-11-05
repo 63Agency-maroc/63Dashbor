@@ -47,6 +47,51 @@ export function proposalMonthFromYmd(ymd?: string | null) {
   return `${MONTHS_FR[monthIdx]} ${m[1]}`;
 }
 
+/** "JUL 2026" / "FÉV 2026" → YYYY-MM-01 ; sinon aujourd’hui. */
+export function ymdFromProposalMonth(label?: string | null) {
+  const raw = (label ?? "").trim();
+  const m = raw.match(/^([A-Za-zÀ-ÿ]{3,4})\s+(\d{4})$/u);
+  if (!m) {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+  }
+  const token = m[1]
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toUpperCase();
+  const normalizedMonths = MONTHS_FR.map((x) =>
+    x.normalize("NFD").replace(/\p{M}/gu, "").toUpperCase(),
+  );
+  let monthIdx = normalizedMonths.indexOf(token);
+  if (monthIdx < 0) {
+    // Fallback ASCII-ish aliases
+    const aliases: Record<string, number> = {
+      JAN: 0,
+      FEV: 1,
+      FEB: 1,
+      MAR: 2,
+      AVR: 3,
+      APR: 3,
+      MAI: 4,
+      MAY: 4,
+      JUN: 5,
+      JUL: 6,
+      AOU: 7,
+      AUG: 7,
+      SEP: 8,
+      OCT: 9,
+      NOV: 10,
+      DEC: 11,
+    };
+    monthIdx = aliases[token] ?? -1;
+  }
+  if (monthIdx < 0) {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+  }
+  return `${m[2]}-${String(monthIdx + 1).padStart(2, "0")}-01`;
+}
+
 export function brandedProposalFilename(client: string) {
   const cleaned = client.trim().replace(/[^\w.-]+/g, "_") || "Client";
   return `Proposition-${cleaned}.pdf`;
@@ -66,38 +111,81 @@ export function emptyBrandedProposalForm(
   };
 }
 
-type TariffLine = { prixOffert?: string | null; prixInitial?: string | null };
+type TariffLine = {
+  service?: string | null;
+  detail?: string | null;
+  prixOffert?: string | null;
+  prixInitial?: string | null;
+};
 
-/** Prefill depuis une proposition CRM (liste ou détail). */
-export function brandedInitialFromProposition(source: {
+type PropositionLike = {
+  titreProposition?: string | null;
   preparePour?: string | null;
   nomEtablissement?: string | null;
   clientNom?: string | null;
   dateEmission?: string | null;
-  tarifs?: { lignes?: TariffLine[] | null } | null;
-}): Partial<BrandedProposalPdfDto> {
+  tarifs?: { lignes?: TariffLine[] | null; noteMetaAds?: string | null } | null;
+};
+
+/** Prefill depuis une proposition CRM (liste ou détail). */
+export function brandedInitialFromProposition(
+  source: PropositionLike,
+): Partial<BrandedProposalPdfDto> {
   const client =
     (source.preparePour ?? "").trim() ||
     (source.nomEtablissement ?? "").trim() ||
     (source.clientNom ?? "").trim();
 
-  let price = "";
-  for (const line of source.tarifs?.lignes ?? []) {
-    const offert = (line.prixOffert ?? "").trim();
-    const initial = (line.prixInitial ?? "").trim();
-    if (offert) {
-      price = offert;
-      break;
-    }
-    if (initial) {
-      price = initial;
-      break;
-    }
-  }
+  const line = source.tarifs?.lignes?.[0];
+  const price =
+    (line?.prixOffert ?? "").trim() || (line?.prixInitial ?? "").trim();
+  const currency = (line?.service ?? "").trim();
+  const period = (line?.detail ?? "").trim();
+  const adBudget = (source.tarifs?.noteMetaAds ?? "").trim();
+  const offerName = (source.titreProposition ?? "").trim();
 
   return {
     ...(client ? { client } : {}),
     date: proposalMonthFromYmd(source.dateEmission),
+    ...(offerName ? { offerName } : {}),
     ...(price ? { price } : {}),
+    ...(currency ? { currency } : {}),
+    ...(period ? { period } : {}),
+    ...(adBudget ? { adBudget } : {}),
+  };
+}
+
+/** Formulaire marque 63 → champs CRM (conserve le reste du DTO). */
+export function applyBrandedToUpsert<T extends PropositionLike>(
+  base: T,
+  branded: BrandedProposalPdfDto,
+): T {
+  const client = branded.client.trim();
+  const offerName = branded.offerName.trim();
+  const price = branded.price.trim();
+  const currency = branded.currency.trim();
+  const period = branded.period.trim();
+  const adBudget = branded.adBudget.trim();
+  const existingLine = base.tarifs?.lignes?.[0];
+
+  return {
+    ...base,
+    titreProposition: offerName || (base.titreProposition ?? ""),
+    clientNom: client || (base.clientNom ?? ""),
+    preparePour: client || (base.preparePour ?? ""),
+    nomEtablissement: client || (base.nomEtablissement ?? ""),
+    dateEmission: ymdFromProposalMonth(branded.date),
+    tarifs: {
+      ...(base.tarifs ?? {}),
+      lignes: [
+        {
+          service: currency,
+          detail: period,
+          prixInitial: existingLine?.prixInitial ?? "",
+          prixOffert: price,
+        },
+      ],
+      noteMetaAds: adBudget,
+    },
   };
 }

@@ -14,11 +14,6 @@ import {
 } from "@/lib/api/propositions";
 import { AppToast } from "@/components/clients/AppToast";
 import { PropositionForm } from "@/components/propositions/PropositionForm";
-import { BrandedProposalModal } from "@/components/proposals/BrandedProposalModal";
-import {
-  brandedInitialFromProposition,
-  type BrandedProposalPdfDto,
-} from "@/lib/proposals/brandedPdf";
 
 export default function EditPropositionPage() {
   const params = useParams();
@@ -36,8 +31,6 @@ export default function EditPropositionPage() {
     message: string;
     variant: "success" | "danger" | "info";
   } | null>(null);
-  const [brandedOpen, setBrandedOpen] = useState(false);
-  const [brandedInitial, setBrandedInitial] = useState<Partial<BrandedProposalPdfDto> | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -72,7 +65,6 @@ export default function EditPropositionPage() {
     setSubmitting(true);
     setError(null);
     try {
-      // PATCH = replace : envoyer toute la structure
       await updateProposition(id, sanitizeUpsertDto(values));
       setToast({ message: "Proposition mise à jour.", variant: "success" });
       window.setTimeout(() => router.push("/propositions"), 600);
@@ -124,7 +116,7 @@ export default function EditPropositionPage() {
 
       <div className="mb-3 doc-form-page-head">
         <h4 className="doc-form-page-head__title">Éditer {numero || "proposition"}</h4>
-        <p className="doc-form-page-head__sub">Modifiez le client, l&apos;offre et la date.</p>
+        <p className="doc-form-page-head__sub">Même formulaire que Proposition 63.</p>
       </div>
 
       {loading ? (
@@ -149,25 +141,11 @@ export default function EditPropositionPage() {
             submitLabel="Enregistrer"
             onCancel={() => router.push("/propositions")}
             onSubmit={(dto) => void handleSubmit(dto)}
-            onBrandedPdf={(values) => {
-              setBrandedInitial(brandedInitialFromProposition(values));
-              setBrandedOpen(true);
-            }}
+            generatePdf={generateBrandedProposalPdf}
+            onToast={(message, variant) => setToast({ message, variant })}
           />
         </>
       ) : null}
-
-      <BrandedProposalModal
-        open={brandedOpen}
-        initial={brandedInitial}
-        title="Proposition 63"
-        generatePdf={generateBrandedProposalPdf}
-        onClose={() => {
-          setBrandedOpen(false);
-          setBrandedInitial(null);
-        }}
-        onToast={(message, variant) => setToast({ message, variant })}
-      />
     </div>
   );
 }
