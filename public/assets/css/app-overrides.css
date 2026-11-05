@@ -4031,11 +4031,59 @@ button.agency-list-row {
   position: absolute;
   left: 0;
   right: 0;
-  z-index: 20;
-  max-height: 220px;
+  top: calc(100% + 0.25rem);
+  z-index: 1080;
+  max-height: 240px;
+  overflow-x: hidden;
   overflow-y: auto;
-  margin-top: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--bs-border-color);
   border-radius: 0.75rem;
+  background: var(--bs-body-bg);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+}
+
+[data-bs-theme="dark"] .doc-form__suggest {
+  background: var(--bs-secondary-bg);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+.doc-form__suggest > li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.doc-form__suggest .list-group-item {
+  border: 0;
+  border-bottom: 1px solid var(--bs-border-color);
+  border-radius: 0;
+  background: transparent;
+  color: var(--bs-body-color);
+  width: 100%;
+  text-align: left;
+}
+
+.doc-form__suggest > li:last-child .list-group-item,
+.doc-form__suggest > .list-group-item:last-child {
+  border-bottom: 0;
+}
+
+.doc-form__suggest .list-group-item:hover,
+.doc-form__suggest .list-group-item:focus {
+  background: rgba(var(--bs-primary-rgb), 0.12);
+  color: var(--bs-body-color);
+}
+
+.doc-form__field--suggest {
+  position: relative;
+  z-index: 2;
+}
+
+.doc-form__field--suggest.is-open {
+  z-index: 30;
 }
 
 .doc-form__table-wrap {

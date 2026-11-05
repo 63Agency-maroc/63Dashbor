@@ -138,7 +138,11 @@ export function PropositionForm({
           </p>
 
           <div className="row g-3">
-            <div className="col-md-8">
+            <div
+              className={`col-md-8 doc-form__field--suggest${
+                leadSuggestOpen && leadSuggestions.length > 0 ? " is-open" : ""
+              }`}
+            >
               <label className="form-label" htmlFor="prop-client">
                 Client <span className="text-danger">*</span>
               </label>
@@ -164,12 +168,9 @@ export function PropositionForm({
                 />
                 {leadSearchBusy ? <div className="form-text">Recherche leads…</div> : null}
                 {leadSuggestOpen && leadSuggestions.length > 0 ? (
-                  <ul
-                    className="list-group position-absolute w-100 shadow-sm"
-                    style={{ zIndex: 20, maxHeight: 220, overflowY: "auto" }}
-                  >
+                  <ul className="doc-form__suggest list-group" role="listbox">
                     {leadSuggestions.map((lead) => (
-                      <li key={lead.id}>
+                      <li key={lead.id} role="option">
                         <button
                           type="button"
                           className="list-group-item list-group-item-action"
@@ -178,8 +179,8 @@ export function PropositionForm({
                             pickLead(lead);
                           }}
                         >
-                          <span className="fw-medium">{lead.name}</span>
-                          <span className="small text-muted d-block">
+                          <span className="fw-medium text-truncate d-block">{lead.name}</span>
+                          <span className="small text-muted text-truncate d-block">
                             {[lead.email, lead.phone, lead.status].filter(Boolean).join(" · ") ||
                               "Lead"}
                           </span>
