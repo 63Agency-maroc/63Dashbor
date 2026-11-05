@@ -6,7 +6,9 @@ import { downloadBlob } from "@/lib/api/documents";
 import {
   brandedProposalFilename,
   emptyBrandedProposalForm,
+  withProposalLanguage,
   type BrandedProposalPdfDto,
+  type ProposalPdfLanguage,
 } from "@/lib/proposals/brandedPdf";
 
 type Props = {
@@ -48,12 +50,19 @@ export function BrandedProposalModal({
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose, busy]);
 
-  function patch<K extends keyof BrandedProposalPdfDto>(key: K, value: string) {
+  function patch<K extends keyof BrandedProposalPdfDto>(
+    key: K,
+    value: BrandedProposalPdfDto[K],
+  ) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  function setLanguage(language: ProposalPdfLanguage) {
+    setForm((prev) => withProposalLanguage(prev, language));
+  }
+
   function dtoFromForm(): BrandedProposalPdfDto {
-    return {
+    return emptyBrandedProposalForm({
       client: form.client.trim(),
       date: form.date.trim(),
       offerName: form.offerName.trim(),
@@ -61,7 +70,8 @@ export function BrandedProposalModal({
       currency: form.currency.trim(),
       period: form.period.trim(),
       adBudget: form.adBudget.trim(),
-    };
+      language: form.language,
+    });
   }
 
   async function runGenerate(mode: "download" | "preview") {
@@ -164,6 +174,29 @@ export function BrandedProposalModal({
                       placeholder="NOV 2026"
                       required
                     />
+                  </div>
+                  <div className="col-12">
+                    <label className="form-label d-block">Langue du PDF</label>
+                    <div className="btn-group" role="group" aria-label="Langue du PDF">
+                      <button
+                        type="button"
+                        className={`btn ${form.language === "fr" ? "btn-primary" : "btn-outline-primary"}`}
+                        disabled={busy}
+                        aria-pressed={form.language === "fr"}
+                        onClick={() => setLanguage("fr")}
+                      >
+                        Français
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn ${form.language === "en" ? "btn-primary" : "btn-outline-primary"}`}
+                        disabled={busy}
+                        aria-pressed={form.language === "en"}
+                        onClick={() => setLanguage("en")}
+                      >
+                        English
+                      </button>
+                    </div>
                   </div>
                   <div className="col-12">
                     <label className="form-label" htmlFor="branded-prop-offer">

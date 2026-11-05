@@ -4131,6 +4131,8 @@ button.agency-list-row {
 }
 
 .doc-form__footer--page {
+  position: relative;
+  z-index: 5;
   margin-top: 0.75rem;
   margin-bottom: 1rem;
   border-radius: 1rem;
@@ -4151,6 +4153,10 @@ button.agency-list-row {
   padding: 0.6rem 1.25rem;
   border: 1px solid transparent;
   line-height: 1.2;
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
 }
 
 .doc-form__btn--ghost {

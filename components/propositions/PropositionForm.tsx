@@ -11,7 +11,9 @@ import {
   brandedInitialFromProposition,
   brandedProposalFilename,
   emptyBrandedProposalForm,
+  withProposalLanguage,
   type BrandedProposalPdfDto,
+  type ProposalPdfLanguage,
 } from "@/lib/proposals/brandedPdf";
 
 type Props = {
@@ -53,8 +55,15 @@ export function PropositionForm({
     clearLeadSuggestions();
   }, [initial, clearLeadSuggestions]);
 
-  function patch<K extends keyof BrandedProposalPdfDto>(key: K, value: string) {
+  function patch<K extends keyof BrandedProposalPdfDto>(
+    key: K,
+    value: BrandedProposalPdfDto[K],
+  ) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function setLanguage(language: ProposalPdfLanguage) {
+    setForm((prev) => withProposalLanguage(prev, language));
   }
 
   function pickLead(lead: Lead) {
@@ -208,6 +217,30 @@ export function PropositionForm({
             </div>
 
             <div className="col-12">
+              <label className="form-label d-block">Langue du PDF</label>
+              <div className="btn-group" role="group" aria-label="Langue du PDF">
+                <button
+                  type="button"
+                  className={`btn ${form.language === "fr" ? "btn-primary" : "btn-outline-primary"}`}
+                  disabled={busy}
+                  aria-pressed={form.language === "fr"}
+                  onClick={() => setLanguage("fr")}
+                >
+                  Français
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${form.language === "en" ? "btn-primary" : "btn-outline-primary"}`}
+                  disabled={busy}
+                  aria-pressed={form.language === "en"}
+                  onClick={() => setLanguage("en")}
+                >
+                  English
+                </button>
+              </div>
+            </div>
+
+            <div className="col-12">
               <label className="form-label" htmlFor="prop-offer">
                 Offre <span className="text-danger">*</span>
               </label>
@@ -288,14 +321,19 @@ export function PropositionForm({
       </div>
 
       <div className="doc-form__footer doc-form__footer--page flex-wrap gap-2">
-        <button type="button" className="doc-form__btn doc-form__btn--ghost" onClick={onCancel} disabled={busy}>
+        <button
+          type="button"
+          className="btn btn-outline-secondary"
+          onClick={onCancel}
+          disabled={busy}
+        >
           Annuler
         </button>
         {generatePdf ? (
           <>
             <button
               type="button"
-              className="doc-form__btn doc-form__btn--ghost"
+              className="btn btn-outline-primary"
               disabled={busy}
               onClick={() => void runGenerate("preview")}
             >
@@ -310,7 +348,7 @@ export function PropositionForm({
             </button>
             <button
               type="button"
-              className="doc-form__btn doc-form__btn--ghost"
+              className="btn btn-outline-primary"
               disabled={busy}
               onClick={() => void runGenerate("download")}
             >
@@ -318,7 +356,7 @@ export function PropositionForm({
             </button>
           </>
         ) : null}
-        <button type="submit" className="doc-form__btn doc-form__btn--primary" disabled={busy}>
+        <button type="submit" className="btn btn-primary" disabled={busy}>
           {submitting ? (
             <>
               <span className="spinner-border spinner-border-sm me-2" /> Enregistrement…

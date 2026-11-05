@@ -112,10 +112,14 @@ export default function EditPropositionPage() {
             </li>
           </ol>
         </nav>
-        <Link href="/propositions" className="btn btn-white btn-shadow btn-sm">
+        <button
+          type="button"
+          className="btn btn-outline-secondary btn-sm"
+          onClick={() => router.push("/propositions")}
+        >
           <i className="fi fi-rr-arrow-left me-1" aria-hidden />
           Retour à la liste
-        </Link>
+        </button>
       </div>
 
       <div className="mb-3 doc-form-page-head">
