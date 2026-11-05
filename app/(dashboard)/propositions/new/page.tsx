@@ -74,7 +74,7 @@ export default function NewPropositionPage() {
       <div className="mb-3 doc-form-page-head">
         <h4 className="doc-form-page-head__title">Nouvelle proposition</h4>
         <p className="doc-form-page-head__sub">
-          Remplissez les sections ci-dessous. Le numéro (PROP-…) est attribué côté serveur.
+          Client, offre et date. Le numéro (PROP-…) est attribué côté serveur.
         </p>
       </div>
 

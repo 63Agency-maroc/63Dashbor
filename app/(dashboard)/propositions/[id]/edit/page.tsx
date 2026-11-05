@@ -124,9 +124,7 @@ export default function EditPropositionPage() {
 
       <div className="mb-3 doc-form-page-head">
         <h4 className="doc-form-page-head__title">Éditer {numero || "proposition"}</h4>
-        <p className="doc-form-page-head__sub">
-          PATCH replace : toute la structure est renvoyée à l&apos;enregistrement.
-        </p>
+        <p className="doc-form-page-head__sub">Modifiez le client, l&apos;offre et la date.</p>
       </div>
 
       {loading ? (
