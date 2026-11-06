@@ -246,23 +246,7 @@ export function PropositionForm({
               </div>
             </div>
 
-            <div className="col-md-4">
-              <label className="form-label" htmlFor="prop-language">
-                Langue du PDF <span className="text-danger">*</span>
-              </label>
-              <Select
-                id="prop-language"
-                className="doc-form__app-select"
-                value={form.language ?? "fr"}
-                disabled={busy}
-                required
-                aria-label="Langue du PDF"
-                options={LANGUAGE_OPTIONS}
-                onChange={(value) => setLanguage(value === "en" ? "en" : "fr")}
-              />
-            </div>
-
-            <div className="col-12">
+            <div className="col-md-8">
               <label className="form-label" htmlFor="prop-offer">
                 Offre <span className="text-danger">*</span>
               </label>
@@ -283,6 +267,22 @@ export function PropositionForm({
                     proposalOfferLabel(value as ProposalOfferId, form.language ?? "fr"),
                   )
                 }
+              />
+            </div>
+
+            <div className="col-md-4">
+              <label className="form-label" htmlFor="prop-language">
+                Langue du PDF <span className="text-danger">*</span>
+              </label>
+              <Select
+                id="prop-language"
+                className="doc-form__app-select"
+                value={form.language ?? "fr"}
+                disabled={busy}
+                required
+                aria-label="Langue du PDF"
+                options={LANGUAGE_OPTIONS}
+                onChange={(value) => setLanguage(value === "en" ? "en" : "fr")}
               />
             </div>
 
@@ -310,6 +310,7 @@ export function PropositionForm({
                 value={form.currency}
                 disabled={busy}
                 required
+                maxLength={100}
                 onChange={(e) => patch("currency", e.target.value)}
               />
             </div>

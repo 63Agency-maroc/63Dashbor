@@ -188,22 +188,7 @@ export function BrandedProposalModal({
                       Mois et année de création (automatique)
                     </div>
                   </div>
-                  <div className="col-md-4">
-                    <label className="form-label" htmlFor="branded-prop-language">
-                      Langue du PDF
-                    </label>
-                    <Select
-                      id="branded-prop-language"
-                      className="doc-form__app-select"
-                      value={form.language ?? "fr"}
-                      disabled={busy}
-                      required
-                      aria-label="Langue du PDF"
-                      options={LANGUAGE_OPTIONS}
-                      onChange={(value) => setLanguage(value === "en" ? "en" : "fr")}
-                    />
-                  </div>
-                  <div className="col-12">
+                  <div className="col-md-8">
                     <label className="form-label" htmlFor="branded-prop-offer">
                       Offre
                     </label>
@@ -224,6 +209,21 @@ export function BrandedProposalModal({
                           proposalOfferLabel(value as ProposalOfferId, form.language ?? "fr"),
                         )
                       }
+                    />
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label" htmlFor="branded-prop-language">
+                      Langue du PDF
+                    </label>
+                    <Select
+                      id="branded-prop-language"
+                      className="doc-form__app-select"
+                      value={form.language ?? "fr"}
+                      disabled={busy}
+                      required
+                      aria-label="Langue du PDF"
+                      options={LANGUAGE_OPTIONS}
+                      onChange={(value) => setLanguage(value === "en" ? "en" : "fr")}
                     />
                   </div>
                   <div className="col-md-4">
@@ -250,6 +250,7 @@ export function BrandedProposalModal({
                       disabled={busy}
                       onChange={(e) => patch("currency", e.target.value)}
                       required
+                      maxLength={100}
                     />
                   </div>
                   <div className="col-md-4">
