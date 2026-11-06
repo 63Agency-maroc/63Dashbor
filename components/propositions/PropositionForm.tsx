@@ -6,11 +6,14 @@ import { downloadBlob } from "@/lib/api/documents";
 import { type UpsertPropositionDto } from "@/lib/api/propositions";
 import type { Lead } from "@/lib/api/leads";
 import { useLeadSuggestions } from "@/hooks/useLeadSuggestions";
+import { Select } from "@/components/ui/Select";
 import {
   applyBrandedToUpsert,
   brandedInitialFromProposition,
   brandedProposalFilename,
+  defaultProposalMonth,
   emptyBrandedProposalForm,
+  normalizeProposalLanguage,
   PROPOSAL_OFFER_OPTIONS,
   proposalOfferLabel,
   resolveProposalOfferId,
@@ -20,6 +23,11 @@ import {
   type ProposalPdfLanguage,
 } from "@/lib/proposals/brandedPdf";
 
+const LANGUAGE_OPTIONS = [
+  { value: "fr", label: "Français" },
+  { value: "en", label: "English" },
+];
+
 type Props = {
   initial: UpsertPropositionDto;
   submitting: boolean;
@@ -27,9 +35,23 @@ type Props = {
   submitLabel: string;
   onSubmit: (dto: UpsertPropositionDto) => void;
   onCancel: () => void;
+  /** À la création : force mois/année courants (Casablanca). */
+  forceCreationDate?: boolean;
   generatePdf?: (dto: BrandedProposalPdfDto) => Promise<Blob>;
   onToast?: (message: string, variant: "success" | "danger" | "info") => void;
 };
+
+function buildFormState(
+  initial: UpsertPropositionDto,
+  forceCreationDate?: boolean,
+): BrandedProposalPdfDto {
+  const partial = brandedInitialFromProposition(initial);
+  const language = normalizeProposalLanguage(partial.language);
+  return emptyBrandedProposalForm({
+    ...partial,
+    ...(forceCreationDate ? { date: defaultProposalMonth(new Date(), language) } : {}),
+  });
+}
 
 export function PropositionForm({
   initial,
@@ -38,12 +60,13 @@ export function PropositionForm({
   submitLabel,
   onSubmit,
   onCancel,
+  forceCreationDate = false,
   generatePdf,
   onToast,
 }: Props) {
   const [base, setBase] = useState<UpsertPropositionDto>(initial);
   const [form, setForm] = useState<BrandedProposalPdfDto>(() =>
-    emptyBrandedProposalForm(brandedInitialFromProposition(initial)),
+    buildFormState(initial, forceCreationDate),
   );
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
@@ -53,11 +76,11 @@ export function PropositionForm({
 
   useEffect(() => {
     setBase(initial);
-    setForm(emptyBrandedProposalForm(brandedInitialFromProposition(initial)));
+    setForm(buildFormState(initial, forceCreationDate));
     setLeadSuggestOpen(false);
     setPdfError(null);
     clearLeadSuggestions();
-  }, [initial, clearLeadSuggestions]);
+  }, [initial, forceCreationDate, clearLeadSuggestions]);
 
   function patch<K extends keyof BrandedProposalPdfDto>(
     key: K,
@@ -213,53 +236,54 @@ export function PropositionForm({
                 id="prop-date"
                 className="form-control"
                 value={form.date}
+                readOnly
                 disabled={busy}
                 required
-                placeholder="NOV 2026"
-                onChange={(e) => patch("date", e.target.value)}
+                aria-describedby="prop-date-hint"
               />
+              <div id="prop-date-hint" className="form-text">
+                Mois et année de création (automatique)
+              </div>
             </div>
 
             <div className="col-md-4">
               <label className="form-label" htmlFor="prop-language">
                 Langue du PDF <span className="text-danger">*</span>
               </label>
-              <select
+              <Select
                 id="prop-language"
-                className="form-select"
+                className="doc-form__app-select"
                 value={form.language ?? "fr"}
                 disabled={busy}
                 required
-                onChange={(e) => setLanguage(e.target.value === "en" ? "en" : "fr")}
-              >
-                <option value="fr">Français</option>
-                <option value="en">English</option>
-              </select>
+                aria-label="Langue du PDF"
+                options={LANGUAGE_OPTIONS}
+                onChange={(value) => setLanguage(value === "en" ? "en" : "fr")}
+              />
             </div>
 
             <div className="col-12">
               <label className="form-label" htmlFor="prop-offer">
                 Offre <span className="text-danger">*</span>
               </label>
-              <select
+              <Select
                 id="prop-offer"
-                className="form-select"
+                className="doc-form__app-select"
                 value={resolveProposalOfferId(form.offerName)}
                 disabled={busy}
                 required
-                onChange={(e) =>
+                aria-label="Offre"
+                options={PROPOSAL_OFFER_OPTIONS.map((opt) => ({
+                  value: opt.id,
+                  label: opt[form.language ?? "fr"],
+                }))}
+                onChange={(value) =>
                   patch(
                     "offerName",
-                    proposalOfferLabel(e.target.value as ProposalOfferId, form.language ?? "fr"),
+                    proposalOfferLabel(value as ProposalOfferId, form.language ?? "fr"),
                   )
                 }
-              >
-                {PROPOSAL_OFFER_OPTIONS.map((opt) => (
-                  <option key={opt.id} value={opt.id}>
-                    {opt[form.language ?? "fr"]}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             <div className="col-md-4">

@@ -84,6 +84,7 @@ export default function NewPropositionPage() {
         submitting={submitting}
         error={error}
         submitLabel="Créer la proposition"
+        forceCreationDate
         onCancel={() => router.push("/propositions")}
         onSubmit={(dto) => void handleSubmit(dto)}
         generatePdf={generateBrandedProposalPdf}

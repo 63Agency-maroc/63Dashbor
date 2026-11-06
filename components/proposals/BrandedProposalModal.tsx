@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { ApiError } from "@/lib/api/client";
 import { downloadBlob } from "@/lib/api/documents";
+import { Select } from "@/components/ui/Select";
 import {
   brandedProposalFilename,
   emptyBrandedProposalForm,
@@ -14,6 +15,11 @@ import {
   type ProposalOfferId,
   type ProposalPdfLanguage,
 } from "@/lib/proposals/brandedPdf";
+
+const LANGUAGE_OPTIONS = [
+  { value: "fr", label: "Français" },
+  { value: "en", label: "English" },
+];
 
 type Props = {
   open: boolean;
@@ -173,54 +179,52 @@ export function BrandedProposalModal({
                       id="branded-prop-date"
                       className="form-control"
                       value={form.date}
+                      readOnly
                       disabled={busy}
-                      onChange={(e) => patch("date", e.target.value)}
-                      placeholder="NOV 2026"
                       required
+                      aria-describedby="branded-prop-date-hint"
                     />
+                    <div id="branded-prop-date-hint" className="form-text">
+                      Mois et année de création (automatique)
+                    </div>
                   </div>
                   <div className="col-md-4">
                     <label className="form-label" htmlFor="branded-prop-language">
                       Langue du PDF
                     </label>
-                    <select
+                    <Select
                       id="branded-prop-language"
-                      className="form-select"
+                      className="doc-form__app-select"
                       value={form.language ?? "fr"}
                       disabled={busy}
                       required
-                      onChange={(e) => setLanguage(e.target.value === "en" ? "en" : "fr")}
-                    >
-                      <option value="fr">Français</option>
-                      <option value="en">English</option>
-                    </select>
+                      aria-label="Langue du PDF"
+                      options={LANGUAGE_OPTIONS}
+                      onChange={(value) => setLanguage(value === "en" ? "en" : "fr")}
+                    />
                   </div>
                   <div className="col-12">
                     <label className="form-label" htmlFor="branded-prop-offer">
                       Offre
                     </label>
-                    <select
+                    <Select
                       id="branded-prop-offer"
-                      className="form-select"
+                      className="doc-form__app-select"
                       value={resolveProposalOfferId(form.offerName)}
                       disabled={busy}
                       required
-                      onChange={(e) =>
+                      aria-label="Offre"
+                      options={PROPOSAL_OFFER_OPTIONS.map((opt) => ({
+                        value: opt.id,
+                        label: opt[form.language ?? "fr"],
+                      }))}
+                      onChange={(value) =>
                         patch(
                           "offerName",
-                          proposalOfferLabel(
-                            e.target.value as ProposalOfferId,
-                            form.language ?? "fr",
-                          ),
+                          proposalOfferLabel(value as ProposalOfferId, form.language ?? "fr"),
                         )
                       }
-                    >
-                      {PROPOSAL_OFFER_OPTIONS.map((opt) => (
-                        <option key={opt.id} value={opt.id}>
-                          {opt[form.language ?? "fr"]}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
                   <div className="col-md-4">
                     <label className="form-label" htmlFor="branded-prop-price">

@@ -105,6 +105,21 @@ export function normalizeProposalLanguage(value?: string | null): ProposalPdfLan
 
 export function defaultProposalMonth(now = new Date(), language: ProposalPdfLanguage = "fr") {
   const months = language === "en" ? MONTHS_EN : MONTHS_FR;
+  // Mois / année de création (fuseau Casablanca)
+  try {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Africa/Casablanca",
+      month: "numeric",
+      year: "numeric",
+    }).formatToParts(now);
+    const monthNum = Number(parts.find((p) => p.type === "month")?.value ?? NaN);
+    const yearNum = Number(parts.find((p) => p.type === "year")?.value ?? NaN);
+    if (monthNum >= 1 && monthNum <= 12 && yearNum > 2000) {
+      return `${months[monthNum - 1]} ${yearNum}`;
+    }
+  } catch {
+    /* fallback local */
+  }
   return `${months[now.getMonth()]} ${now.getFullYear()}`;
 }
 
