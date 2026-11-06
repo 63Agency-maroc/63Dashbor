@@ -13,9 +13,42 @@ export type BrandedProposalPdfDto = {
   language: ProposalPdfLanguage;
 };
 
+export type ProposalOfferId = "1m" | "3m" | "6m" | "1y";
+
+export const PROPOSAL_OFFER_OPTIONS: {
+  id: ProposalOfferId;
+  fr: string;
+  en: string;
+}[] = [
+  { id: "1m", fr: "Partenariat 1 mois", en: "1-Month Partnership" },
+  { id: "3m", fr: "Partenariat 3 mois", en: "3-Month Partnership" },
+  { id: "6m", fr: "Partenariat 6 mois", en: "6-Month Partnership" },
+  { id: "1y", fr: "Partenariat 1 an", en: "1-Year Partnership" },
+];
+
+export function proposalOfferLabel(id: ProposalOfferId, language: ProposalPdfLanguage) {
+  const opt = PROPOSAL_OFFER_OPTIONS.find((o) => o.id === id);
+  return opt ? opt[language] : PROPOSAL_OFFER_OPTIONS[1][language];
+}
+
+export function resolveProposalOfferId(
+  offerName?: string | null,
+): ProposalOfferId {
+  const raw = (offerName ?? "").trim().toLowerCase();
+  if (!raw) return "3m";
+  for (const opt of PROPOSAL_OFFER_OPTIONS) {
+    if (raw === opt.fr.toLowerCase() || raw === opt.en.toLowerCase()) return opt.id;
+  }
+  if (/\b1\s*an|\b1\s*year|\b12\s*mois|\b12\s*month/.test(raw)) return "1y";
+  if (/\b6\s*mois|\b6\s*month/.test(raw)) return "6m";
+  if (/\b1\s*mois|\b1\s*month/.test(raw)) return "1m";
+  if (/\b3\s*mois|\b3\s*month/.test(raw)) return "3m";
+  return "3m";
+}
+
 export const BRANDED_PROPOSAL_DEFAULTS_BY_LANG = {
   fr: {
-    offerName: "Partenariat de 3 mois",
+    offerName: proposalOfferLabel("3m", "fr"),
     price: "13 500,00",
     currency: "DHS",
     period: "PAR TRIMESTRE",
@@ -23,7 +56,7 @@ export const BRANDED_PROPOSAL_DEFAULTS_BY_LANG = {
       "Les dépenses publicitaires restent à la charge de l’entreprise cliente, avec un budget initial minimum de 3 000 DHS/mois.",
   },
   en: {
-    offerName: "3-Month Partnership",
+    offerName: proposalOfferLabel("3m", "en"),
     price: "13 500,00",
     currency: "DHS",
     period: "PER QUARTER",
@@ -139,10 +172,11 @@ export function emptyBrandedProposalForm(
 ): BrandedProposalPdfDto {
   const language = normalizeProposalLanguage(partial?.language);
   const defaults = BRANDED_PROPOSAL_DEFAULTS_BY_LANG[language];
+  const offerId = resolveProposalOfferId(partial?.offerName);
   return {
     client: (partial?.client ?? "").trim(),
     date: (partial?.date ?? "").trim() || defaultProposalMonth(new Date(), language),
-    offerName: (partial?.offerName ?? "").trim() || defaults.offerName,
+    offerName: proposalOfferLabel(offerId, language),
     price: (partial?.price ?? "").trim() || defaults.price,
     currency: (partial?.currency ?? "").trim() || defaults.currency,
     period: (partial?.period ?? "").trim() || defaults.period,
@@ -159,10 +193,11 @@ export function withProposalLanguage(
   if (form.language === language) return form;
   const prev = BRANDED_PROPOSAL_DEFAULTS_BY_LANG[form.language];
   const next = BRANDED_PROPOSAL_DEFAULTS_BY_LANG[language];
+  const offerId = resolveProposalOfferId(form.offerName);
   return {
     ...form,
     language,
-    offerName: form.offerName.trim() === prev.offerName ? next.offerName : form.offerName,
+    offerName: proposalOfferLabel(offerId, language),
     period: form.period.trim() === prev.period ? next.period : form.period,
     adBudget: form.adBudget.trim() === prev.adBudget ? next.adBudget : form.adBudget,
     date: proposalMonthFromYmd(ymdFromProposalMonth(form.date), language),

@@ -11,8 +11,12 @@ import {
   brandedInitialFromProposition,
   brandedProposalFilename,
   emptyBrandedProposalForm,
+  PROPOSAL_OFFER_OPTIONS,
+  proposalOfferLabel,
+  resolveProposalOfferId,
   withProposalLanguage,
   type BrandedProposalPdfDto,
+  type ProposalOfferId,
   type ProposalPdfLanguage,
 } from "@/lib/proposals/brandedPdf";
 
@@ -237,14 +241,25 @@ export function PropositionForm({
               <label className="form-label" htmlFor="prop-offer">
                 Offre <span className="text-danger">*</span>
               </label>
-              <input
+              <select
                 id="prop-offer"
-                className="form-control"
-                value={form.offerName}
+                className="form-select"
+                value={resolveProposalOfferId(form.offerName)}
                 disabled={busy}
                 required
-                onChange={(e) => patch("offerName", e.target.value)}
-              />
+                onChange={(e) =>
+                  patch(
+                    "offerName",
+                    proposalOfferLabel(e.target.value as ProposalOfferId, form.language ?? "fr"),
+                  )
+                }
+              >
+                {PROPOSAL_OFFER_OPTIONS.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt[form.language ?? "fr"]}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="col-md-4">

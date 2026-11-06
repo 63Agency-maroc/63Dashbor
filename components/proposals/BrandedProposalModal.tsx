@@ -6,8 +6,12 @@ import { downloadBlob } from "@/lib/api/documents";
 import {
   brandedProposalFilename,
   emptyBrandedProposalForm,
+  PROPOSAL_OFFER_OPTIONS,
+  proposalOfferLabel,
+  resolveProposalOfferId,
   withProposalLanguage,
   type BrandedProposalPdfDto,
+  type ProposalOfferId,
   type ProposalPdfLanguage,
 } from "@/lib/proposals/brandedPdf";
 
@@ -195,14 +199,28 @@ export function BrandedProposalModal({
                     <label className="form-label" htmlFor="branded-prop-offer">
                       Offre
                     </label>
-                    <input
+                    <select
                       id="branded-prop-offer"
-                      className="form-control"
-                      value={form.offerName}
+                      className="form-select"
+                      value={resolveProposalOfferId(form.offerName)}
                       disabled={busy}
-                      onChange={(e) => patch("offerName", e.target.value)}
                       required
-                    />
+                      onChange={(e) =>
+                        patch(
+                          "offerName",
+                          proposalOfferLabel(
+                            e.target.value as ProposalOfferId,
+                            form.language ?? "fr",
+                          ),
+                        )
+                      }
+                    >
+                      {PROPOSAL_OFFER_OPTIONS.map((opt) => (
+                        <option key={opt.id} value={opt.id}>
+                          {opt[form.language ?? "fr"]}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="col-md-4">
                     <label className="form-label" htmlFor="branded-prop-price">
