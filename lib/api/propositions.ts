@@ -178,7 +178,8 @@ export function emptyUpsertProposition(): UpsertPropositionDto {
     introduction: {
       paragraphe1: "",
       paragraphe2: "",
-      objectifProspects: 0,
+      // Backend @Min(1) — le formulaire simplifié n’expose plus ce champ.
+      objectifProspects: 1,
     },
     strategie: {
       section1CreationContenu: {
@@ -242,7 +243,10 @@ export function propositionToUpsert(p: Proposition): UpsertPropositionDto {
     introduction: {
       paragraphe1: p.introduction?.paragraphe1 ?? "",
       paragraphe2: p.introduction?.paragraphe2 ?? "",
-      objectifProspects: Number(p.introduction?.objectifProspects) || 0,
+      objectifProspects: Math.max(
+        1,
+        Number(p.introduction?.objectifProspects) || 1,
+      ),
     },
     strategie: {
       section1CreationContenu: {
@@ -331,7 +335,10 @@ export function sanitizeUpsertDto(values: UpsertPropositionDto): UpsertPropositi
     introduction: {
       paragraphe1: cleanStr(values.introduction.paragraphe1),
       paragraphe2: cleanStr(values.introduction.paragraphe2),
-      objectifProspects: Math.max(0, Number(values.introduction.objectifProspects) || 0),
+      objectifProspects: Math.max(
+        1,
+        Number(values.introduction.objectifProspects) || 1,
+      ),
     },
     strategie: {
       section1CreationContenu: {
