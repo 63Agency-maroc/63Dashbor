@@ -23,12 +23,27 @@ export const PROPOSAL_OFFER_OPTIONS: {
   { id: "1m", fr: "Partenariat 1 mois", en: "1-Month Partnership" },
   { id: "3m", fr: "Partenariat 3 mois", en: "3-Month Partnership" },
   { id: "6m", fr: "Partenariat 6 mois", en: "6-Month Partnership" },
-  { id: "1y", fr: "Partenariat 1 an", en: "1-Year Partnership" },
+  { id: "1y", fr: "Partenariat 1 ans", en: "1-Year Partnership" },
 ];
 
 export function proposalOfferLabel(id: ProposalOfferId, language: ProposalPdfLanguage) {
   const opt = PROPOSAL_OFFER_OPTIONS.find((o) => o.id === id);
   return opt ? opt[language] : PROPOSAL_OFFER_OPTIONS[1][language];
+}
+
+/** Période auto selon l’offre. */
+export const PROPOSAL_PERIOD_BY_OFFER: Record<
+  ProposalOfferId,
+  { fr: string; en: string }
+> = {
+  "1m": { fr: "PAR MOIS", en: "PER MONTH" },
+  "3m": { fr: "PAR TRIMESTRE", en: "PER QUARTER" },
+  "6m": { fr: "PAR SEMESTRE", en: "PER SEMESTER" },
+  "1y": { fr: "PAR ANS", en: "PER YEAR" },
+};
+
+export function proposalPeriodLabel(id: ProposalOfferId, language: ProposalPdfLanguage) {
+  return PROPOSAL_PERIOD_BY_OFFER[id]?.[language] ?? PROPOSAL_PERIOD_BY_OFFER["3m"][language];
 }
 
 export function resolveProposalOfferId(
@@ -51,7 +66,7 @@ export const BRANDED_PROPOSAL_DEFAULTS_BY_LANG = {
     offerName: proposalOfferLabel("3m", "fr"),
     price: "13 500,00",
     currency: "DHS",
-    period: "PAR TRIMESTRE",
+    period: proposalPeriodLabel("3m", "fr"),
     adBudget:
       "Les dépenses publicitaires restent à la charge de l’entreprise cliente, avec un budget initial minimum de 3 000 DHS/mois.",
   },
@@ -59,7 +74,7 @@ export const BRANDED_PROPOSAL_DEFAULTS_BY_LANG = {
     offerName: proposalOfferLabel("3m", "en"),
     price: "13 500,00",
     currency: "DHS",
-    period: "PER QUARTER",
+    period: proposalPeriodLabel("3m", "en"),
     adBudget:
       "Advertising spend remains the responsibility of the client company, with a minimum starting budget of 3,000 DHS/month.",
   },
@@ -194,7 +209,8 @@ export function emptyBrandedProposalForm(
     offerName: proposalOfferLabel(offerId, language),
     price: (partial?.price ?? "").trim() || defaults.price,
     currency: (partial?.currency ?? "").trim() || defaults.currency,
-    period: (partial?.period ?? "").trim() || defaults.period,
+    // Période toujours alignée sur l’offre
+    period: proposalPeriodLabel(offerId, language),
     adBudget: (partial?.adBudget ?? "").trim() || defaults.adBudget,
     language,
   };
@@ -213,9 +229,22 @@ export function withProposalLanguage(
     ...form,
     language,
     offerName: proposalOfferLabel(offerId, language),
-    period: form.period.trim() === prev.period ? next.period : form.period,
+    period: proposalPeriodLabel(offerId, language),
     adBudget: form.adBudget.trim() === prev.adBudget ? next.adBudget : form.adBudget,
     date: proposalMonthFromYmd(ymdFromProposalMonth(form.date), language),
+  };
+}
+
+/** Change d’offre → met à jour le libellé + la période associée. */
+export function withProposalOffer(
+  form: BrandedProposalPdfDto,
+  offerId: ProposalOfferId,
+): BrandedProposalPdfDto {
+  const language = normalizeProposalLanguage(form.language);
+  return {
+    ...form,
+    offerName: proposalOfferLabel(offerId, language),
+    period: proposalPeriodLabel(offerId, language),
   };
 }
 

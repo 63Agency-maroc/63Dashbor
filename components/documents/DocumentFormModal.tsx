@@ -328,21 +328,20 @@ export function DocumentFormModal({
                     ).map(([key, label]) => (
                       <div className="col-md-4" key={key}>
                         <label className="doc-form__label" htmlFor={`${kind}-${key}`}>
-                          {label} <span className="text-danger">*</span>
+                          {label}
                         </label>
                         <input
                           id={`${kind}-${key}`}
                           className="form-control"
                           value={form[key]}
                           onChange={(e) => setField(key, e.target.value)}
-                          required
                           disabled={submitting}
                         />
                       </div>
                     ))}
                     <div className="col-12">
                       <label className="doc-form__label" htmlFor={`${kind}-societeAdresse`}>
-                        Adresse <span className="text-danger">*</span>
+                        Adresse
                       </label>
                       <textarea
                         id={`${kind}-societeAdresse`}
@@ -350,7 +349,6 @@ export function DocumentFormModal({
                         rows={2}
                         value={form.societeAdresse}
                         onChange={(e) => setField("societeAdresse", e.target.value)}
-                        required
                         disabled={submitting}
                       />
                     </div>

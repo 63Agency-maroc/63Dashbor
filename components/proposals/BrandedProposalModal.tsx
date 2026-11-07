@@ -8,9 +8,9 @@ import {
   brandedProposalFilename,
   emptyBrandedProposalForm,
   PROPOSAL_OFFER_OPTIONS,
-  proposalOfferLabel,
   resolveProposalOfferId,
   withProposalLanguage,
+  withProposalOffer,
   type BrandedProposalPdfDto,
   type ProposalOfferId,
   type ProposalPdfLanguage,
@@ -69,6 +69,10 @@ export function BrandedProposalModal({
 
   function setLanguage(language: ProposalPdfLanguage) {
     setForm((prev) => withProposalLanguage(prev, language));
+  }
+
+  function setOffer(offerId: ProposalOfferId) {
+    setForm((prev) => withProposalOffer(prev, offerId));
   }
 
   function dtoFromForm(): BrandedProposalPdfDto {
@@ -203,12 +207,7 @@ export function BrandedProposalModal({
                         value: opt.id,
                         label: opt[form.language ?? "fr"],
                       }))}
-                      onChange={(value) =>
-                        patch(
-                          "offerName",
-                          proposalOfferLabel(value as ProposalOfferId, form.language ?? "fr"),
-                        )
-                      }
+                      onChange={(value) => setOffer(value as ProposalOfferId)}
                     />
                   </div>
                   <div className="col-md-4">
