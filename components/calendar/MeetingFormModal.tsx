@@ -222,7 +222,7 @@ function buildInitial(
     setterId: "",
     closerId: "",
     reminders: cloneReminders(DEFAULT_REMINDERS),
-    notifyOnCreate: false,
+    notifyOnCreate: true,
   };
 }
 
