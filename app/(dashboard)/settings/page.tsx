@@ -12,6 +12,7 @@ import {
   type AppSidebar,
   type AppTheme,
 } from "@/components/providers/ThemeProvider";
+import { EmailDiagPanel } from "@/components/email/EmailDiagPanel";
 import { MailAccountForm } from "@/components/settings/MailAccountForm";
 import { TimezoneSelect } from "@/components/settings/TimezoneSelect";
 import { detectBrowserTimezone, shortTimezoneLabel } from "@/lib/datetime/timezone";
@@ -33,7 +34,7 @@ const TABS: { id: SettingsTab; label: string; soon?: boolean }[] = [
   { id: "notifications", label: "Notifications", soon: true },
   { id: "integrations", label: "Intégrations" },
   { id: "backup", label: "Sauvegarde", soon: true },
-  { id: "developer", label: "Développeur", soon: true },
+  { id: "developer", label: "Développeur" },
 ];
 
 /** Onglets que le rôle peut ouvrir. Le reste de la page reste masqué. */
@@ -73,6 +74,7 @@ export default function SettingsPage() {
   const { settings, setSettings } = useThemeSettings();
   const { user, applyUser } = useAuth();
   const role = typeof user?.role === "string" ? user.role : "";
+  const isAdmin = role === "admin";
   const visibleTabs = useMemo(() => tabsForRole(role), [role]);
 
   useEffect(() => {
@@ -426,12 +428,7 @@ export default function SettingsPage() {
                   description="Backup, export de données et cache — bientôt disponibles."
                 />
               )}
-              {activeTab === "developer" && (
-                <ComingSoonPanel
-                  title="Développeur"
-                  description="Mode debug, clés API et outils développeur — bientôt."
-                />
-              )}
+              {activeTab === "developer" && isAdmin && <EmailDiagPanel />}
             </div>
           </div>
         </div>
