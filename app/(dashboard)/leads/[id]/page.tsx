@@ -13,6 +13,7 @@ import { getLeadEmail, getLeadName, getLeadPhoneDisplay } from "@/lib/leads/clic
 import { getLeadStatusPalette } from "@/lib/leads/statusPalette";
 import { formatDateTime } from "@/lib/utils/date";
 import { AppToast } from "@/components/clients/AppToast";
+import { EmailOpenIndicator } from "@/components/email/EmailOpenIndicator";
 import { LeadEmailPanel } from "@/components/leads/LeadEmailPanel";
 import { LeadProposalModal } from "@/components/leads/LeadProposalModal";
 import { LeadWhatsappPanel } from "@/components/leads/LeadWhatsappPanel";
@@ -269,7 +270,14 @@ export default function LeadDetailPage() {
                 <div className="col-sm-6">
                   <div className="lead-meta-label">Email</div>
                   <div className="lead-meta-value fw-semibold">
-                    {email ? <a href={`mailto:${email}`}>{email}</a> : "—"}
+                    {email ? (
+                      <span className="d-inline-flex align-items-center gap-2">
+                        <a href={`mailto:${email}`}>{email}</a>
+                        <EmailOpenIndicator email={email} />
+                      </span>
+                    ) : (
+                      "—"
+                    )}
                   </div>
                 </div>
                 <div className="col-sm-6">

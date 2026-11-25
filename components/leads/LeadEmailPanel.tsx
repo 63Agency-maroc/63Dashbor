@@ -6,6 +6,7 @@ import { ApiError } from "@/lib/api/client";
 import { getEmailTemplates, type EmailTemplate } from "@/lib/api/email-templates";
 import { getLeadEmails, sendLeadEmail, type EmailMessage } from "@/lib/api/leads";
 import { getMailAccount } from "@/lib/api/mailAccount";
+import { EmailOpenIndicator } from "@/components/email/EmailOpenIndicator";
 import { CASABLANCA_TZ, formatDateTime } from "@/lib/utils/date";
 
 type Props = {
@@ -255,14 +256,17 @@ export function LeadEmailPanel({ leadId, leadEmail, onToast }: Props) {
           <label className="form-label small mb-1" htmlFor="lead-email-to">
             To
           </label>
-          <input
-            id="lead-email-to"
-            className="form-control form-control-sm"
-            value={hasEmail ? to : ""}
-            placeholder={hasEmail ? undefined : "—"}
-            readOnly
-            disabled
-          />
+          <div className="d-flex align-items-center gap-2">
+            <input
+              id="lead-email-to"
+              className="form-control form-control-sm"
+              value={hasEmail ? to : ""}
+              placeholder={hasEmail ? undefined : "—"}
+              readOnly
+              disabled
+            />
+            {hasEmail ? <EmailOpenIndicator email={to} /> : null}
+          </div>
         </div>
         <div className="mb-2">
           <label className="form-label small mb-1" htmlFor="lead-email-template">

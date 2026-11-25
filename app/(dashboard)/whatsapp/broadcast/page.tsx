@@ -44,6 +44,7 @@ import {
   detectTemplateVarIndices,
 } from "@/lib/whatsapp/templatePlaceholders";
 import { Select } from "@/components/ui/Select";
+import { EmailOpenIndicator } from "@/components/email/EmailOpenIndicator";
 import { formatDateTime } from "@/lib/utils/date";
 
 const LEADS_FETCH = 200;
@@ -1955,6 +1956,7 @@ export default function WhatsappBroadcastPage() {
                       <th>Email</th>
                       <th>WA</th>
                       <th>Email statut</th>
+                      <th>Ouverture</th>
                       <th>Erreurs</th>
                     </tr>
                   </thead>
@@ -1986,13 +1988,20 @@ export default function WhatsappBroadcastPage() {
                               <span className="badge bg-danger-subtle text-danger">Échec</span>
                             )}
                           </td>
+                          <td>
+                            {r.email ? (
+                              <EmailOpenIndicator email={r.email} />
+                            ) : (
+                              <span className="text-muted">—</span>
+                            )}
+                          </td>
                           <td className="small text-muted">{errs || "—"}</td>
                         </tr>
                       );
                     })}
                     {results.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="text-center text-muted py-4">
+                        <td colSpan={7} className="text-center text-muted py-4">
                           Aucun résultat
                         </td>
                       </tr>
