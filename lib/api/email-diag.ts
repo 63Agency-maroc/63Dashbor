@@ -1,6 +1,6 @@
 import { api } from "@/lib/api/client";
 
-export type EmailDiagMode = "RAW" | "FULL";
+export type EmailDiagMode = "RAW" | "FULL" | "PIXEL" | "UNSUB" | "HEADERS";
 
 export type EmailDiagDto = {
   to: string;

@@ -50,13 +50,17 @@ export function EmailDiagPanel() {
           style={{ minWidth: 280 }}
         />
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <button type="button" disabled={busy !== null} onClick={() => void send("RAW")}>
-          {busy === "RAW" ? "…" : "Envoyer RAW"}
-        </button>
-        <button type="button" disabled={busy !== null} onClick={() => void send("FULL")}>
-          {busy === "FULL" ? "…" : "Envoyer FULL"}
-        </button>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+        {(["RAW", "FULL", "PIXEL", "UNSUB", "HEADERS"] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            disabled={busy !== null}
+            onClick={() => void send(mode)}
+          >
+            {busy === mode ? "…" : mode === "RAW" || mode === "FULL" ? `Envoyer ${mode}` : mode}
+          </button>
+        ))}
       </div>
       {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
       {result ? (
